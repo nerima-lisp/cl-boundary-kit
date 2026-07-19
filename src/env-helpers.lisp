@@ -12,23 +12,23 @@
        :result result)
      result))
 
-(defmacro %with-environment-call ((environment operation arguments) recording-body &body body)
-  `(cond
-     ((%recording-environment-p ,environment)
-      (%recorded (,environment ,operation ,arguments)
-        ,recording-body))
-     (t
-      (let ((result (progn ,@body)))
-        (if (%test-environment-p ,environment)
-            (%recorded (,environment ,operation ,arguments) result)
-            result)))))
+(defmacro %with-environment-call ((environment operation arguments) &body body)
+  ;; :TEST and :RECORDING environments both record onto their OWN calls slot
+  ;; around the same BODY, which always reads ENVIRONMENT's own (possibly
+  ;; delegate-copied, but never itself self-recording) collaborator
+  ;; functions -- never a delegate's public ENVIRONMENT-GET/-SET/-LIST,
+  ;; which would re-enter the delegate's own recording path and double-count
+  ;; the call.
+  `(if (or (%recording-environment-p ,environment) (%test-environment-p ,environment))
+       (%recorded (,environment ,operation ,arguments)
+         ,@body)
+       (progn ,@body)))
 
-(defmacro %define-recording-environment-operation (name lambda-list operation arguments recording-form direct-form &optional docstring)
+(defmacro %define-recording-environment-operation (name lambda-list operation arguments direct-form &optional docstring)
   `(defun ,name ,lambda-list
      ,@(when docstring (list docstring))
      (%with-environment (environment)
        (%with-environment-call (environment ,operation ,arguments)
-           ,recording-form
          ,direct-form))))
 
 (defmacro %define-plist-constructor (name docstring implementation)
@@ -103,26 +103,22 @@
              do (push (cons (car rest) (cadr rest)) entries))
        (funcall kont (nreverse entries))))))
 
-(defun %environment-entry-cell (entries name)
-  (assoc name entries :test #'equal))
-
-(defun %upsert-environment-entry (entries name value)
-  (let ((cell (%environment-entry-cell entries name)))
-    (if cell
-        (progn
-          (setf (cdr cell) value)
-          entries)
-        (acons name value entries))))
+(defun %sorted-environment-entries-from-table (table)
+  (let ((entries nil))
+    (maphash (lambda (name value) (push (cons name value) entries)) table)
+    (%sorted-environment-entries entries)))
 
 (defun %seed-environment-bindings-cps (initial-values kont)
+  ;; A hash table gives O(1) get/set/seed regardless of how many bindings a
+  ;; test environment carries, instead of an alist's O(n) ASSOC scan per
+  ;; lookup and O(n^2) cost to seed N initial bindings one upsert at a time.
   (%normalize-environment-values-cps
    initial-values
    (lambda (bindings)
-     (let ((entries nil))
+     (let ((table (make-hash-table :test 'equal)))
        (dolist (binding bindings)
-         (setf entries
-               (%upsert-environment-entry entries (car binding) (cdr binding))))
-       (funcall kont entries)))))
+         (setf (gethash (car binding) table) (cdr binding)))
+       (funcall kont table)))))
 
 (defun %environment-values (getter name)
   (multiple-value-list (funcall getter name)))

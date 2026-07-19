@@ -157,6 +157,18 @@
                      :result (process-result :command '("sh" "-c" "printf hi")
                                              :stdout "ok"))))))
 
+;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
+;;; double-record every call -- once on the wrapper, once on the delegate's
+;;; own history -- because the recording dispatch recursed through the
+;;; delegate's public PROCESS-BOUNDARY-RUN, re-entering the delegate's own
+;;; recording path. Only the wrapper should record.
+(it "recording-process-boundary-does-not-double-record-a-self-recording-delegate"
+  (let* ((delegate (make-test-process-boundary :results (list (process-result :stdout "ok"))))
+         (process (make-recording-process-boundary :delegate delegate)))
+    (process-boundary-run process "cmd")
+    (expect (= (length (recording-process-calls process)) 1) :to-be-truthy)
+    (expect (= (length (recording-process-calls delegate)) 0) :to-be-truthy)))
+
 (it "process-boundary-forwards-timeout-to-custom-runner"
   (with-process-boundary-runner (process (process-result :stdout (write-to-string timeout)))
     (let ((result (process-boundary-run process "demo" :timeout +process-test-timeout+)))

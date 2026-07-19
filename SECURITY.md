@@ -20,6 +20,20 @@ system resources.
 - Process and network boundaries
 - Logging and recording helpers
 
+## Known Scope Caveats
+
+Recording boundaries (`make-recording-*`) and their `:test` counterparts keep
+every call in an in-memory, unbounded list for the life of the boundary
+object, with no built-in redaction, size cap, or reset short of discarding the
+object. That is intentional for the library's actual scope -- a single test's
+or example's boundary object -- but it is not a safe pattern for a long-lived
+process: reusing one recording boundary across many operations in a
+production-like service grows its call history without bound and retains
+whatever arguments/results (including env values or subprocess
+arguments/environment) flowed through it for as long as the object is
+reachable. Give a recording boundary the lifetime of a single test or
+operation rather than sharing one across a long-lived process.
+
 ## Reporting Issues
 
 Prefer a private report when the repository platform offers one. If a private

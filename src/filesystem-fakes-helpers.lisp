@@ -76,24 +76,19 @@
         'filesystem-write-file
         (format nil "test filesystem does not implement :IF-EXISTS ~S" mode))))))
 
-(defun %record-test-filesystem-call (call-box operation arguments result)
-  (%record-call (car call-box)
-    :operation operation
-    :arguments arguments
-    :result result)
-  result)
-
-(defmacro define-test-filesystem-operation-fn (name lambda-list operation arguments-form &body body)
-  `(defun ,name (files call-box)
+(defmacro define-test-filesystem-operation-fn (name lambda-list &body body)
+  ;; No recording here: %WITH-RECORDING-FILESYSTEM-CALL applies it externally
+  ;; for both :TEST and :RECORDING kinds, so a recording filesystem wrapping
+  ;; a test-filesystem delegate can call this raw effect directly (as
+  ;; MAKE-RECORDING-FILESYSTEM already copies it verbatim) without
+  ;; re-entering the delegate's own recording path and double-recording.
+  `(defun ,name (files)
      (lambda ,lambda-list
-       (let ((result (progn ,@body)))
-         (%record-test-filesystem-call call-box ,operation ,arguments-form result)
-         result))))
+       ,@body)))
 
 (define-test-filesystem-operation-fn %make-test-filesystem-read-fn
     (path &key external-format)
-  :read-file
-  (list path :external-format external-format)
+  (declare (ignore external-format))
   (let ((entry (%filesystem-entry-for-path files path)))
     (unless entry
       (error "Test filesystem cannot read missing file ~S" path))
@@ -101,12 +96,7 @@
 
 (define-test-filesystem-operation-fn %make-test-filesystem-write-fn
     (path content &key if-exists if-does-not-exist external-format)
-  :write-file
-  (list path
-        :content content
-        :if-exists if-exists
-        :if-does-not-exist if-does-not-exist
-        :external-format external-format)
+  (declare (ignore external-format))
   (%set-filesystem-entry-in
    files
    path
@@ -120,21 +110,15 @@
 
 (define-test-filesystem-operation-fn %make-test-filesystem-probe-fn
     (path)
-  :probe-file
-  (list path)
   (and (%filesystem-entry-for-path files path)
        (pathname path)))
 
 (define-test-filesystem-operation-fn %make-test-filesystem-list-directory-fn
     (directory)
-  :list-directory
-  (list directory)
   (%sorted-test-directory-entries-in files directory))
 
 (define-test-filesystem-operation-fn %make-test-filesystem-path-exists-p-fn
     (path)
-  :path-exists-p
-  (list path)
   (not (null (%filesystem-entry-for-path files path))))
 
 (defun %seed-test-filesystem-files (files initial-files)
@@ -149,11 +133,11 @@
    +test-filesystem-type+
    :files files
    :calls call-box
-   :read-file-fn (%make-test-filesystem-read-fn files call-box)
-   :write-file-fn (%make-test-filesystem-write-fn files call-box)
-   :probe-file-fn (%make-test-filesystem-probe-fn files call-box)
-   :list-directory-fn (%make-test-filesystem-list-directory-fn files call-box)
-   :path-exists-p-fn (%make-test-filesystem-path-exists-p-fn files call-box)))
+   :read-file-fn (%make-test-filesystem-read-fn files)
+   :write-file-fn (%make-test-filesystem-write-fn files)
+   :probe-file-fn (%make-test-filesystem-probe-fn files)
+   :list-directory-fn (%make-test-filesystem-list-directory-fn files)
+   :path-exists-p-fn (%make-test-filesystem-path-exists-p-fn files)))
 
 (defstruct (%filesystem-entry (:constructor %make-filesystem-entry (in content))
                               (:conc-name %filesystem-entry-))
@@ -176,6 +160,10 @@
         (concatenate 'string directory-name "/"))))
 
 (defun %sorted-test-directory-entries-in (files directory)
+  ;; Compute each matching entry's namestring once, here, and carry it
+  ;; alongside PATH for the sort key -- SORT's :KEY function can otherwise
+  ;; re-run the same PATHNAME/NAMESTRING conversion per comparison rather
+  ;; than once per entry.
   (let ((prefix (%directory-path-prefix directory))
         (entries nil))
     (maphash (lambda (path entry)
@@ -183,6 +171,6 @@
                (let ((path-name (namestring (pathname path))))
                  (when (and (<= (length prefix) (length path-name))
                             (string= prefix path-name :end2 (length prefix)))
-                   (push path entries))))
+                   (push (cons path path-name) entries))))
              files)
-    (sort entries #'string< :key (lambda (path) (namestring (pathname path))))))
+    (mapcar #'car (sort entries #'string< :key #'cdr))))

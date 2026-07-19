@@ -50,20 +50,15 @@
     (declare (ignore initial-values-supplied-p))
     (%seed-environment-bindings-cps
      initial-values
-     (lambda (entries)
-       (let ((state entries))
-         (%make-env-boundary
-          :kind :test
-          :get-fn (lambda (name)
-                    (let ((cell (%environment-entry-cell state name)))
-                      (if cell
-                          (values (cdr cell) t)
-                          (values nil nil))))
-          :set-fn (lambda (name value)
-                    (setf state (%upsert-environment-entry state name value))
-                    value)
-          :list-fn (lambda ()
-                     (%sorted-environment-entries state))))))))
+     (lambda (table)
+       (%make-env-boundary
+        :kind :test
+        :get-fn (lambda (name)
+                  (gethash name table))
+        :set-fn (lambda (name value)
+                  (setf (gethash name table) value))
+        :list-fn (lambda ()
+                   (%sorted-environment-entries-from-table table)))))))
 
 (%define-plist-constructor make-test-environment
     "Create a deterministic test environment boundary from plist OPTIONS."
@@ -79,12 +74,18 @@
       (%plist-ref-values options :delegate (make-environment))
     (declare (ignore delegate-supplied-p))
     (require-instance delegate 'env-boundary "DELEGATE")
+    ;; Copy the delegate's own collaborators (transitively raw even when
+    ;; DELEGATE is itself a recording environment) instead of routing calls
+    ;; through the delegate's public ENVIRONMENT-GET/-SET/-LIST functions.
+    ;; Recursing through those would re-enter the delegate's own recording
+    ;; path when it is a :TEST-kind environment, double-recording every
+    ;; call: once here, once on the delegate's own history.
     (%make-env-boundary
      :kind :recording
      :delegate delegate
-     :get-fn nil
-     :set-fn nil
-     :list-fn nil)))
+     :get-fn (environment-get-fn delegate)
+     :set-fn (environment-set-fn delegate)
+     :list-fn (environment-list-fn delegate))))
 
 (%define-plist-constructor make-recording-environment
     "Create a recording environment boundary from plist OPTIONS."
@@ -94,7 +95,6 @@
     (environment name &optional default)
     :get
     (list name)
-    (environment-get (recording-environment-delegate environment) name default)
     (%environment-value-from-call
      (%environment-values (environment-get-fn environment) name)
      default)
@@ -104,7 +104,6 @@
     (environment name)
     :present-p
     (list name)
-    (environment-present-p (recording-environment-delegate environment) name)
     (%environment-presence-from-call
      (%environment-values (environment-get-fn environment) name))
   "Return true when NAME is bound in ENVIRONMENT.")
@@ -113,7 +112,6 @@
     (environment)
     :list
     nil
-    (environment-list (recording-environment-delegate environment))
     (funcall (environment-list-fn environment))
   "Return the bindings visible in ENVIRONMENT.")
 
@@ -121,7 +119,6 @@
     (environment name value)
     :set
     (list name value)
-    (environment-set (recording-environment-delegate environment) name value)
     (let ((setter (environment-set-fn environment)))
       (if setter
           (funcall setter name value)

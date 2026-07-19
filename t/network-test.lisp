@@ -103,6 +103,18 @@
   (signals error
     (make-recording-network-boundary)))
 
+;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
+;;; double-record every call -- once on the wrapper, once on the delegate's
+;;; own history -- because the recording dispatch recursed through the
+;;; delegate's public NETWORK-BOUNDARY-REQUEST, re-entering the delegate's
+;;; own recording path. Only the wrapper should record.
+(it "recording-network-boundary-does-not-double-record-a-self-recording-delegate"
+  (let* ((delegate (make-test-network-boundary :responses (list "ok")))
+         (network (make-recording-network-boundary :delegate delegate)))
+    (network-boundary-request network '(:method :get :url "https://example.test"))
+    (expect (= (length (recording-network-calls network)) 1) :to-be-truthy)
+    (expect (= (length (recording-network-calls delegate)) 0) :to-be-truthy)))
+
 (it "recording-network-boundary-preserves-explicit-nil-responses-in-call-history"
   (with-network-boundary (network make-recording-network-boundary
                                   :delegate (make-network-boundary

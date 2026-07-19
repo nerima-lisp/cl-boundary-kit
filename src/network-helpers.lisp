@@ -21,17 +21,14 @@
      (error "Unsupported network boundary type: ~S" boundary))))
 
 (defun %test-network-response (network-boundary request timeout)
+  ;; No recording here: NETWORK-BOUNDARY-REQUEST applies it externally for
+  ;; every :TEST/:RECORDING kind, so a recording boundary wrapping this
+  ;; delegate can dispatch straight to this raw effect without re-entering
+  ;; the delegate's own recording path and double-recording the call.
+  (declare (ignore timeout))
   (let ((responses (test-network-boundary-responses network-boundary)))
     (unless responses
       (error "Test network boundary has no remaining responses for request ~S" request))
     (let ((response (first responses)))
       (setf (test-network-boundary-responses network-boundary) (rest responses))
-      (%record-network-call network-boundary request timeout response)
       response)))
-
-(defun %recording-network-response (network-boundary request timeout)
-  (let ((result (network-boundary-request (recording-network-boundary-delegate network-boundary)
-                                          request
-                                          :timeout timeout)))
-    (%record-network-call network-boundary request timeout result)
-    result))

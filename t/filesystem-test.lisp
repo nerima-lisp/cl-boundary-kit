@@ -156,6 +156,18 @@
                                                         (list path)
                                                         :result result))))))
 
+;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
+;;; double-record every call -- once on the wrapper, once on the delegate's
+;;; own history -- because MAKE-RECORDING-FILESYSTEM copied the delegate's
+;;; already-self-recording read/write/etc. closures verbatim. Only the
+;;; wrapper should record.
+(it "recording-filesystem-does-not-double-record-a-self-recording-delegate"
+  (let* ((delegate (make-test-filesystem :initial-files (list #P"/tmp/a.txt" "hello")))
+         (fs (make-recording-filesystem :delegate delegate)))
+    (filesystem-read-file fs #P"/tmp/a.txt")
+    (expect (= (length (recording-filesystem-calls fs)) 1) :to-be-truthy)
+    (expect (= (length (recording-filesystem-calls delegate)) 0) :to-be-truthy)))
+
 (it "recording-filesystem-records-read-and-write-options"
   (let ((observed-read-args nil)
         (observed-write-args nil))

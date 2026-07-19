@@ -56,9 +56,18 @@
 (defun %recording-filesystem-p (filesystem)
   (eq (%filesystem-type filesystem) +recording-filesystem-type+))
 
+(defun %recording-or-test-filesystem-p (filesystem)
+  (member (%filesystem-type filesystem)
+          (list +test-filesystem-type+ +recording-filesystem-type+)
+          :test #'eq))
+
 (defmacro %with-recording-filesystem-call ((filesystem operation arguments) &body body)
+  ;; :TEST and :RECORDING filesystems both record onto their OWN calls box
+  ;; around the same BODY, which always calls FILESYSTEM's own (possibly
+  ;; delegate-copied, but never itself self-recording) collaborator
+  ;; functions -- never a delegate's public FILESYSTEM-READ-FILE etc.
   `(let ((filesystem (%require-filesystem ,filesystem)))
-     (if (%recording-filesystem-p filesystem)
+     (if (%recording-or-test-filesystem-p filesystem)
          (%recording-filesystem-call filesystem ,operation ,arguments
                                      (lambda () ,@body))
          (progn ,@body))))

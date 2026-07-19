@@ -43,6 +43,49 @@
   ("undefined clock mutations are rejected"
    (permitted clock mutate) :fails))
 
+;;;; ---------------------------------------------------------------------------
+;;;; API-surface completeness as a declarative invariant
+;;;;
+;;;; A functional-requirements review of this library found that every
+;;;; boundary kind exports a native/test/recording constructor triad except
+;;;; CLOCK (ADVANCE-FAKE-CLOCK already gives full control, so
+;;;; MAKE-RECORDING-CLOCK was flagged rather than added speculatively) --
+;;;; RANDOM's missing recording variant was the one asymmetry closed by
+;;;; adding MAKE-RECORDING-RANDOM-SOURCE. Encoding that as facts and a rule
+;;;; makes the intended shape checkable instead of only documented in prose:
+;;;; if a future change added a boundary kind without completing its triad,
+;;;; or "completed" CLOCK's, this invariant would need an explicit update
+;;;; rather than silently drifting from what actually shipped.
+(defparameter *boundary-api-completeness*
+  (cl-prolog:prolog
+    ((provides-native filesystem)) ((provides-native environment))
+    ((provides-native process)) ((provides-native network))
+    ((provides-native clock)) ((provides-native random))
+    ((provides-test filesystem)) ((provides-test environment))
+    ((provides-test process)) ((provides-test network))
+    ((provides-test random))
+    ((provides-recording filesystem)) ((provides-recording environment))
+    ((provides-recording process)) ((provides-recording network))
+    ((provides-recording random))
+    ((complete-triad ?boundary)
+     (provides-native ?boundary)
+     (provides-test ?boundary)
+     (provides-recording ?boundary)))
+  "Which native/test/recording constructors each boundary kind actually
+exports.")
+
+(cl-prolog/weave:deftest-queries boundary-api-triads-match-the-documented-asymmetry
+    (*boundary-api-completeness*)
+  ("every boundary except clock completes the native/test/recording triad"
+   (complete-triad ?boundary) :set
+   (((?boundary . filesystem))
+    ((?boundary . environment))
+    ((?boundary . process))
+    ((?boundary . network))
+    ((?boundary . random))))
+  ("clock is the one documented, deliberate asymmetry"
+   (complete-triad clock) :fails))
+
 (it "prolog-rulebase-extension-is-transactional"
   (let ((extended
           (cl-prolog:extend-rulebase *boundary-policy*
