@@ -123,16 +123,24 @@ exports.")
 
 ;;; FINDALL: aggregate every declared BOUNDARY/1 fact into one list and
 ;;; assert its length, rather than enumerating solutions one at a time the
-;;; way the :SET query kind above does. The query text stays a single goal
-;;; (FINDALL binds its own internal Bs), so nothing needs to extract a
-;;; bound variable's value from the returned solution structure -- only the
-;;; solution count, exactly like the CLP(FD) query below.
+;;; way the :SET query kind above does. Facts and query are both consulted
+;;; from text (like *BOUNDARY-POLICY-SOURCE* / the tabled-reachability graph
+;;; below), not queried against the sexp-authored *BOUNDARY-POLICY* --
+;;; mixing the two representations left BOUNDARY/1 unresolvable from a
+;;; text-parsed goal (an atom-identity mismatch between the two clause
+;;; authoring styles).
 (it "findall-aggregates-every-declared-boundary-fact-into-one-count"
-  (expect (= 1 (length
-                (cl-prolog:query-prolog
-                 *boundary-policy*
-                 (cl-prolog:read-prolog-term "findall(B, boundary(B), Bs), length(Bs, 5)"))))
-          :to-be-truthy))
+  (let ((policy (cl-prolog:consult-prolog
+                 "boundary(filesystem).
+                  boundary(environment).
+                  boundary(process).
+                  boundary(network).
+                  boundary(clock).")))
+    (expect (= 1 (length
+                  (cl-prolog:query-prolog
+                   policy
+                   (cl-prolog:read-prolog-term "findall(B, boundary(B), Bs), length(Bs, 5)"))))
+            :to-be-truthy)))
 
 ;;;; ---------------------------------------------------------------------------
 ;;;; Advanced cl-prolog 0.6.0 usage
