@@ -101,3 +101,25 @@
     (random-source-random (make-test-random-source :values '(1.5d0)) 10))
   (signals error
     (random-source-random (make-test-random-source :values '(2.0d0)) 2.0d0)))
+
+(it "recording-random-source-records-limit-and-result"
+  (let* ((delegate (make-test-random-source :values '(3 7)))
+         (source (make-recording-random-source :delegate delegate)))
+    (expect (= (random-source-random source 10) 3) :to-be-truthy)
+    (expect (= (random-source-random source 20) 7) :to-be-truthy)
+    (expect (equal (recording-random-source-calls source)
+               (list (boundary-call-plist :random (list 10) :result 3)
+                     (boundary-call-plist :random (list 20) :result 7))) :to-be-truthy)))
+
+(it "make-recording-random-source-defaults-to-a-real-delegate"
+  (let ((source (make-recording-random-source)))
+    (expect (< (random-source-random source 10) 10) :to-be-truthy)
+    (expect (>= (random-source-random source 10) 0) :to-be-truthy)))
+
+(it "make-recording-random-source-rejects-non-random-source-delegate"
+  (signals error
+    (make-recording-random-source :delegate :bad)))
+
+(it "recording-random-source-calls-signals-for-unsupported-source-types"
+  (signals error
+    (recording-random-source-calls (make-random-source :state (make-random-state t)))))

@@ -6,6 +6,8 @@
    #:make-boundary-context
    #:boundary-context-get
    #:boundary-context-present-p
+   #:boundary-context-keys
+   #:boundary-context-with
    #:make-recording-boundary
    #:recording-boundary-calls
    #:recording-boundary-invoke
@@ -37,6 +39,8 @@
    #:make-random-source
    #:make-deterministic-random-source
    #:make-test-random-source
+   #:make-recording-random-source
+   #:recording-random-source-calls
    #:random-source-random
    #:make-process-boundary
    #:make-test-process-boundary

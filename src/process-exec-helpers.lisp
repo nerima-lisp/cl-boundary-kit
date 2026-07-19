@@ -78,30 +78,69 @@
                 :exit-code exit-code)
           (when timed-out (list :timed-out t))))
 
-(defun %native-process-options (input directory environment output error-output)
+(defun %process-environment-entry-string (entry)
+  ;; Accept this library's own (STRING . STRING) alist shape -- the same
+  ;; shape ENVIRONMENT-LIST returns -- plus a bare "NAME=VALUE" string or a
+  ;; (KEYWORD . STRING) cons, and normalize all of them to "NAME=VALUE".
+  (cond
+    ((stringp entry) entry)
+    ((and (consp entry) (or (stringp (car entry)) (symbolp (car entry))))
+     (format nil "~A=~A"
+            (if (symbolp (car entry)) (symbol-name (car entry)) (car entry))
+            (cdr entry)))
+    (t (error "Invalid process environment entry: ~S" entry))))
+
+(defun %normalize-process-environment (environment)
+  (mapcar #'%process-environment-entry-string environment))
+
+(defun %native-process-options (input directory environment environment-supplied-p output error-output)
+  ;; ENVIRONMENT-SUPPLIED-P (not a truthiness check on ENVIRONMENT) decides
+  ;; whether :ENVIRONMENT is passed at all: an explicit empty '() must still
+  ;; reach sb-ext:run-program as "give the child no environment", not be
+  ;; treated the same as "omitted" and silently fall back to inheriting the
+  ;; full parent environment (and whatever secrets it holds). This uses
+  ;; run-program's :ENVIRONMENT keyword (a list of "NAME=VALUE" strings)
+  ;; rather than its :ENV "CMU CL compatibility" alist keyword -- :ENV NIL
+  ;; is empirically indistinguishable from "omitted" inside SBCL itself and
+  ;; still inherits the parent environment, defeating an explicit empty
+  ;; environment the exact same way the bug this fixes did.
   (append (when input
             (list :input input))
           (when directory
             (list :directory directory))
-          (when environment
-            (list :env environment))
+          (when environment-supplied-p
+            (list :environment (%normalize-process-environment environment)))
           (list :output (%process-output-option output)
                 :error (%process-output-option error-output)
                 :search t
                 :wait nil)))
 
-(defun %run-native-process/cps (program input directory environment output error-output timeout continuation)
+(defun %run-native-process/cps (program input directory environment environment-supplied-p
+                                output error-output timeout continuation)
   (let ((process (apply #'sb-ext:run-program
                         (first program)
                         (rest program)
                         (%native-process-options input
                                                  directory
                                                  environment
+                                                 environment-supplied-p
                                                  output
                                                  error-output))))
     (unwind-protect
-        (let ((stdout-thread (%start-capturing-thread process #'sb-ext:process-output output))
-              (stderr-thread (%start-capturing-thread process #'sb-ext:process-error error-output)))
+        (let (stdout-thread stderr-thread both-threads-started-p)
+          (unwind-protect
+              (progn
+                (setf stdout-thread (%start-capturing-thread process #'sb-ext:process-output output))
+                (setf stderr-thread (%start-capturing-thread process #'sb-ext:process-error error-output))
+                (setf both-threads-started-p t))
+            ;; If starting the stderr thread signals, the stdout thread (if
+            ;; already running) must still be joined here -- otherwise it is
+            ;; orphaned racing PROCESS-CLOSE below against the stream it is
+            ;; still reading. Guarded by BOTH-THREADS-STARTED-P so the normal
+            ;; (non-error) path doesn't join twice.
+            (unless both-threads-started-p
+              (%join-capturing-thread stdout-thread)
+              (%join-capturing-thread stderr-thread)))
           (let ((timed-out (%wait-for-process-with-timeout process timeout)))
             (let ((stdout (%join-capturing-thread stdout-thread))
                   (stderr (%join-capturing-thread stderr-thread))
@@ -111,11 +150,14 @@
                                                     timed-out)))))
       (sb-ext:process-close process))))
 
-(defun %real-process-run (command &key arguments input directory environment output error-output timeout)
+(defun %real-process-run (command &key arguments input directory
+                                  (environment nil environment-supplied-p)
+                                  output error-output timeout)
   (%run-native-process/cps (%normalize-program command arguments)
                            input
                            directory
                            environment
+                           environment-supplied-p
                            output
                            error-output
                            timeout

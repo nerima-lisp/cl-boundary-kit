@@ -128,3 +128,16 @@
         :request-fn (lambda (request &key timeout)
                       (declare (ignore request timeout))
                       '(:status 204))))))
+
+;;; Regression: %RECORD-NETWORK-CALL built its call record by hand instead of
+;;; going through the shared %RECORD-CALL macro, so it never got the
+;;; COPY-TREE write-time protection: mutating the request list the caller
+;;; still holds a reference to corrupted the boundary's own history.
+(it "test-network-boundary-history-is-independent-of-a-mutated-request"
+  (let ((network (make-test-network-boundary :responses (list "ok")))
+        (request (list :method :get :url "https://example.test")))
+    (network-boundary-request network request)
+    (nreverse request)
+    (expect (equal (getf (first (recording-network-calls network)) :request)
+               '(:method :get :url "https://example.test"))
+            :to-be-truthy)))

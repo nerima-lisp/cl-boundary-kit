@@ -6,16 +6,19 @@
             (:constructor %make-boundary-context (handlers)))
   handlers)
 
-(defun make-boundary-context (&rest bindings)
-  "Create a boundary context from keyword/value BINDINGS."
+(defun %populate-boundary-context-handlers (handlers bindings)
   (when (oddp (length bindings))
     (error "Boundary context bindings must come in keyword/value pairs: ~S" bindings))
-  (let ((handlers (make-hash-table :test 'eq)))
-    (loop for (key value) on bindings by #'cddr
-          do (unless (keywordp key)
-               (error "Boundary context keys must be keywords: ~S" key))
-          do (setf (gethash key handlers) value))
-    (%make-boundary-context handlers)))
+  (loop for (key value) on bindings by #'cddr
+        do (unless (keywordp key)
+             (error "Boundary context keys must be keywords: ~S" key))
+        do (setf (gethash key handlers) value))
+  handlers)
+
+(defun make-boundary-context (&rest bindings)
+  "Create a boundary context from keyword/value BINDINGS."
+  (%make-boundary-context
+   (%populate-boundary-context-handlers (make-hash-table :test 'eq) bindings)))
 
 (defun require-instance (value type name)
   (unless (typep value type)
@@ -31,6 +34,21 @@
   "Return true when CONTEXT contains a binding for KEY."
   (require-instance context 'boundary-context "CONTEXT")
   (nth-value 1 (gethash key (boundary-context-handlers context))))
+
+(defun boundary-context-keys (context)
+  "Return the keys bound in CONTEXT, in no particular order."
+  (require-instance context 'boundary-context "CONTEXT")
+  (loop for key being the hash-keys of (boundary-context-handlers context)
+        collect key))
+
+(defun boundary-context-with (context &rest bindings)
+  "Return a new boundary context derived from CONTEXT with keyword/value
+BINDINGS applied as overrides on top of CONTEXT's existing bindings."
+  (require-instance context 'boundary-context "CONTEXT")
+  (let ((handlers (make-hash-table :test 'eq)))
+    (maphash (lambda (key value) (setf (gethash key handlers) value))
+             (boundary-context-handlers context))
+    (%make-boundary-context (%populate-boundary-context-handlers handlers bindings))))
 
 (defun require-function (value name)
   (unless (functionp value)

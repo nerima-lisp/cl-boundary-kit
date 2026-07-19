@@ -53,13 +53,16 @@
   (error "Unsupported process boundary type: ~S" process-boundary))
 
 (defun process-boundary-run
-    (process-boundary command &key arguments input directory environment output error-output timeout)
+    (process-boundary command &key arguments input directory
+                              (environment nil environment-supplied-p)
+                              output error-output timeout)
   "Run COMMAND through PROCESS-BOUNDARY and return the process result."
   (%require-process-boundary process-boundary "PROCESS-BOUNDARY")
   (let ((call-keywords (%process-call-keywords arguments
                                                input
                                                directory
                                                environment
+                                               environment-supplied-p
                                                output
                                                error-output
                                                timeout)))

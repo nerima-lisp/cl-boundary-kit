@@ -10,17 +10,15 @@
   responses)
 
 (defun %record-network-call (boundary request timeout result)
-  (let ((call (list :request request
-                    :timeout timeout
-                    :result result)))
-    (typecase boundary
-      (test-network-boundary
-       (push call (%test-network-calls boundary)))
-      (recording-network-boundary
-       (push call (%recording-network-calls boundary)))
-      (t
-       (error "Unsupported network boundary type: ~S" boundary)))
-    call))
+  (typecase boundary
+    (test-network-boundary
+     (%record-call (%test-network-calls boundary)
+       :request request :timeout timeout :result result))
+    (recording-network-boundary
+     (%record-call (%recording-network-calls boundary)
+       :request request :timeout timeout :result result))
+    (t
+     (error "Unsupported network boundary type: ~S" boundary))))
 
 (defun %test-network-response (network-boundary request timeout)
   (let ((responses (test-network-boundary-responses network-boundary)))

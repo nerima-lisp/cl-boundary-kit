@@ -182,6 +182,8 @@ effects visible and testable.
 - `make-boundary-context`
 - `boundary-context-get`
 - `boundary-context-present-p`
+- `boundary-context-keys`
+- `boundary-context-with`
 - `make-recording-boundary`
 - `recording-boundary-calls`
 - `recording-boundary-invoke`
@@ -191,6 +193,10 @@ effects visible and testable.
 result from custom handlers, preserving explicit `nil` results. If the handler
 signals an error, the failure is re-signaled without adding a partial call
 record.
+`boundary-context-keys` returns the keys bound in a context, and
+`boundary-context-with` returns a new context derived from an existing one
+with explicit keyword overrides applied, leaving the original context
+untouched.
 
 ### Conditions
 
@@ -272,6 +278,8 @@ time and monotonic time independently.
 - `make-random-source`
 - `make-deterministic-random-source`
 - `make-test-random-source`
+- `make-recording-random-source`
+- `recording-random-source-calls`
 - `random-source-random`
 
 `make-deterministic-random-source` is intended for tests and reproducible
@@ -285,6 +293,10 @@ limits.
 `random-source-random` call consumes one precomputed value, signals when the
 queue is exhausted, and rejects values that do not satisfy the requested
 integer or real limit.
+`make-recording-random-source` records the requested limit and returned value
+while delegating to a real or fake source (defaulting to
+`make-random-source`), exposing the same call-record contract via
+`recording-random-source-calls`.
 
 ### Process
 

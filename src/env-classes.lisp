@@ -70,8 +70,13 @@
     %make-test-environment)
 
 (defun %make-recording-environment (options)
+  ;; Default to a native delegate, matching every sibling recording
+  ;; constructor (make-recording-filesystem -> make-filesystem,
+  ;; make-recording-process-boundary -> make-process-boundary): a caller
+  ;; asking for "no delegate" expects the real environment, not a fake
+  ;; that always reports missing/nil bindings.
   (multiple-value-bind (delegate delegate-supplied-p)
-      (%plist-ref-values options :delegate (make-test-environment))
+      (%plist-ref-values options :delegate (make-environment))
     (declare (ignore delegate-supplied-p))
     (require-instance delegate 'env-boundary "DELEGATE")
     (%make-env-boundary
@@ -127,4 +132,6 @@
 (defun recording-environment-calls (environment)
   "Return the recorded environment calls in call order."
   (%with-environment (environment)
-    (%snapshot-recorded-calls (%environment-calls environment))))
+    (if (member (environment-kind environment) '(:test :recording) :test #'eq)
+        (%snapshot-recorded-calls (%environment-calls environment))
+        (error "Unsupported environment type: ~S" (environment-kind environment)))))

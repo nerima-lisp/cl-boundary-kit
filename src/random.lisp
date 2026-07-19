@@ -11,6 +11,10 @@
 (defclass test-random-source (random-source)
   ((values :initarg :values :accessor test-random-source-values)))
 
+(defclass recording-random-source (random-source)
+  ((delegate :initarg :delegate :reader recording-random-source-delegate)
+   (calls :initform '() :accessor %recording-random-source-calls)))
+
 (defun %validate-deterministic-random-modulus (modulus)
   (unless (and (integerp modulus) (> modulus 1))
     (error "Deterministic random source modulus must be an integer greater than 1: ~S" modulus))
@@ -56,6 +60,17 @@
                  :state nil
                  :values (%validate-test-random-values values)))
 
+(defun make-recording-random-source (&key (delegate (make-random-source)))
+  "Create a random source that records calls while delegating to DELEGATE."
+  (require-instance delegate 'random-source "DELEGATE")
+  (make-instance 'recording-random-source :state nil :delegate delegate))
+
+(defun recording-random-source-calls (source)
+  "Return the recorded random-source calls in call order."
+  (unless (typep source 'recording-random-source)
+    (error "Unsupported random source type: ~S" source))
+  (%snapshot-recorded-calls (%recording-random-source-calls source)))
+
 (defun %lcg-step (state modulus)
   (mod (+ (* state 6364136223846793005) 1) modulus))
 
@@ -82,3 +97,12 @@
     (let ((value (%validate-test-random-value (first values) limit)))
       (setf (test-random-source-values source) (rest values))
       value)))
+
+(defmethod random-source-random ((source recording-random-source) limit)
+  (%validate-random-limit limit)
+  (let ((result (random-source-random (recording-random-source-delegate source) limit)))
+    (%record-call (%recording-random-source-calls source)
+      :operation :random
+      :arguments (list limit)
+      :result result)
+    result))

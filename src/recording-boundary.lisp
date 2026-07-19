@@ -30,8 +30,8 @@
    operation
    args
    (lambda (result)
-     (push (list :operation operation
-                 :arguments args
-                 :result result)
-           (%recording-boundary-calls boundary))
+     (%record-call (%recording-boundary-calls boundary)
+       :operation operation
+       :arguments args
+       :result result)
      result)))

@@ -271,3 +271,42 @@
     (expect (let ((stdout (getf result :stdout)))
               (string= (subseq stdout (- (length stdout) 10)) "0123456789"))
             :to-be-truthy)))
+
+(defun %run-native-reporting (var-names &rest environment-args)
+  (let* ((process (make-process-boundary))
+         (runtime (namestring sb-ext:*runtime-pathname*))
+         (probe (format nil "(dolist (v '~S) (format t \"[~~A]\" (sb-ext:posix-getenv v)))"
+                       var-names)))
+    (getf (apply #'process-boundary-run
+                 process runtime
+                 :arguments (list "--non-interactive" "--no-sysinit" "--no-userinit"
+                                  "--eval" probe)
+                 environment-args)
+          :stdout)))
+
+;;; Regression (security): omitting :ENVIRONMENT entirely must still inherit
+;;; the parent process's environment (unchanged existing behavior).
+(it "native-process-run-inherits-the-parent-environment-when-not-supplied"
+  (expect (not (search "[NIL]" (%run-native-reporting '("PATH")))) :to-be-truthy))
+
+;;; Regression (security): %NATIVE-PROCESS-OPTIONS used to test ENVIRONMENT's
+;;; truthiness, so an explicit empty :ENVIRONMENT '() was indistinguishable
+;;; from "not supplied" and silently fell back to inheriting the full parent
+;;; environment -- exactly the case a caller passing :environment '() is
+;;; trying to avoid (e.g. running an untrusted command without leaking
+;;; ambient secrets). It must now reach the child as a genuinely empty
+;;; environment.
+(it "native-process-run-honors-an-explicit-empty-environment-instead-of-inheriting"
+  (expect (search "[NIL]" (%run-native-reporting '("PATH") :environment nil))
+          :to-be-truthy))
+
+;;; Regression: sb-ext:run-program's :ENV wants (KEYWORD . STRING) conses,
+;;; but every other environment representation in this library (e.g.
+;;; ENVIRONMENT-LIST's return value) uses STRING keys, so passing that
+;;; natural alist straight into :ENVIRONMENT used to crash deep inside SBCL
+;;; instead of working.
+(it "native-process-run-accepts-a-string-keyed-environment-alist"
+  (expect (search "[hello][NIL]"
+                  (%run-native-reporting '("MARKER" "PATH")
+                                         :environment '(("MARKER" . "hello"))))
+          :to-be-truthy))
