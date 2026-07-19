@@ -13,9 +13,21 @@
             do (write-string chunk out :end n))
       (get-output-stream-string out))))
 
-(defun %read-process-captured-output (process accessor destination)
+(defun %start-capturing-thread (process accessor destination)
+  ;; Draining stdout/stderr must happen concurrently with waiting for the
+  ;; process, not after: a child that writes more than one OS pipe buffer
+  ;; combined across both streams blocks on write() until someone reads, so
+  ;; waiting for exit before reading deadlocks forever on large output.
   (when (%capture-destination-p destination)
-    (%slurp-stream (funcall accessor process))))
+    (let ((stream (funcall accessor process)))
+      (sb-thread:make-thread (lambda () (%slurp-stream stream))))))
+
+(defun %join-capturing-thread (thread)
+  (when thread
+    (sb-thread:join-thread thread)))
+
+(defparameter *%process-kill-grace-seconds* 2
+  "Seconds to wait after SIGTERM before escalating to SIGKILL on timeout.")
 
 (defun %deadline-seconds (timeout)
   (when timeout
@@ -25,6 +37,22 @@
 (defun %process-alive-p (process)
   (sb-ext:process-alive-p process))
 
+(defun %kill-process-with-escalation (process)
+  ;; A child that traps or ignores SIGTERM would otherwise hang this call
+  ;; (and the timeout contract) forever; SIGKILL cannot be caught or ignored.
+  (sb-ext:process-kill process 15)
+  (let ((grace-deadline (+ (get-internal-real-time)
+                           (round (* *%process-kill-grace-seconds*
+                                     internal-time-units-per-second)))))
+    (loop
+      (when (not (%process-alive-p process))
+        (return))
+      (when (>= (get-internal-real-time) grace-deadline)
+        (sb-ext:process-kill process 9)
+        (sb-ext:process-wait process)
+        (return))
+      (sleep 0.01))))
+
 (defun %wait-for-process-with-deadline (process deadline)
   (loop
     when (null deadline) do
@@ -33,8 +61,7 @@
     when (not (%process-alive-p process)) do
       (return nil)
     when (>= (get-internal-real-time) deadline) do
-      (sb-ext:process-kill process 15)
-      (sb-ext:process-wait process)
+      (%kill-process-with-escalation process)
       (return t)
     do (sleep 0.01)))
 
@@ -72,17 +99,17 @@
                                                  environment
                                                  output
                                                  error-output))))
-    (let ((timed-out (%wait-for-process-with-timeout process timeout)))
-      (let ((stdout (%read-process-captured-output process
-                                                   #'sb-ext:process-output
-                                                   output))
-            (stderr (%read-process-captured-output process
-                                                   #'sb-ext:process-error
-                                                   error-output))
-            (exit-code (sb-ext:process-exit-code process)))
-        (funcall continuation
-                 (%make-native-process-result program stdout stderr exit-code
-                                              timed-out))))))
+    (unwind-protect
+        (let ((stdout-thread (%start-capturing-thread process #'sb-ext:process-output output))
+              (stderr-thread (%start-capturing-thread process #'sb-ext:process-error error-output)))
+          (let ((timed-out (%wait-for-process-with-timeout process timeout)))
+            (let ((stdout (%join-capturing-thread stdout-thread))
+                  (stderr (%join-capturing-thread stderr-thread))
+                  (exit-code (sb-ext:process-exit-code process)))
+              (funcall continuation
+                       (%make-native-process-result program stdout stderr exit-code
+                                                    timed-out)))))
+      (sb-ext:process-close process))))
 
 (defun %real-process-run (command &key arguments input directory environment output error-output timeout)
   (%run-native-process/cps (%normalize-program command arguments)

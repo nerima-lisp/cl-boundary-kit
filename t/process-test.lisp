@@ -226,3 +226,48 @@
     (expect (getf result :timed-out) :to-be-truthy)
     ;; Killed at the ~1s deadline, not after the full 30s sleep.
     (expect (< elapsed-seconds 10) :to-be-truthy)))
+
+;;; Regression: a timed-out subprocess was only ever sent SIGTERM; a child
+;;; that traps or ignores it hung PROCESS-BOUNDARY-RUN forever despite a
+;;; :TIMEOUT being given. The runner must escalate to SIGKILL (uncatchable)
+;;; after a bounded grace period. Uses the running SBCL as the subprocess so
+;;; the test needs no external command on PATH.
+(it "native-process-run-escalates-to-sigkill-when-the-subprocess-ignores-sigterm"
+  (let* ((process (make-process-boundary))
+         (runtime (namestring sb-ext:*runtime-pathname*))
+         (start (get-internal-real-time))
+         (result (process-boundary-run
+                  process runtime
+                  :arguments (list "--non-interactive" "--no-sysinit" "--no-userinit"
+                                   "--eval" "(sb-sys:enable-interrupt sb-unix:sigterm :ignore)"
+                                   "--eval" "(sleep 30)")
+                  :timeout 1))
+         (elapsed-seconds (/ (- (get-internal-real-time) start)
+                             internal-time-units-per-second)))
+    (expect (getf result :timed-out) :to-be-truthy)
+    ;; 1s deadline + a few seconds of SIGTERM grace before SIGKILL, well
+    ;; short of the full 30s sleep.
+    (expect (< elapsed-seconds 10) :to-be-truthy)))
+
+;;; Regression: %RUN-NATIVE-PROCESS/CPS used to wait for the whole process to
+;;; exit before reading stdout/stderr. A child writing more than one OS pipe
+;;; buffer combined across both streams blocks on write() until drained, so
+;;; waiting-then-reading deadlocks forever on large output. Streams must be
+;;; drained concurrently with waiting. Uses the running SBCL as the
+;;; subprocess so the test needs no external command on PATH.
+(it "native-process-run-captures-output-larger-than-a-pipe-buffer-without-deadlocking"
+  (let* ((process (make-process-boundary))
+         (runtime (namestring sb-ext:*runtime-pathname*))
+         (result (process-boundary-run
+                  process runtime
+                  :arguments (list "--non-interactive" "--no-sysinit" "--no-userinit"
+                                   "--eval"
+                                   "(progn (loop repeat 40000 do (write-string \"0123456789\")) (finish-output))")
+                  :timeout 15)))
+    ;; >= rather than = : stdout also carries the SBCL startup banner ahead
+    ;; of the 400000 digit characters written by the --eval form. The exact
+    ;; trailing content proves nothing was dropped or truncated.
+    (expect (>= (length (getf result :stdout)) 400000) :to-be-truthy)
+    (expect (let ((stdout (getf result :stdout)))
+              (string= (subseq stdout (- (length stdout) 10)) "0123456789"))
+            :to-be-truthy)))

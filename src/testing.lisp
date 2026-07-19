@@ -63,18 +63,18 @@ optionally constrain :ARGUMENTS and :RESULT."
              (length calls)
              calls))
     (loop for expectation in validated-expectations
-          for actual in calls
           for index from 0
-          do (unless actual
+          for remaining = calls then (rest remaining)
+          do (unless remaining
                (error "Expected recorded call at index ~D matching ~S, but calls ended after ~D entries"
                       index
                       expectation
                       index))
-             (unless (%recorded-call-sequence-entry-matches-p actual expectation)
+             (unless (%recorded-call-sequence-entry-matches-p (first remaining) expectation)
                (error "Recorded call mismatch at index ~D, expected ~S, got ~S, all calls were ~S"
                       index
                       expectation
-                      actual
+                      (first remaining)
                       calls)))
     calls))
 

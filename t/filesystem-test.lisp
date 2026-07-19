@@ -264,3 +264,59 @@
 (it "recording-filesystem-calls-signals-for-unsupported-filesystem-types"
   (signals-error-message-contains "Unsupported filesystem type"
       (recording-filesystem-calls (make-filesystem))))
+
+;;; Regression: %SNAPSHOT-RECORDED-CALLS used to only COPY-LIST each call
+;;; plist, leaving a returned :RESULT list (or :ARGUMENTS) shared with the
+;;; boundary's own history. Destructively editing the value the caller
+;;; already holds (here NREVERSE on the returned directory listing) must not
+;;; retroactively corrupt what RECORDING-FILESYSTEM-CALLS reports.
+(it "recording-filesystem-history-is-independent-of-the-returned-result"
+  (let* ((entries (list "a.txt" "b.txt"))
+         (fs (make-recording-filesystem
+              :delegate (make-filesystem
+                         :list-directory-fn (lambda (directory)
+                                              (declare (ignore directory))
+                                              entries)))))
+    (let ((result (filesystem-list-directory fs #P"/tmp/")))
+      (nreverse result)
+      (expect (equal (getf (first (recording-filesystem-calls fs)) :result)
+                 (list "a.txt" "b.txt")) :to-be-truthy))))
+
+;;; Regression: :IF-EXISTS :OVERWRITE on MAKE-TEST-FILESYSTEM used to behave
+;;; like :SUPERSEDE (full replacement). Real CL :OVERWRITE opens the file
+;;; positioned at the start without truncating, so bytes beyond the new
+;;; content's length survive; the fake must match so tests written against it
+;;; do not diverge from MAKE-FILESYSTEM in production.
+(it "test-filesystem-overwrite-preserves-trailing-content-like-the-real-filesystem"
+  (let ((fs (make-test-filesystem :initial-files (list #P"/tmp/ov.txt" "hello world"))))
+    (expect (filesystem-store-file fs #P"/tmp/ov.txt" "hi" :if-exists :overwrite)
+            :to-be-truthy)
+    (expect (string= (filesystem-read-file fs #P"/tmp/ov.txt") "hillo world")
+            :to-be-truthy)))
+
+;;; Regression: FILESYSTEM-STORE-FILE's unknown-option check used PLIST-REMOVE-KEYS,
+;;; which pushed VALUE before KEY and so returned keys/values transposed. The
+;;; error message must report the actual offending option as a valid plist.
+(it "filesystem-store-file-reports-unknown-options-as-a-valid-plist"
+  (signals-error-message-contains "(:BOGUS 1)"
+      (filesystem-store-file (make-filesystem) #P"/tmp/x.txt" "content" :bogus 1)))
+
+;;; Regression: %REAL-FILESYSTEM-LIST-DIRECTORY merged a wild name/type onto
+;;; (PATHNAME DIRECTORY) directly; without a trailing separator, a string
+;;; like ".../dirtest" parses its last component as a NAME, so the merge
+;;; listed the *parent* directory instead of DIRECTORY itself.
+(it "native-filesystem-lists-directory-entries-without-a-trailing-slash"
+  (let* ((directory (merge-pathnames #P"cl-boundary-kit-notrailingslash-test/"
+                                     (uiop:temporary-directory)))
+         (fs (make-filesystem))
+         (alpha (merge-pathnames #P"alpha.txt" directory)))
+    (ensure-directories-exist directory)
+    (unwind-protect
+         (progn
+           (filesystem-store-file fs alpha "a")
+           (let* ((directory-string (string-right-trim "/" (namestring directory)))
+                  (names (mapcar #'file-namestring
+                                 (filesystem-list-directory fs directory-string))))
+             (expect (equal names '("alpha.txt")) :to-be-truthy)))
+      (ignore-errors (delete-file alpha))
+      (ignore-errors (uiop:delete-empty-directory directory)))))

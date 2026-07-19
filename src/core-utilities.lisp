@@ -40,21 +40,27 @@
      ',name))
 
 (defmacro %record-call (storage &rest initargs)
+  ;; COPY-TREE before storing so a caller that destructively edits an
+  ;; :ARGUMENTS or :RESULT value it still holds a reference to (e.g. NREVERSE
+  ;; on a returned list, SETF GETF on a returned plist) cannot corrupt the
+  ;; boundary's own history; only cons structure is copied, so atoms like
+  ;; pathnames stay shared.
   `(let ((call (list ,@initargs)))
-     (push call ,storage)
+     (push (copy-tree call) ,storage)
      call))
 
 (defun %snapshot-recorded-calls (calls)
   "Return CALLS oldest-first as an independent snapshot.
 
-CALLS is stored newest-first.  Both the returned spine and each call plist are
-freshly copied, so a caller that destructively edits the snapshot (for example
-SETF GETF on a returned call) cannot corrupt the boundary's own history."
-  (mapcar #'copy-list (reverse calls)))
+CALLS is stored newest-first.  Both the returned spine and each call plist's
+cons structure are freshly copied, so a caller that destructively edits the
+snapshot (for example SETF GETF or NREVERSE on a returned call's value)
+cannot corrupt the boundary's own history."
+  (mapcar #'copy-tree (reverse calls)))
 
 (defun plist-remove-keys (plist keys)
   (let ((filtered '()))
     (do-plist (key value plist :result (nreverse filtered))
       (unless (member key keys)
-        (push value filtered)
-        (push key filtered)))))
+        (push key filtered)
+        (push value filtered)))))

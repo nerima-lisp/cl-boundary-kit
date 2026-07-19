@@ -58,7 +58,16 @@
     (case mode
       (:append
        (concatenate 'string (%filesystem-entry-content entry) content))
-      ((:supersede :overwrite :create nil)
+      (:overwrite
+       ;; Real CL :OVERWRITE opens the file positioned at the start without
+       ;; truncating, so bytes beyond the new content's length survive from
+       ;; the original file; :SUPERSEDE/:CREATE truncate. Match that so
+       ;; make-test-filesystem doesn't diverge from make-filesystem here.
+       (let ((existing (%filesystem-entry-content entry)))
+         (if (> (length existing) (length content))
+             (concatenate 'string content (subseq existing (length content)))
+             content)))
+      ((:supersede :create nil)
        content)
       (:error
        (error "Test filesystem refuses to overwrite existing file ~S" path))
