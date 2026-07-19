@@ -342,3 +342,39 @@
                          :exit-code)
                0)
             :to-be-truthy)))
+
+;;; Regression: if the stderr-capture thread failed to start (e.g. resource
+;;; exhaustion), %RUN-NATIVE-PROCESS/CPS exited before ever reaching
+;;; %WAIT-FOR-PROCESS-WITH-TIMEOUT, so the already-spawned child was neither
+;;; killed nor reaped -- it kept running as an untracked orphan, and joining
+;;; the stdout-capture thread (already blocked reading its pipe) would not
+;;; return until that orphan's own natural lifetime ended. sb-thread:make-thread
+;;; is monkey-patched here (via without-package-locks) to fail on its second
+;;; call within a single process-boundary-run, deterministically forcing the
+;;; path that previously leaked; a long child (sleep) proves the fix returns
+;;; promptly rather than waiting out the sleep, and that no process lingers.
+(it "native-process-run-kills-the-child-and-returns-promptly-if-a-capture-thread-fails-to-start"
+  (let* ((process (make-process-boundary))
+         (runtime (namestring sb-ext:*runtime-pathname*))
+         (call-count 0)
+         (original (symbol-function 'sb-thread:make-thread))
+         (start (get-internal-real-time)))
+    (unwind-protect
+        (progn
+          (sb-ext:without-package-locks
+            (setf (symbol-function 'sb-thread:make-thread)
+                  (lambda (function &rest args)
+                    (incf call-count)
+                    (if (= call-count 2)
+                        (error "simulated capture-thread spawn failure")
+                        (apply original function args)))))
+          (signals error
+            (process-boundary-run process runtime
+                                  :arguments (list "--non-interactive" "--no-sysinit" "--no-userinit"
+                                                   "--eval" "(sleep 5)"))))
+      (sb-ext:without-package-locks
+        (setf (symbol-function 'sb-thread:make-thread) original)))
+    ;; Well under the child's 5s sleep: proves the fix didn't block waiting
+    ;; for the child's natural lifetime to end.
+    (expect (< (/ (- (get-internal-real-time) start) internal-time-units-per-second) 2)
+            :to-be-truthy)))
