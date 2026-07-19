@@ -127,3 +127,17 @@
     (cl-boundary-kit:assert-recorded-call-sequence
      nil
      (list '(:arguments ("HOME"))))))
+
+;;; Regression: with :EXACT-LENGTH NIL, the LOOP driving this check used
+;;; parallel `for ... in` clauses over both EXPECTED-CALLS and CALLS, so it
+;;; silently stopped as soon as the shorter CALLS list ran out instead of
+;;; flagging that an expected trailing call never happened.
+(it "assert-recorded-call-sequence-signals-when-expectations-outrun-calls"
+  (signals error
+    (with-boundary-calls (calls
+                          (:get (list "HOME") :result "/tmp"))
+      (cl-boundary-kit:assert-recorded-call-sequence
+       calls
+       (list (cl-boundary-kit:boundary-call-plist :get (list "HOME") :result "/tmp")
+             (cl-boundary-kit:boundary-call-plist :set (list "HOME" :value "/srv") :result t))
+       :exact-length nil))))

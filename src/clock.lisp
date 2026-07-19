@@ -20,11 +20,18 @@
 
 (defun make-fake-clock (&key (start 0) (monotonic-start start))
   "Create a mutable fake clock starting at START and MONOTONIC-START."
-  (make-instance 'fake-clock
-                 :now-fn (lambda () start)
-                 :monotonic-fn (lambda () monotonic-start)
-                 :current-time start
-                 :monotonic-time monotonic-start))
+  ;; NOW-FN/MONOTONIC-FN must read the mutable slots (not close over the
+  ;; initial START/MONOTONIC-START values), so CLOCK-NOW-FN/CLOCK-MONOTONIC-FN
+  ;; -- the public readers inherited from CLOCK -- stay consistent with
+  ;; ADVANCE-FAKE-CLOCK instead of returning frozen construction-time values.
+  (let ((clock (make-instance 'fake-clock
+                              :now-fn nil
+                              :monotonic-fn nil
+                              :current-time start
+                              :monotonic-time monotonic-start)))
+    (setf (slot-value clock 'now-fn) (lambda () (fake-clock-current-time clock)))
+    (setf (slot-value clock 'monotonic-fn) (lambda () (fake-clock-monotonic-time clock)))
+    clock))
 
 (defun advance-fake-clock (clock delta &key (monotonic-delta delta))
   "Advance fake CLOCK by DELTA and its monotonic value by MONOTONIC-DELTA."
