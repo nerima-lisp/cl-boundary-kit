@@ -322,3 +322,23 @@
                   (%run-native-reporting '("MARKER" "PATH")
                                          :environment '(("MARKER" . "hello"))))
           :to-be-truthy))
+
+;;; *NATIVE-PROCESS-SEARCH-PATH-P* lets a caller require an absolute program
+;;; path instead of implicit execvp-style $PATH resolution.
+(it "native-process-search-path-p-defaults-to-t-and-searches-path"
+  (expect *native-process-search-path-p* :to-be-truthy)
+  (let ((process (make-process-boundary)))
+    (expect (search "ok" (getf (process-boundary-run process "sh" :arguments (list "-c" "echo ok"))
+                               :stdout))
+            :to-be-truthy)))
+
+(it "native-process-search-path-p-bound-to-nil-requires-an-absolute-path"
+  (let ((process (make-process-boundary))
+        (*native-process-search-path-p* nil))
+    (signals error
+      (process-boundary-run process "sh" :arguments (list "-c" "echo ok")))
+    (expect (equal (getf (process-boundary-run process (namestring sb-ext:*runtime-pathname*)
+                                              :arguments (list "--version"))
+                         :exit-code)
+               0)
+            :to-be-truthy)))

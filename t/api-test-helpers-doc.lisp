@@ -41,6 +41,8 @@
       (push 'function kinds))
     (when (find-class symbol nil)
       (push 'type kinds))
+    (when (boundp symbol)
+      (push 'variable kinds))
     (nreverse kinds)))
 
 (defun exported-symbol-documentation-missing-entries ()

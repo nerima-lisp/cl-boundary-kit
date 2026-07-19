@@ -93,6 +93,12 @@
 (defun %normalize-process-environment (environment)
   (mapcar #'%process-environment-entry-string environment))
 
+(defparameter *native-process-search-path-p* t
+  "Whether the native process boundary searches $PATH for the program, like
+execvp. Bind to NIL around a call so a relative or attacker-influenced
+program name must instead resolve to an absolute path, rather than being
+implicitly resolved against whatever directories $PATH happens to list.")
+
 (defun %native-process-options (input directory environment environment-supplied-p output error-output)
   ;; ENVIRONMENT-SUPPLIED-P (not a truthiness check on ENVIRONMENT) decides
   ;; whether :ENVIRONMENT is passed at all: an explicit empty '() must still
@@ -112,7 +118,7 @@
             (list :environment (%normalize-process-environment environment)))
           (list :output (%process-output-option output)
                 :error (%process-output-option error-output)
-                :search t
+                :search *native-process-search-path-p*
                 :wait nil)))
 
 (defun %run-native-process/cps (program input directory environment environment-supplied-p

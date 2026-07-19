@@ -45,6 +45,7 @@
    #:make-process-boundary
    #:make-test-process-boundary
    #:process-boundary-run
+   #:*native-process-search-path-p*
    #:make-recording-process-boundary
    #:recording-process-calls
    #:make-network-boundary

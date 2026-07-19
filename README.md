@@ -303,6 +303,7 @@ while delegating to a real or fake source (defaulting to
 - `make-process-boundary`
 - `make-test-process-boundary`
 - `process-boundary-run`
+- `*native-process-search-path-p*`
 - `make-recording-process-boundary`
 - `recording-process-calls`
 
@@ -312,7 +313,13 @@ result while also storing the input arguments that produced it, including an
 explicit `nil` result when that is what the delegate or test queue returned.
 `process-boundary-run` accepts either a string program name or a pre-tokenized
 command list; in both cases `:arguments` are appended to the normalized
-command list stored in the native runner result.
+command list stored in the native runner result. An explicit `:environment`
+replaces rather than merges with the parent process's environment, and an
+explicit empty `:environment '()` gives the child none of it; omitting
+`:environment` inherits the parent environment unchanged.
+`*native-process-search-path-p*` controls whether the native runner searches
+`$PATH` for the program (like `execvp`, and `t` by default); bind it to `nil`
+around a call to require an absolute program path instead.
 `make-test-process-boundary` is a queue-backed fake for deterministic tests:
 each `process-boundary-run` call consumes one precomputed result, records the
 call, and signals when the queue is exhausted.
