@@ -91,6 +91,27 @@
       (ignore-errors (delete-file path))
       (ignore-errors (uiop:delete-empty-directory directory)))))
 
+;;; Fuzzes the test-filesystem write-mode fix (:IF-EXISTS :OVERWRITE used to
+;;; behave like :SUPERSEDE) across randomized existing/new content lengths,
+;;; via GEN-MEMBER over the three modes -- rather than the fixed-length
+;;; hand-picked strings the example-based regression test uses. Directly
+;;; encodes real CL :OVERWRITE semantics (overwrite from the start, keep any
+;;; existing tail beyond the new content's length) as the oracle.
+(it-property "test-filesystem-write-mode-matches-real-cl-if-exists-semantics"
+    ((existing (gen-string :min-length 0 :max-length 24))
+     (new-content (gen-string :min-length 0 :max-length 24))
+     (mode (gen-member (list :supersede :create :overwrite))))
+  (let* ((entry (cl-boundary-kit::%make-filesystem-entry "path" existing))
+         (result (cl-boundary-kit::%resolve-test-write-content
+                  entry "path" new-content mode nil)))
+    (expect (string= result
+                     (if (and (eq mode :overwrite)
+                              (> (length existing) (length new-content)))
+                         (concatenate 'string new-content
+                                      (subseq existing (length new-content)))
+                         new-content))
+            :to-be-truthy)))
+
 ;;; Demonstrate cl-weave's benchmark facility on the recording hot path.  The
 ;;; assertion is structural (sample count), not wall-clock, so it stays stable
 ;;; in CI while still exercising the measurement API end to end.
