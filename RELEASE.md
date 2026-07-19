@@ -29,10 +29,23 @@ documentation and evidence exercise, not just a version bump.
    into public issue history.
 8. Cut the release only after the repository state, roadmap, and release notes
    agree.
+9. Tag the release commit on `main` with an annotated `v<version>` tag whose
+   version matches `cl-boundary-kit.asd` `:version`, then push the tag:
+
+   ```sh
+   git tag -a v0.2.0 -m "cl-boundary-kit 0.2.0"
+   git push origin v0.2.0
+   ```
+
+   Pushing a `v[0-9]+.[0-9]+.[0-9]+` tag triggers
+   [`.github/workflows/release.yml`](.github/workflows/release.yml), which
+   verifies the tag matches the ASDF `:version`, extracts the matching
+   `CHANGELOG.md` section as release notes, and publishes a GitHub Release. Push
+   the tag only from a commit whose CI run is green.
 
 ## Versioning Expectations
 
-- `0.1.x` should keep the documented exported API stable unless a breaking
+- `0.2.x` should keep the documented exported API stable unless a breaking
   change is explicitly called out.
 - Intentionally breaking changes must update `CHANGELOG.md` and
   [`COMPATIBILITY.md`](COMPATIBILITY.md) in the same change.

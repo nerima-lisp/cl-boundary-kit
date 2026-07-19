@@ -9,8 +9,8 @@ system resources.
 
 | Version | Supported |
 | --- | --- |
-| `0.1.x` | Yes |
-| `< 0.1.0` | No |
+| `0.2.x` | Yes |
+| `< 0.2.0` | No |
 
 ## Supported Scope
 
@@ -36,10 +36,19 @@ operation rather than sharing one across a long-lived process.
 
 ## Reporting Issues
 
-Prefer a private report when the repository platform offers one. If a private
-reporting channel is not available, open a minimal issue that asks the
-maintainer for a private follow-up channel and do not include exploit details,
-secrets, or weaponized proof-of-concept material in that public issue.
+Send a private report through one of the channels below. Do not open a public
+issue for a security report.
+
+- **GitHub private vulnerability reporting (preferred).** Open a report from the
+  repository's **Security → Report a vulnerability** tab, or directly at
+  <https://github.com/takeokunn/cl-boundary-kit/security/advisories/new>.
+- **Email.** If you cannot use GitHub's private reporting, email the maintainer
+  at <bararararatty@gmail.com>.
+
+Do not include exploit details, secrets, or weaponized proof-of-concept material
+in any public issue. If neither private channel works for you, open a minimal
+public issue that only asks the maintainer to establish a private follow-up
+channel.
 
 For any security-relevant bug, report the exact subsystem, the observable
 behavior, and a minimal reproduction.

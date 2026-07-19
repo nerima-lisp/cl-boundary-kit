@@ -431,7 +431,6 @@ executing their snippet body.
 - `run-tests.lisp` canonical checkout test runner
 - `flake.nix` pinned Nix build, test, report, and coverage entrypoints
 - `nix/` CI runner and coverage threshold tooling
-- `todo.md` original implementation prompt retained for context
 - `COOKBOOK.md` pattern-oriented usage guide for supported flows
 - `FAQ.md` user-facing decision points and contract clarifications
 - `ARCHITECTURE.md` layering model and design constraints
@@ -506,7 +505,7 @@ should not be treated as supported contracts unless that document says so.
 The public contract is intentionally narrow:
 
 - The exported symbols listed in `## API Overview` define the supported library
-  surface for `0.1.x`.
+  surface for `0.2.x`.
 - The checked-in README snippets, `examples/*.lisp`, and the
   `asdf:load-system :cl-boundary-kit/test` plus `cl-boundary-kit/test:run-tests`
   flow are treated as regression-checked usage contracts, not illustrative

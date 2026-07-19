@@ -1,0 +1,49 @@
+name: Release
+
+# Cuts a GitHub Release when a semantic-version tag is pushed. Tags should only
+# be pushed from a commit whose CI run is green (see RELEASE.md). Release notes
+# are taken verbatim from the matching CHANGELOG.md section.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag matches the ASDF system version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          declared="$(grep -m1 ':version' cl-boundary-kit.asd | sed -E 's/.*:version "([^"]+)".*/\1/')"
+          if [ "$version" != "$declared" ]; then
+            echo "Tag $GITHUB_REF_NAME (version $version) does not match cl-boundary-kit.asd :version $declared" >&2
+            exit 1
+          fi
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v ver="## $version" '
+            $0 == ver {capture=1; next}
+            capture && /^## / {exit}
+            capture {print}
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ] || ! grep -q '[^[:space:]]' release-notes.md; then
+            printf 'See [CHANGELOG.md](CHANGELOG.md) for the %s release notes.\n' "$version" > release-notes.md
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md
