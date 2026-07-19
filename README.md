@@ -186,6 +186,7 @@ effects visible and testable.
 - `boundary-context-with`
 - `make-recording-boundary`
 - `recording-boundary-calls`
+- `reset-recording-boundary-calls`
 - `recording-boundary-invoke`
 
 `make-recording-boundary` requires `:handler` to be a function.
@@ -197,6 +198,10 @@ record.
 `boundary-context-with` returns a new context derived from an existing one
 with explicit keyword overrides applied, leaving the original context
 untouched.
+Every `reset-recording-*-calls`/`reset-recording-log-events` function across
+this library clears a boundary's recorded history in place and returns the
+boundary, so a long-lived recording/test boundary's memory use can be bounded
+without discarding and recreating the object.
 
 ### Conditions
 
@@ -220,6 +225,7 @@ branch on explicit unsupported cases.
 - `make-test-filesystem`
 - `make-recording-filesystem`
 - `recording-filesystem-calls`
+- `reset-recording-filesystem-calls`
 
 The default writer returns `t` after writing, and recording filesystems preserve
 that delegate result while storing the exact operation arguments that produced
@@ -244,6 +250,7 @@ recording filesystems require a `filesystem` delegate.
 - `make-test-environment`
 - `make-recording-environment`
 - `recording-environment-calls`
+- `reset-recording-environment-calls`
 
 `make-test-environment` accepts either an alist or a plist of initial values.
 Custom environment getters may return two values, where the second value marks
@@ -280,6 +287,7 @@ time and monotonic time independently.
 - `make-test-random-source`
 - `make-recording-random-source`
 - `recording-random-source-calls`
+- `reset-recording-random-source-calls`
 - `random-source-random`
 
 `make-deterministic-random-source` is intended for tests and reproducible
@@ -306,6 +314,7 @@ while delegating to a real or fake source (defaulting to
 - `*native-process-search-path-p*`
 - `make-recording-process-boundary`
 - `recording-process-calls`
+- `reset-recording-process-calls`
 
 The default process runner returns a property list with `:command`, `:stdout`,
 `:stderr`, and `:exit-code`. Recording process boundaries preserve the same
@@ -333,6 +342,7 @@ function, and recording wrappers require a `process-boundary` delegate.
 - `network-boundary-request`
 - `make-recording-network-boundary`
 - `recording-network-calls`
+- `reset-recording-network-calls`
 
 `network-boundary-request` accepts an opaque request object plus an optional
 `:timeout`, which is forwarded unchanged to the configured transport function.
@@ -360,6 +370,7 @@ pretending to support those operations.
 - `make-test-logger`
 - `make-recording-logger`
 - `recording-log-events`
+- `reset-recording-log-events`
 
 `make-logger` accepts `:timestamp-fn` so log events can stay deterministic in
 tests. `logger-log` returns the emitted event object, and

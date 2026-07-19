@@ -100,3 +100,32 @@
 (it "recording-log-events-signals-for-unsupported-logger-types"
   (signals-error-message-contains "Unsupported logger type"
       (recording-log-events (make-logger))))
+
+;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
+;;; double-record every event -- once on the wrapper, once on the delegate's
+;;; own history -- because the recording dispatch recursed through the
+;;; delegate's public %LOGGER-EMIT-EVENT, re-entering the delegate's own
+;;; recording path. Nesting RECORDING-LOGGERs is a different, intentional
+;;; case (each level records its own copy while cascading to the innermost
+;;; real sink) and must keep working -- see
+;;; recording-logger-preserves-event-through-nested-delegates above.
+(it "recording-logger-does-not-double-record-a-self-recording-delegate"
+  (let* ((delegate (make-test-logger))
+         (logger (make-recording-logger :delegate delegate)))
+    (logger-log logger :info "hello")
+    (expect (= (length (recording-log-events logger)) 1) :to-be-truthy)
+    (expect (= (length (recording-log-events delegate)) 0) :to-be-truthy)))
+
+(it "reset-recording-log-events-clears-history-and-returns-the-logger"
+  (let ((logger (make-test-logger)))
+    (logger-log logger :info "one")
+    (logger-log logger :info "two")
+    (expect (= (length (recording-log-events logger)) 2) :to-be-truthy)
+    (expect (eq (reset-recording-log-events logger) logger) :to-be-truthy)
+    (expect (null (recording-log-events logger)) :to-be-truthy)
+    (logger-log logger :info "three")
+    (expect (= (length (recording-log-events logger)) 1) :to-be-truthy)))
+
+(it "reset-recording-log-events-signals-for-unsupported-logger-types"
+  (signals-error-message-contains "Unsupported logger type"
+      (reset-recording-log-events (make-logger))))

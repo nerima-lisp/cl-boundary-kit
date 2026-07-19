@@ -22,6 +22,16 @@
   (require-instance boundary 'recording-boundary "BOUNDARY")
   (%snapshot-recorded-calls (%recording-boundary-calls boundary)))
 
+(defun reset-recording-boundary-calls (boundary)
+  "Clear BOUNDARY's recorded call history and return BOUNDARY.
+
+A recording boundary otherwise retains every call for the object's whole
+lifetime; call this periodically to bound memory growth instead of only
+being able to reclaim it by discarding the object."
+  (require-instance boundary 'recording-boundary "BOUNDARY")
+  (setf (%recording-boundary-calls boundary) nil)
+  boundary)
+
 (defun recording-boundary-invoke (boundary operation &rest args)
   "Invoke OPERATION on BOUNDARY with ARGS and record the interaction."
   (require-instance boundary 'recording-boundary "BOUNDARY")

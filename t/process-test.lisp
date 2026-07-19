@@ -196,6 +196,20 @@
   (signals-error-message-contains "Unsupported process boundary type"
       (recording-process-calls (make-process-boundary))))
 
+(it "reset-recording-process-calls-clears-history-and-returns-the-boundary"
+  (let ((process (make-test-process-boundary :results (list (process-result :stdout "ok")
+                                                             (process-result :stdout "ok2")))))
+    (process-boundary-run process "cmd")
+    (expect (= (length (recording-process-calls process)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-process-calls process) process) :to-be-truthy)
+    (expect (null (recording-process-calls process)) :to-be-truthy)
+    (process-boundary-run process "cmd2")
+    (expect (= (length (recording-process-calls process)) 1) :to-be-truthy)))
+
+(it "reset-recording-process-calls-signals-for-unsupported-boundary-types"
+  (signals-error-message-contains "Unsupported process boundary type"
+      (reset-recording-process-calls (make-process-boundary))))
+
 ;;; Regression: captured native output used to be reconstructed line-by-line,
 ;;; which dropped the trailing newline that most tools emit.
 (it "native-process-output-capture-preserves-a-trailing-newline"

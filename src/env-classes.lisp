@@ -132,3 +132,16 @@
     (if (member (environment-kind environment) '(:test :recording) :test #'eq)
         (%snapshot-recorded-calls (%environment-calls environment))
         (error "Unsupported environment type: ~S" (environment-kind environment)))))
+
+(defun reset-recording-environment-calls (environment)
+  "Clear ENVIRONMENT's recorded call history and return ENVIRONMENT.
+
+Recording/test environments otherwise retain every call for the object's
+whole lifetime; call this periodically to bound memory growth instead of
+only being able to reclaim it by discarding the object."
+  (%with-environment (environment)
+    (if (member (environment-kind environment) '(:test :recording) :test #'eq)
+        (progn
+          (setf (%environment-calls environment) nil)
+          environment)
+        (error "Unsupported environment type: ~S" (environment-kind environment)))))

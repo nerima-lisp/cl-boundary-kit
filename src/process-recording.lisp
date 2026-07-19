@@ -6,6 +6,18 @@
   "Return the recorded process calls in call order."
   (%snapshot-recorded-calls (%process-calls boundary)))
 
+(defun reset-recording-process-calls (boundary)
+  "Clear BOUNDARY's recorded call history and return BOUNDARY.
+
+Recording/test process boundaries otherwise retain every call for the
+object's whole lifetime; call this periodically to bound memory growth
+instead of only being able to reclaim it by discarding the object."
+  (if (%recording-process-boundary-p boundary)
+      (progn
+        (setf (getf boundary :calls) nil)
+        boundary)
+      (error "Unsupported process boundary type: ~S" boundary)))
+
 (defun %process-call-keywords (arguments input directory environment environment-supplied-p
                               output error-output timeout)
   ;; Only include :ENVIRONMENT when the caller actually supplied it, so an

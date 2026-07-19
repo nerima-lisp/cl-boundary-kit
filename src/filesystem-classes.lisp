@@ -87,3 +87,17 @@
                 :test #'eq)
         (%snapshot-recorded-calls (car (%filesystem-calls-box filesystem)))
         (error "Unsupported filesystem type: ~S" (%filesystem-type filesystem)))))
+
+(defun reset-recording-filesystem-calls (filesystem)
+  "Clear FILESYSTEM's recorded call history and return FILESYSTEM.
+
+Recording/test filesystems otherwise retain every call for the object's
+whole lifetime; call this periodically (e.g. between test cases sharing one
+long-lived filesystem, or in a long-running process) to bound memory growth
+instead of only being able to reclaim it by discarding the object."
+  (let ((filesystem (%require-filesystem filesystem)))
+    (if (%recording-or-test-filesystem-p filesystem)
+        (progn
+          (setf (car (%filesystem-calls-box filesystem)) nil)
+          filesystem)
+        (error "Unsupported filesystem type: ~S" (%filesystem-type filesystem)))))

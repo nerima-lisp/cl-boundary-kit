@@ -71,6 +71,17 @@
     (error "Unsupported random source type: ~S" source))
   (%snapshot-recorded-calls (%recording-random-source-calls source)))
 
+(defun reset-recording-random-source-calls (source)
+  "Clear SOURCE's recorded call history and return SOURCE.
+
+A recording random source otherwise retains every call for the object's
+whole lifetime; call this periodically to bound memory growth instead of
+only being able to reclaim it by discarding the object."
+  (unless (typep source 'recording-random-source)
+    (error "Unsupported random source type: ~S" source))
+  (setf (%recording-random-source-calls source) nil)
+  source)
+
 (defun %lcg-step (state modulus)
   (mod (+ (* state 6364136223846793005) 1) modulus))
 

@@ -68,3 +68,14 @@
     (expect (= (length (recording-environment-calls outer)) 1) :to-be-truthy)
     (expect (= (length (recording-environment-calls inner)) 0) :to-be-truthy)
     (expect (= (length (recording-environment-calls inner-delegate)) 0) :to-be-truthy)))
+
+(it "reset-recording-environment-calls-clears-history-and-returns-the-environment"
+  (let ((env (make-test-environment)))
+    (environment-set env "A" "1")
+    (expect (= (length (recording-environment-calls env)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-environment-calls env) env) :to-be-truthy)
+    (expect (null (recording-environment-calls env)) :to-be-truthy)))
+
+(it "reset-recording-environment-calls-signals-for-unsupported-environment-types"
+  (signals-error-message-contains "Unsupported environment type"
+      (reset-recording-environment-calls (make-environment))))

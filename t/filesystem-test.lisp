@@ -277,6 +277,19 @@
   (signals-error-message-contains "Unsupported filesystem type"
       (recording-filesystem-calls (make-filesystem))))
 
+(it "reset-recording-filesystem-calls-clears-history-and-returns-the-filesystem"
+  (let ((fs (make-test-filesystem :initial-files (list #P"/tmp/a.txt" "hi"))))
+    (filesystem-read-file fs #P"/tmp/a.txt")
+    (expect (= (length (recording-filesystem-calls fs)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-filesystem-calls fs) fs) :to-be-truthy)
+    (expect (null (recording-filesystem-calls fs)) :to-be-truthy)
+    (filesystem-read-file fs #P"/tmp/a.txt")
+    (expect (= (length (recording-filesystem-calls fs)) 1) :to-be-truthy)))
+
+(it "reset-recording-filesystem-calls-signals-for-unsupported-filesystem-types"
+  (signals-error-message-contains "Unsupported filesystem type"
+      (reset-recording-filesystem-calls (make-filesystem))))
+
 ;;; Regression: %SNAPSHOT-RECORDED-CALLS used to only COPY-LIST each call
 ;;; plist, leaving a returned :RESULT list (or :ARGUMENTS) shared with the
 ;;; boundary's own history. Destructively editing the value the caller

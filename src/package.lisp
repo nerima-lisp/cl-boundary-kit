@@ -10,6 +10,7 @@
    #:boundary-context-with
    #:make-recording-boundary
    #:recording-boundary-calls
+   #:reset-recording-boundary-calls
    #:recording-boundary-invoke
    #:unsupported-boundary-operation
    #:unsupported-boundary-operation-operation
@@ -23,6 +24,7 @@
    #:make-test-filesystem
    #:make-recording-filesystem
    #:recording-filesystem-calls
+   #:reset-recording-filesystem-calls
    #:make-environment
    #:environment-get
    #:environment-present-p
@@ -31,6 +33,7 @@
    #:make-test-environment
    #:make-recording-environment
    #:recording-environment-calls
+   #:reset-recording-environment-calls
    #:make-clock
    #:clock-now
    #:clock-monotonic
@@ -41,6 +44,7 @@
    #:make-test-random-source
    #:make-recording-random-source
    #:recording-random-source-calls
+   #:reset-recording-random-source-calls
    #:random-source-random
    #:make-process-boundary
    #:make-test-process-boundary
@@ -48,16 +52,19 @@
    #:*native-process-search-path-p*
    #:make-recording-process-boundary
    #:recording-process-calls
+   #:reset-recording-process-calls
    #:make-network-boundary
    #:make-test-network-boundary
    #:network-boundary-request
    #:make-recording-network-boundary
    #:recording-network-calls
+   #:reset-recording-network-calls
    #:make-logger
    #:make-test-logger
    #:logger-log
    #:make-recording-logger
    #:recording-log-events
+   #:reset-recording-log-events
    #:assert-recorded-call
    #:assert-recorded-call-count
    #:assert-recorded-call-sequence

@@ -123,3 +123,14 @@
 (it "recording-random-source-calls-signals-for-unsupported-source-types"
   (signals error
     (recording-random-source-calls (make-random-source :state (make-random-state t)))))
+
+(it "reset-recording-random-source-calls-clears-history-and-returns-the-source"
+  (let ((source (make-recording-random-source :delegate (make-test-random-source :values '(1 2)))))
+    (random-source-random source 10)
+    (expect (= (length (recording-random-source-calls source)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-random-source-calls source) source) :to-be-truthy)
+    (expect (null (recording-random-source-calls source)) :to-be-truthy)))
+
+(it "reset-recording-random-source-calls-signals-for-unsupported-source-types"
+  (signals error
+    (reset-recording-random-source-calls (make-random-source :state (make-random-state t)))))

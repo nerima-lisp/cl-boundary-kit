@@ -141,6 +141,23 @@
                       (declare (ignore request timeout))
                       '(:status 204))))))
 
+(it "reset-recording-network-calls-clears-history-and-returns-the-boundary"
+  (let ((network (make-test-network-boundary :responses (list "ok" "ok2"))))
+    (network-boundary-request network '(:method :get))
+    (expect (= (length (recording-network-calls network)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-network-calls network) network) :to-be-truthy)
+    (expect (null (recording-network-calls network)) :to-be-truthy)
+    (network-boundary-request network '(:method :get))
+    (expect (= (length (recording-network-calls network)) 1) :to-be-truthy)))
+
+(it "reset-recording-network-calls-signals-for-unsupported-boundary-types"
+  (signals-error-message-contains "Unsupported network boundary type"
+      (reset-recording-network-calls
+       (make-network-boundary
+        :request-fn (lambda (request &key timeout)
+                      (declare (ignore request timeout))
+                      '(:status 204))))))
+
 ;;; Regression: %RECORD-NETWORK-CALL built its call record by hand instead of
 ;;; going through the shared %RECORD-CALL macro, so it never got the
 ;;; COPY-TREE write-time protection: mutating the request list the caller
