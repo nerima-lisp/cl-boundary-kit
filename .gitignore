@@ -1,0 +1,13 @@
+# Compiled Lisp artifacts
+*.fasl
+*.dfsl
+*.fas
+*.lib
+
+# Editor/tool scratch output
+.playwright-mcp/
+tmp/
+tmp-debug/
+
+# Serena project cache
+.serena/cache/
