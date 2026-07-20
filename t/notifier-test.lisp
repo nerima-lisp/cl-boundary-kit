@@ -7,7 +7,8 @@
          (notifier (make-notifier :emit-fn (lambda (event) (push event emitted)))))
     (let ((event (notifier-notify notifier "a@test" "Hi" "Body")))
       (expect (equal (list :recipient "a@test" :subject "Hi" :body "Body") event) :to-be-truthy)
-      (expect (eq event (first emitted)) :to-be-truthy))))
+      (expect (equal event (first emitted)) :to-be-truthy)
+      (expect (not (eq event (first emitted))) :to-be-truthy))))
 
 (it "make-notifier-rejects-a-non-function-emit-fn"
   (signals error
@@ -21,10 +22,24 @@
                    (list (list :recipient "a@test" :subject "First" :body "1")
                          (list :recipient "b@test" :subject "Second" :body "2"))) :to-be-truthy)))
 
-(it "notifier-notify-returns-the-same-event-object-that-is-recorded"
+(it "notifier-notify-returns-an-independent-recorded-event"
   (let* ((notifier (make-test-notifier))
          (event (notifier-notify notifier "a@test" "S" "B")))
-    (expect (eq event (first (recording-sent-notifications notifier))) :to-be-truthy)))
+    (expect (equal event (first (recording-sent-notifications notifier))) :to-be-truthy)
+    (expect (not (eq event (first (recording-sent-notifications notifier)))) :to-be-truthy)))
+
+(it "recording-sent-notifications-returns-independent-snapshots"
+  (let* ((notifier (make-test-notifier))
+         (recipient (copy-seq "a@test"))
+         (subject (copy-seq "S"))
+         (body (copy-seq "B"))
+         (event (notifier-notify notifier recipient subject body)))
+    (setf (char recipient 0) #\x
+          (char subject 0) #\T
+          (char body 0) #\C
+          (getf event :subject) "mutated")
+    (expect (equal (list (list :recipient "a@test" :subject "S" :body "B"))
+                   (recording-sent-notifications notifier)) :to-be-truthy)))
 
 (it "notifier-notify-rejects-non-string-fields"
   (let ((notifier (make-test-notifier)))
@@ -40,8 +55,10 @@
          (delegate (make-notifier :emit-fn (lambda (event) (push event forwarded))))
          (notifier (make-recording-notifier :delegate delegate))
          (event (notifier-notify notifier "a@test" "S" "B")))
-    (expect (eq event (first (recording-sent-notifications notifier))) :to-be-truthy)
-    (expect (eq event (first forwarded)) :to-be-truthy)))
+    (expect (equal event (first (recording-sent-notifications notifier))) :to-be-truthy)
+    (expect (not (eq event (first (recording-sent-notifications notifier)))) :to-be-truthy)
+    (expect (equal event (first forwarded)) :to-be-truthy)
+    (expect (not (eq event (first forwarded))) :to-be-truthy)))
 
 (it "make-recording-notifier-defaults-to-a-no-op-sink"
   (let ((notifier (make-recording-notifier)))

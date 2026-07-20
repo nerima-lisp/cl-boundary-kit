@@ -9,5 +9,6 @@
        (event (cl-boundary-kit:logger-log logger :warn "test-only" :request-id "req-9"))
        (recorded (first (cl-boundary-kit:recording-log-events logger))))
   (format t "~&event: ~S~%" event)
-  (format t "~&same-recorded: ~S~%" (eq event recorded))
+  (format t "~&equal-recorded: ~S~%" (equal event recorded))
+  (format t "~&independent-recorded: ~S~%" (not (eq event recorded)))
   (format t "~&events: ~S~%" (cl-boundary-kit:recording-log-events logger)))

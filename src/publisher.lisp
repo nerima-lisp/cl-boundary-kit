@@ -12,8 +12,6 @@
   ((delegate :initarg :delegate :reader recording-publisher-delegate)
    (events :initform '() :accessor %publisher-events)))
 
-(defgeneric %publisher-events (publisher))
-
 (defmethod %publisher-events ((publisher publisher))
   (error "Unsupported publisher type: ~S" publisher))
 
@@ -23,7 +21,8 @@
   topic)
 
 (defun %make-published-message (topic message)
-  (list :topic topic :message message))
+  (list :topic (%copy-boundary-value topic)
+        :message (%copy-boundary-value message)))
 
 (defun make-publisher (&key (emit-fn (lambda (event) (declare (ignore event)) nil)))
   "Create a publisher boundary that sends messages to EMIT-FN.
@@ -54,10 +53,7 @@ available through `recording-published-messages`."
 
 (defun recording-published-messages (publisher)
   "Return the recorded published messages in emission order."
-  ;; Copy only the spine: PUBLISHER-PUBLISH returns each event object to the
-  ;; caller, and this reader is contracted to return those same objects (EQ),
-  ;; so entries must not be copied.
-  (reverse (%publisher-events publisher)))
+  (%snapshot-boundary-events (%publisher-events publisher)))
 
 (defgeneric %reset-publisher-events (publisher))
 
@@ -82,16 +78,15 @@ able to reclaim it by discarding the object."
 (defgeneric %publisher-emit-event (publisher event))
 
 (defmethod %publisher-emit-event ((publisher publisher) event)
-  (funcall (publisher-emit-fn publisher) event)
-  event)
+  (%emit-boundary-event (publisher-emit-fn publisher) event))
 
 (defmethod %publisher-emit-event ((publisher test-publisher) event)
-  (push event (%publisher-events publisher))
+  (push (%copy-boundary-event event) (%publisher-events publisher))
   event)
 
 (defmethod %publisher-emit-event ((publisher recording-publisher) event)
-  (push event (%publisher-events publisher))
-  (%publisher-emit-event (recording-publisher-delegate publisher) event)
+  (push (%copy-boundary-event event) (%publisher-events publisher))
+  (%publisher-emit-event (recording-publisher-delegate publisher) (%copy-boundary-event event))
   event)
 
 (defmethod publisher-publish ((publisher publisher) topic message)

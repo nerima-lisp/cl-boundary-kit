@@ -25,8 +25,8 @@
 
 (defun normalize-command (command arguments)
   (etypecase command
-    (string (cons command arguments))
-    (list (append command arguments))))
+    (string (cons command (copy-list arguments)))
+    (list (append command (copy-list arguments)))))
 
 (defmacro do-plist ((key value plist &key result) &body body)
   `(loop for (,key ,value) on ,plist by #'cddr
@@ -40,27 +40,55 @@
      ',name))
 
 (defmacro %record-call (storage &rest initargs)
-  ;; COPY-TREE before storing so a caller that destructively edits an
+  ;; Copy before storing so a caller that destructively edits an
   ;; :ARGUMENTS or :RESULT value it still holds a reference to (e.g. NREVERSE
   ;; on a returned list, SETF GETF on a returned plist) cannot corrupt the
-  ;; boundary's own history; only cons structure is copied, so atoms like
-  ;; pathnames stay shared.
+  ;; boundary's own history.
   `(let ((call (list ,@initargs)))
-     (push (copy-tree call) ,storage)
+     (push (%copy-boundary-value call) ,storage)
      call))
+
+(defun %copy-boundary-value (value)
+  "Return a defensive copy of common mutable boundary payload structure."
+  (labels ((copy-value (object)
+             (typecase object
+               (cons
+                (cons (copy-value (car object))
+                      (copy-value (cdr object))))
+               (string
+                (copy-seq object))
+               (vector
+                (let ((copy (copy-seq object)))
+                  (dotimes (index (length copy) copy)
+                    (setf (aref copy index) (copy-value (aref copy index))))))
+               (t object))))
+    (copy-value value)))
 
 (defun %snapshot-recorded-calls (calls)
   "Return CALLS oldest-first as an independent snapshot.
 
 CALLS is stored newest-first.  Both the returned spine and each call plist's
-cons structure are freshly copied, so a caller that destructively edits the
+mutable structure is freshly copied, so a caller that destructively edits the
 snapshot (for example SETF GETF or NREVERSE on a returned call's value)
 cannot corrupt the boundary's own history."
-  (mapcar #'copy-tree (reverse calls)))
+  (mapcar #'%copy-boundary-value (reverse calls)))
+
+(defun %copy-boundary-event (event)
+  "Return an independent snapshot of EVENT."
+  (%copy-boundary-value event))
+
+(defun %snapshot-boundary-events (events)
+  "Return EVENTS oldest-first as independent event snapshots."
+  (mapcar #'%copy-boundary-event (reverse events)))
+
+(defun %emit-boundary-event (emit-fn event)
+  "Call EMIT-FN with a defensive copy of EVENT and return EVENT."
+  (funcall emit-fn (%copy-boundary-event event))
+  event)
 
 (defun plist-remove-keys (plist keys)
   (let ((filtered '()))
     (do-plist (key value plist :result (nreverse filtered))
-      (unless (member key keys)
+      (unless (member key keys :test #'eq)
         (push key filtered)
         (push value filtered)))))

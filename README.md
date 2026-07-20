@@ -484,12 +484,13 @@ wrappers over `logger-log` that supply the matching level, so application code
 can call `(logger-info logger "message" :field value)` directly.
 `make-logger` accepts `:timestamp-fn` so log events can stay deterministic in
 tests. `logger-log` returns the emitted event object, and
-`make-recording-logger` records and forwards that same object to its delegate
-sink. If the sink signals an error, the attempted event stays in
+`make-recording-logger` records and forwards equal but independent snapshots to
+its delegate sink. If the sink signals an error, the attempted event stays in
 `recording-log-events` so sink failures remain inspectable in tests.
 `make-test-logger` is the sinkless test double for the same contract: it records
-each emitted event in `recording-log-events`, returns the exact event object to
-the caller, and keeps timestamp generation injectable for deterministic tests.
+each emitted event as an independent snapshot in `recording-log-events`, returns
+an equal event object to the caller, and keeps timestamp generation injectable
+for deterministic tests.
 `make-logger` rejects non-function `:sink-fn` and `:timestamp-fn` values, and
 recording loggers require a `logger` delegate.
 
@@ -1117,8 +1118,8 @@ executing their snippet body.
 - [`examples/test-process.lisp`](examples/test-process.lisp) shows queue-backed process results for deterministic tests.
 - [`examples/recording-network.lisp`](examples/recording-network.lisp) shows recording network requests, including timeout propagation, with a stub transport.
 - [`examples/test-network.lisp`](examples/test-network.lisp) shows queue-backed network responses for deterministic tests.
-- [`examples/recording-logger.lisp`](examples/recording-logger.lisp) shows that the emitted log event is the same object returned, recorded, and forwarded to a sink.
-- [`examples/test-logger.lisp`](examples/test-logger.lisp) shows a sinkless logger fake whose emitted events stay directly inspectable.
+- [`examples/recording-logger.lisp`](examples/recording-logger.lisp) shows that recorded and forwarded log events are equal but independent snapshots.
+- [`examples/test-logger.lisp`](examples/test-logger.lisp) shows a sinkless logger fake whose emitted events stay inspectable through independent snapshots.
 - [`examples/sequential-uuid.lisp`](examples/sequential-uuid.lisp) shows a deterministic counter-backed UUID source producing a reproducible identifier sequence.
 - [`examples/recording-uuid.lisp`](examples/recording-uuid.lisp) shows recording generated identifiers around a queue-backed UUID source.
 - [`examples/sequential-temp-path.lisp`](examples/sequential-temp-path.lisp) shows a deterministic counter-backed temp-path source producing a reproducible path sequence.
