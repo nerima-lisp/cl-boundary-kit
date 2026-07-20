@@ -8,6 +8,14 @@
     (expect (string= "b" (subscriber-poll subscriber)) :to-be-truthy)
     (expect (null (subscriber-poll subscriber)) :to-be-truthy)))
 
+(it "test-subscriber-copies-seeded-messages"
+  (let* ((messages (list "a" "b"))
+         (subscriber (make-test-subscriber :messages messages)))
+    (setf (first messages) "changed"
+          (rest messages) nil)
+    (expect (string= "a" (subscriber-poll subscriber)) :to-be-truthy)
+    (expect (string= "b" (subscriber-poll subscriber)) :to-be-truthy)))
+
 (it "test-subscriber-with-no-messages-polls-nil"
   (expect (null (subscriber-poll (make-test-subscriber))) :to-be-truthy))
 

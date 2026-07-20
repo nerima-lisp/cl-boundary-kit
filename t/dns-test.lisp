@@ -18,6 +18,15 @@
   (let ((resolver (make-test-dns-resolver :hosts (list "a.test" (list "10.0.0.1")))))
     (expect (equal (list "10.0.0.1") (dns-resolve resolver "a.test")) :to-be-truthy)))
 
+(it "test-dns-resolver-copies-seeded-address-lists"
+  (let* ((addresses (list "10.0.0.1" "10.0.0.2"))
+         (resolver (make-test-dns-resolver
+                    :hosts (list (cons "a.test" addresses)))))
+    (setf (first addresses) "127.0.0.1"
+          (rest addresses) nil)
+    (expect (equal (list "10.0.0.1" "10.0.0.2")
+                   (dns-resolve resolver "a.test")) :to-be-truthy)))
+
 (it "make-test-dns-resolver-rejects-non-string-addresses"
   (signals error
     (make-test-dns-resolver :hosts '(("a.test" . (42))))))

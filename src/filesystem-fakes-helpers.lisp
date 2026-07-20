@@ -2,6 +2,16 @@
 
 (in-package #:cl-boundary-kit)
 
+(defstruct (%filesystem-entry (:constructor %make-filesystem-entry (path-name content))
+                              (:conc-name %filesystem-entry-))
+  path-name
+  content)
+
+(defun %copy-test-file-content (content)
+  (if (stringp content)
+      (copy-seq content)
+      content))
+
 (defun %split-test-file-binding-cps (binding continuation)
   (cond
     ((consp binding)
@@ -92,7 +102,7 @@
   (let ((entry (%filesystem-entry-for-path files path)))
     (unless entry
       (error "Test filesystem cannot read missing file ~S" path))
-    (%filesystem-entry-content entry)))
+    (%copy-test-file-content (%filesystem-entry-content entry))))
 
 (define-test-filesystem-operation-fn %make-test-filesystem-write-fn
     (path content &key if-exists if-does-not-exist external-format)
@@ -129,6 +139,8 @@
 
 (define-test-filesystem-operation-fn %make-test-filesystem-copy-fn
     (source destination)
+  (when (equal source destination)
+    (error "Test filesystem cannot copy file ~S to itself" source))
   (let ((entry (%filesystem-entry-for-path files source)))
     (unless entry
       (error "Test filesystem cannot copy missing file ~S" source))
@@ -137,6 +149,8 @@
 
 (define-test-filesystem-operation-fn %make-test-filesystem-rename-fn
     (source destination)
+  (when (equal source destination)
+    (error "Test filesystem cannot rename file ~S to itself" source))
   (let ((entry (%filesystem-entry-for-path files source)))
     (unless entry
       (error "Test filesystem cannot rename missing file ~S" source))
@@ -155,8 +169,8 @@
   (let ((prefix (%directory-path-prefix directory)))
     (block scan
       (maphash (lambda (path entry)
-                 (declare (ignore entry))
-                 (let ((path-name (namestring (pathname path))))
+                 (declare (ignore path))
+                 (let ((path-name (%filesystem-entry-path-name entry)))
                    (when (and (<= (length prefix) (length path-name))
                               (string= prefix path-name :end2 (length prefix)))
                      (return-from scan t))))
@@ -204,17 +218,13 @@
    :directory-exists-p-fn (%make-test-filesystem-directory-exists-p-fn files directories)
    :delete-directory-fn (%make-test-filesystem-delete-directory-fn files directories)))
 
-(defstruct (%filesystem-entry (:constructor %make-filesystem-entry (in content))
-                              (:conc-name %filesystem-entry-))
-  in
-  content)
-
 (defun %filesystem-entry-for-path (files path)
   (gethash path files))
 
 (defun %set-filesystem-entry-in (files path content)
   (setf (gethash path files)
-        (%make-filesystem-entry path content))
+        (%make-filesystem-entry (namestring (pathname path))
+                                (%copy-test-file-content content)))
   content)
 
 (defun %directory-path-prefix (directory)
@@ -232,8 +242,7 @@
   (let ((prefix (%directory-path-prefix directory))
         (entries nil))
     (maphash (lambda (path entry)
-               (declare (ignore entry))
-               (let ((path-name (namestring (pathname path))))
+               (let ((path-name (%filesystem-entry-path-name entry)))
                  (when (and (<= (length prefix) (length path-name))
                             (string= prefix path-name :end2 (length prefix)))
                    (push (cons path path-name) entries))))

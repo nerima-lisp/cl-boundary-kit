@@ -79,6 +79,39 @@
       (expect (equal calls
                  (recording-network-calls network)) :to-be-truthy))))
 
+(it "test-network-boundary-copies-seeded-response-list"
+  (let* ((first-response '(:status 200 :body "ok"))
+         (second-response '(:status 503 :body "retry"))
+         (responses (list first-response second-response))
+         (network (make-test-network-boundary :responses responses)))
+    (setf (first responses) '(:status 500 :body "changed")
+          (rest responses) nil)
+    (expect (equal first-response
+                   (network-boundary-request
+                    network
+                    '(:method :get :url "https://example.test/ok"))) :to-be-truthy)
+    (expect (equal second-response
+                   (network-boundary-request
+                    network
+                    '(:method :get :url "https://example.test/retry"))) :to-be-truthy)))
+
+(it "test-network-boundary-copies-mutable-seeded-response-strings"
+  (let* ((response (copy-seq "HELLO-WORLD"))
+         (network (make-test-network-boundary :responses (list response))))
+    (setf (char response 0) #\J)
+    (expect (string= "HELLO-WORLD"
+                     (network-boundary-request
+                      network
+                      '(:method :get :url "https://example.test/string")))
+            :to-be-truthy)
+    (setf (char response 1) #\A)
+    (expect (equal (list (network-call
+                          :request '(:method :get :url "https://example.test/string")
+                          :timeout nil
+                          :result "HELLO-WORLD"))
+                   (recording-network-calls network))
+            :to-be-truthy)))
+
 (it "make-test-network-boundary-rejects-non-list-responses"
   (signals error
     (make-test-network-boundary :responses :bad)))
@@ -98,6 +131,77 @@
                                      :result '(:status 204)))
         (expect (equal calls
                    (recording-network-calls network)) :to-be-truthy)))))
+
+(it "recording-network-boundary-redacts-sensitive-call-history-by-default"
+  (with-network-boundary (network make-recording-network-boundary
+                                  :delegate (make-network-boundary
+                                             :request-fn (lambda (request &key timeout)
+                                                           (declare (ignore request timeout))
+                                                           '(:status 200
+                                                             :headers ((:set-cookie . "session=secret")
+                                                                       (:content-type . "application/json"))
+                                                             :body "{\"token\":\"secret\"}"))))
+    (let ((result (network-boundary-request
+                   network
+                   '(:method :post
+                     :url "https://example.test/token"
+                     :headers ((:authorization . "Bearer secret")
+                               (:x-api-key . "key")
+                               (:accept . "application/json"))
+                     :body "password=secret")
+                   :timeout 5)))
+      (expect (equal result
+                 '(:status 200
+                   :headers ((:set-cookie . "session=secret")
+                             (:content-type . "application/json"))
+                   :body "{\"token\":\"secret\"}"))
+              :to-be-truthy)
+      (with-network-calls (calls
+                           (:request '(:method :post
+                                       :url "https://example.test/token"
+                                       :headers ((:authorization . :redacted)
+                                                 (:x-api-key . :redacted)
+                                                 (:accept . "application/json"))
+                                       :body :redacted)
+                                     :timeout 5
+                                     :result '(:status 200
+                                               :headers ((:set-cookie . :redacted)
+                                                         (:content-type . "application/json"))
+                                               :body :redacted)))
+        (expect (equal calls
+                   (recording-network-calls network)) :to-be-truthy)))))
+
+(it "recording-network-boundary-allows-explicit-full-fidelity-history"
+  (with-network-boundary (network make-recording-network-boundary
+                                  :delegate (make-network-boundary
+                                             :request-fn (lambda (request &key timeout)
+                                                           (declare (ignore request timeout))
+                                                           '(:status 200 :body "secret")))
+                                  :request-redactor-fn #'identity
+                                  :response-redactor-fn #'identity)
+    (network-boundary-request network '(:method :post :body "secret"))
+    (with-network-calls (calls
+                         (:request '(:method :post :body "secret")
+                                   :timeout nil
+                                   :result '(:status 200 :body "secret")))
+      (expect (equal calls
+                 (recording-network-calls network)) :to-be-truthy))))
+
+(it "make-recording-network-boundary-rejects-non-function-redactors"
+  (signals error
+    (make-recording-network-boundary
+     :delegate (make-network-boundary
+                :request-fn (lambda (request &key timeout)
+                              (declare (ignore request timeout))
+                              '(:status 204)))
+     :request-redactor-fn :bad))
+  (signals error
+    (make-recording-network-boundary
+     :delegate (make-network-boundary
+                :request-fn (lambda (request &key timeout)
+                              (declare (ignore request timeout))
+                              '(:status 204)))
+     :response-redactor-fn :bad)))
 
 (it "make-recording-network-boundary-requires-delegate"
   (signals error
@@ -166,7 +270,7 @@
   (let ((network (make-test-network-boundary :responses (list "ok")))
         (request (list :method :get :url "https://example.test")))
     (network-boundary-request network request)
-    (nreverse request)
+    (setf request (nreverse request))
     (expect (equal (getf (first (recording-network-calls network)) :request)
                '(:method :get :url "https://example.test"))
             :to-be-truthy)))

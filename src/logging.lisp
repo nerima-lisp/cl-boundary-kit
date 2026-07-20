@@ -15,16 +15,14 @@
   ((delegate :initarg :delegate :reader recording-logger-delegate)
    (events :initform '() :accessor %logger-events)))
 
-(defgeneric %logger-events (logger))
-
 (defmethod %logger-events ((logger logger))
   (error "Unsupported logger type: ~S" logger))
 
 (defun %make-log-event (logger level message fields)
   (list :timestamp (funcall (logger-timestamp-fn logger))
         :level level
-        :message message
-        :fields fields))
+        :message (%copy-boundary-value message)
+        :fields (%copy-boundary-value fields)))
 
 (defgeneric %logger-emit-event (logger event))
 
@@ -53,10 +51,7 @@
 
 (defun recording-log-events (logger)
   "Return the recorded log events in emission order."
-  ;; Copy only the spine: LOGGER-LOG returns each event object to the caller,
-  ;; and RECORDING-LOG-EVENTS is contracted to return those same objects (EQ),
-  ;; so entries must not be copied the way %SNAPSHOT-RECORDED-CALLS would.
-  (reverse (%logger-events logger)))
+  (%snapshot-boundary-events (%logger-events logger)))
 
 (defgeneric %reset-logger-events (logger))
 
@@ -79,11 +74,10 @@ being able to reclaim it by discarding the object."
   logger)
 
 (defmethod %logger-emit-event ((logger logger) event)
-  (funcall (logger-sink-fn logger) event)
-  event)
+  (%emit-boundary-event (logger-sink-fn logger) event))
 
 (defmethod %logger-emit-event ((logger test-logger) event)
-  (push event (%logger-events logger))
+  (push (%copy-boundary-event event) (%logger-events logger))
   event)
 
 (defmethod %logger-emit-event ((logger recording-logger) event)
@@ -94,10 +88,10 @@ being able to reclaim it by discarding the object."
   ;; delegate: it has no real sink (its own event list *is* its effect), so
   ;; recursing into its %LOGGER-EMIT-EVENT method would push the event onto
   ;; the delegate's own history too -- double-recording, not cascading.
-  (push event (%logger-events logger))
+  (push (%copy-boundary-event event) (%logger-events logger))
   (let ((delegate (recording-logger-delegate logger)))
     (unless (typep delegate 'test-logger)
-      (%logger-emit-event delegate event)))
+      (%logger-emit-event delegate (%copy-boundary-event event))))
   event)
 
 (defmethod logger-log ((logger logger) level message &rest fields)

@@ -7,9 +7,14 @@
 
 Returns T when PATH existed and was deleted, and NIL when it was already absent,
 matching the delete contract shared with `kv-delete` and `cache-evict`."
-  (when (probe-file path)
-    (delete-file path)
-    t))
+  (handler-case
+      (progn
+        (delete-file path)
+        t)
+    (file-error (condition)
+      (if (probe-file path)
+          (error condition)
+          nil))))
 
 (%define-recording-filesystem-operation filesystem-delete-file
     (filesystem path)

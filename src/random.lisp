@@ -46,7 +46,9 @@
   value)
 
 (defun make-random-source (&key (state (make-random-state t)))
-  "Create a random source backed by STATE."
+  "Create a random source backed by STATE.
+
+This uses Common Lisp RANDOM and is not a cryptographic randomness source."
   (make-instance 'random-source :state (%validate-random-state state)))
 
 (defun make-deterministic-random-source (&key (seed 1) (modulus (expt 2 64)))
@@ -58,7 +60,7 @@
   "Create a test random source that returns VALUES in order."
   (make-instance 'test-random-source
                  :state nil
-                 :values (%validate-test-random-values values)))
+                 :values (copy-list (%validate-test-random-values values))))
 
 (defun make-recording-random-source (&key (delegate (make-random-source)))
   "Create a random source that records calls while delegating to DELEGATE."

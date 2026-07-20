@@ -11,6 +11,10 @@
 
 (defclass recording-network-boundary (network-boundary)
   ((delegate :initarg :delegate :reader recording-network-boundary-delegate)
+   (request-redactor-fn :initarg :request-redactor-fn
+                        :reader recording-network-request-redactor-fn)
+   (response-redactor-fn :initarg :response-redactor-fn
+                         :reader recording-network-response-redactor-fn)
    (calls :initform '() :accessor %recording-network-calls)))
 
 (defgeneric %network-calls (boundary))

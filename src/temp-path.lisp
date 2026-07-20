@@ -33,6 +33,11 @@
     (error "Sequential temp path start must be a non-negative integer: ~S" start))
   start)
 
+(defun %validate-temp-path-random-state (state)
+  (unless (random-state-p state)
+    (error "Temp path random state must be a random-state: ~S" state))
+  state)
+
 (defun %validate-test-temp-paths (paths)
   (unless (listp paths)
     (error "Test temp path source paths must be a list: ~S" paths))
@@ -41,24 +46,34 @@
 (defun %temp-path-under (directory name)
   (merge-pathnames (pathname name) directory))
 
-(defun %random-temp-path (directory prefix suffix)
-  ;; The one non-deterministic default: 64 random bits of hex uniqueness under
-  ;; DIRECTORY. Tests use the sequential or queue-backed doubles instead, so the
-  ;; global *RANDOM-STATE* here is the intended real-world effect.
-  (%temp-path-under directory
-                    (format nil "~A-~(~16,'0x~)~A" prefix (random (expt 2 64)) suffix)))
+(defun %random-temp-path (directory prefix suffix state)
+  ;; This still returns a candidate path rather than atomically creating a file,
+  ;; but it avoids returning an already-existing candidate from normal use.
+  (loop repeat 256
+        for path = (%temp-path-under directory
+                                     (format nil "~A-~(~32,'0x~)~A"
+                                             prefix
+                                             (random (ash 1 128) state)
+                                             suffix))
+        unless (probe-file path)
+          return path
+        finally (error "Unable to find an unused temp path under ~S" directory)))
 
-(defun make-temp-path-source (&key (directory #P"/tmp/") (prefix "tmp") (suffix ""))
+(defun make-temp-path-source (&key (directory #P"/tmp/") (prefix "tmp") (suffix "")
+                                (state (make-random-state t)))
   "Create a temp-path source that allocates unique pathnames under DIRECTORY.
 
-Each `temp-path-next` returns a fresh \"<prefix>-<random hex><suffix>\" pathname
-under DIRECTORY using the host random state, so this is the one non-deterministic
-path in this subsystem."
+Each `temp-path-next` returns a fresh candidate
+\"<prefix>-<128-bit random hex><suffix>\" pathname under DIRECTORY using STATE
+and skips candidates that already exist. This does not atomically create the
+file; callers that need exclusive creation must still open the returned path
+with an exclusive creation mode."
   (let ((directory (%validate-temp-path-directory directory))
         (prefix (%validate-temp-path-string prefix "PREFIX"))
-        (suffix (%validate-temp-path-string suffix "SUFFIX")))
+        (suffix (%validate-temp-path-string suffix "SUFFIX"))
+        (state (%validate-temp-path-random-state state)))
     (make-instance 'temp-path-source
-                   :next-fn (lambda () (%random-temp-path directory prefix suffix)))))
+                   :next-fn (lambda () (%random-temp-path directory prefix suffix state)))))
 
 (defun make-sequential-temp-path-source (&key (directory #P"/tmp/") (prefix "tmp") (suffix "") (start 0))
   "Create a deterministic temp-path source that returns counter-numbered paths.
@@ -77,11 +92,11 @@ reproducible examples."
 (defun make-test-temp-path-source (&key paths)
   "Create a queue-backed temp-path source that returns PATHS in order.
 
-Each `temp-path-next` consumes one precomputed path (a pathname or string,
+  Each `temp-path-next` consumes one precomputed path (a pathname or string,
 coerced to a pathname) and signals when the queue is exhausted."
   (make-instance 'test-temp-path-source
                  :next-fn nil
-                 :paths (%validate-test-temp-paths paths)))
+                 :paths (%copy-boundary-value (%validate-test-temp-paths paths))))
 
 (defun make-recording-temp-path-source (&key (delegate (make-temp-path-source)))
   "Create a temp-path source that records calls while delegating to DELEGATE."

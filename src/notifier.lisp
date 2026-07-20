@@ -12,8 +12,6 @@
   ((delegate :initarg :delegate :reader recording-notifier-delegate)
    (events :initform '() :accessor %notifier-events)))
 
-(defgeneric %notifier-events (notifier))
-
 (defmethod %notifier-events ((notifier notifier))
   (error "Unsupported notifier type: ~S" notifier))
 
@@ -23,7 +21,9 @@
   value)
 
 (defun %make-notification (recipient subject body)
-  (list :recipient recipient :subject subject :body body))
+  (list :recipient (%copy-boundary-value recipient)
+        :subject (%copy-boundary-value subject)
+        :body (%copy-boundary-value body)))
 
 (defun make-notifier (&key (emit-fn (lambda (event) (declare (ignore event)) nil)))
   "Create a notifier boundary that sends notifications to EMIT-FN.
@@ -54,10 +54,7 @@ available through `recording-sent-notifications`."
 
 (defun recording-sent-notifications (notifier)
   "Return the recorded notifications in send order."
-  ;; Copy only the spine: NOTIFIER-NOTIFY returns each event object to the
-  ;; caller, and this reader is contracted to return those same objects (EQ),
-  ;; so entries must not be copied.
-  (reverse (%notifier-events notifier)))
+  (%snapshot-boundary-events (%notifier-events notifier)))
 
 (defgeneric %reset-notifier-events (notifier))
 
@@ -82,16 +79,15 @@ being able to reclaim it by discarding the object."
 (defgeneric %notifier-emit-event (notifier event))
 
 (defmethod %notifier-emit-event ((notifier notifier) event)
-  (funcall (notifier-emit-fn notifier) event)
-  event)
+  (%emit-boundary-event (notifier-emit-fn notifier) event))
 
 (defmethod %notifier-emit-event ((notifier test-notifier) event)
-  (push event (%notifier-events notifier))
+  (push (%copy-boundary-event event) (%notifier-events notifier))
   event)
 
 (defmethod %notifier-emit-event ((notifier recording-notifier) event)
-  (push event (%notifier-events notifier))
-  (%notifier-emit-event (recording-notifier-delegate notifier) event)
+  (push (%copy-boundary-event event) (%notifier-events notifier))
+  (%notifier-emit-event (recording-notifier-delegate notifier) (%copy-boundary-event event))
   event)
 
 (defmethod notifier-notify ((notifier notifier) recipient subject body)

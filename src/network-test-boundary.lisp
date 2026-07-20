@@ -6,4 +6,4 @@
   "Create a test network boundary that returns RESPONSES in order."
   (make-instance 'test-network-boundary
                  :request-fn nil
-                 :responses (%validate-test-network-responses responses)))
+                 :responses (%copy-boundary-value (%validate-test-network-responses responses))))

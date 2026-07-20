@@ -35,7 +35,7 @@
   (let ((logger (make-test-logger :timestamp-fn (lambda () 88))))
     (let ((event (logger-log logger :info "captured" :request-id "req-7")))
       (let ((events (recording-log-events logger)))
-        (expect (eq event (first events)) :to-be-truthy)
+        (expect (not (eq event (first events))) :to-be-truthy)
         (expect (= (length events) 1) :to-be-truthy)
         (assert-log-event (first events) 88 :info "captured" '(:request-id "req-7"))))))
 
@@ -77,7 +77,7 @@
       (expect (equal (first sink-events)
                  (first outer-events)) :to-be-truthy))))
 
-(it "recording-logger-returns-the-same-event-it-records-and-forwards"
+(it "recording-logger-returns-independent-recorded-and-forwarded-events"
   (let* ((forwarded '())
          (logger (make-recording-logger
                   :delegate (make-logger
@@ -86,8 +86,27 @@
                                         (push event forwarded))))))
     (let ((event (logger-log logger :info "same" :request-id "req-2")))
       (let ((events (recording-log-events logger)))
-        (expect (eq event (first forwarded)) :to-be-truthy)
-        (expect (eq event (first events)) :to-be-truthy)))))
+        (expect (equal event (first forwarded)) :to-be-truthy)
+        (expect (equal event (first events)) :to-be-truthy)
+        (expect (not (eq event (first forwarded))) :to-be-truthy)
+        (expect (not (eq event (first events))) :to-be-truthy)))))
+
+(it "recording-log-events-returns-independent-event-snapshots"
+  (let* ((logger (make-test-logger :timestamp-fn (lambda () 10)))
+         (payload (list :secret "ok"))
+         (event (logger-log logger :info "safe" :payload payload)))
+    (setf (getf event :message) "mutated"
+          (getf (getf event :fields) :payload) :changed
+          (getf payload :secret) "changed")
+    (let ((events (recording-log-events logger)))
+      (assert-log-event (first events) 10 :info "safe" '(:payload (:secret "ok"))))))
+
+(it "logger-sink-receives-an-independent-event-copy"
+  (let ((logger (make-logger
+                 :timestamp-fn (lambda () 11)
+                 :sink-fn (lambda (event)
+                            (setf (getf event :message) "mutated")))))
+    (assert-log-event (logger-log logger :info "safe") 11 :info "safe" '())))
 
 (it "recording-logger-preserves-attempted-event-on-sink-failure"
   (let* ((logger (make-recording-logger

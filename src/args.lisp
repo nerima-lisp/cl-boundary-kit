@@ -35,14 +35,14 @@ ARGUMENTS defaults to the host process's argument vector, so this is the path
 that reads the real command line. `args-list` returns the arguments, `args-nth`
 returns one by zero-based index (or NIL when out of range), and `args-count`
 returns how many there are."
-  (make-instance 'args :arguments (%validate-args-list arguments)))
+  (make-instance 'args :arguments (copy-list (%validate-args-list arguments))))
 
 (defun make-test-args (&key arguments)
   "Create a command-line arguments boundary from an explicit ARGUMENTS list.
 
 This is the deterministic double for tests: it reads the supplied list instead
 of the host process's argument vector."
-  (make-instance 'test-args :arguments (%validate-args-list arguments)))
+  (make-instance 'test-args :arguments (copy-list (%validate-args-list arguments))))
 
 (defun make-recording-args (&key (delegate (make-test-args)))
   "Create a command-line arguments boundary that records reads while delegating

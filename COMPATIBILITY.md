@@ -6,17 +6,17 @@ Current compatibility claims are intentionally narrow and tied to executable
 verification in this repository.
 
 - Provides a pinned Nix test path through `nix run .#test`
-- Treats that pinned Nix test path as Linux-only (`x86_64-linux`), matching the
-  Ubuntu CI workflow
-- Exercises the full Linux flake check set through `nix flake check`,
-  including the canonical checkout runner, a `cl-weave` JSON report, and an
-  80% coverage threshold
+- Emits pinned Nix apps and checks for `x86_64-linux` and `aarch64-darwin`;
+  the Ubuntu CI workflow is the canonical Linux verification path
+- Exercises the supported host flake check set through `nix flake check`,
+  including the checkout runner, a `cl-weave` JSON report, and an 80% coverage
+  threshold
 - Does not require Quicklisp when using the Nix flake; Nix supplies SBCL,
   `cl-prolog`, and `cl-weave`
 - Supports direct `sbcl --script run-tests.lisp` execution when `cl-prolog` and
   `cl-weave` are already discoverable by ASDF
-- Does not treat non-Linux `nix flake check` evaluation as equivalent evidence,
-  because Linux-only checks are omitted there
+- Does not claim compatibility for hosts outside the emitted flake systems;
+  direct SBCL execution is the fallback there
 - Regression-checks the README installation, quick-start, and test commands
   against a fresh SBCL process, exercising the checkout install flow end to end
 - Regression-checks the documented REPL runner as the stable verification path:

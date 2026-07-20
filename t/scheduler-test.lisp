@@ -18,6 +18,27 @@
     (expect (equal (list :second :first) log) :to-be-truthy)
     (expect (null (test-scheduler-pending scheduler)) :to-be-truthy)))
 
+(it "test-scheduler-run-pending-preserves-failed-and-unrun-tasks-on-error"
+  (let ((scheduler (make-test-scheduler))
+        (log '())
+        (caught nil))
+    (scheduler-schedule scheduler 1
+                        (lambda ()
+                          (push :first log)
+                          (error "boom")))
+    (scheduler-schedule scheduler 2
+                        (lambda ()
+                          (push :second log)
+                          :second))
+    (handler-case
+        (test-scheduler-run-pending scheduler)
+      (error (condition)
+        (setf caught condition)))
+    (expect caught :to-be-truthy)
+    (expect (equal (list :first) log) :to-be-truthy)
+    (expect (equal (list (list :id 1 :delay 1) (list :id 2 :delay 2))
+                   (test-scheduler-pending scheduler)) :to-be-truthy)))
+
 (it "test-scheduler-cancel-drops-a-pending-task"
   (let ((scheduler (make-test-scheduler)))
     (let ((id (scheduler-schedule scheduler 5 (lambda () :a))))

@@ -9,8 +9,8 @@ system resources.
 
 | Version | Supported |
 | --- | --- |
-| `0.3.x` | Yes |
-| `< 0.3.0` | No |
+| `0.4.x` | Yes |
+| `< 0.4.0` | No |
 
 ## Supported Scope
 
@@ -79,3 +79,6 @@ Include:
 - Keep boundary recorders from leaking real system state.
 - Prefer explicit failures over silent fallback behavior when unsupported
   operations are encountered.
+- Prefer absolute paths for native process execution. PATH lookup is disabled by
+  default and should only be enabled around calls that intentionally trust the
+  ambient process environment.

@@ -25,8 +25,12 @@
       ...
     }:
     let
-      systems = [ "x86_64-linux" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-darwin"
+      ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
+      sourceRegistry = "${cl-weave}//:${cl-prolog}//:${self}//";
     in
     {
       packages = forAllSystems (
@@ -37,7 +41,7 @@
         rec {
           cl-boundary-kit = pkgs.sbcl.buildASDFSystem {
             pname = "cl-boundary-kit";
-            version = "0.3.0";
+            version = "0.4.0";
             src = self;
             systems = [ "cl-boundary-kit" ];
           };
@@ -49,9 +53,6 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          weave = cl-weave.packages.${system}.default;
-          prolog = cl-prolog.packages.${system}.default;
-          sourceRegistry = "${weave}/share/common-lisp/source//:${prolog}//:${self}//";
           runCheck =
             {
               name,
@@ -118,13 +119,11 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          weave = cl-weave.packages.${system}.default;
-          prolog = cl-prolog.packages.${system}.default;
           test = pkgs.writeShellApplication {
             name = "cl-boundary-kit-test";
             runtimeInputs = [ pkgs.sbcl ];
             text = ''
-              export CL_SOURCE_REGISTRY="${weave}/share/common-lisp/source//:${prolog}//:${self}//"
+              export CL_SOURCE_REGISTRY="${sourceRegistry}"
               exec sbcl --script ${self}/run-tests.lisp
             '';
           };
@@ -145,16 +144,13 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          weave = cl-weave.packages.${system}.default;
-          prolog = cl-prolog.packages.${system}.default;
         in
         {
           default = pkgs.mkShell {
             packages = [
               pkgs.sbcl
-              weave
             ];
-            CL_SOURCE_REGISTRY = "${weave}/share/common-lisp/source//:${prolog}//:${self}//";
+            CL_SOURCE_REGISTRY = sourceRegistry;
           };
         }
       );

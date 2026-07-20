@@ -12,8 +12,6 @@
   ((delegate :initarg :delegate :reader recording-metrics-delegate)
    (events :initform '() :accessor %metrics-events)))
 
-(defgeneric %metrics-events (metrics))
-
 (defmethod %metrics-events ((metrics metrics))
   (error "Unsupported metrics type: ~S" metrics))
 
@@ -33,7 +31,7 @@
   milliseconds)
 
 (defun %make-metric-event (type name value)
-  (list :type type :name name :value value))
+  (list :type type :name (%copy-boundary-value name) :value value))
 
 (defun make-metrics (&key (emit-fn (lambda (event) (declare (ignore event)) nil)))
   "Create a metrics boundary that sends events to EMIT-FN.
@@ -64,10 +62,7 @@ available through `recording-metric-events`."
 
 (defun recording-metric-events (metrics)
   "Return the recorded metric events in emission order."
-  ;; Copy only the spine: the metric-emitting operations return each event
-  ;; object to the caller, and this reader is contracted to return those same
-  ;; objects (EQ), so entries must not be copied.
-  (reverse (%metrics-events metrics)))
+  (%snapshot-boundary-events (%metrics-events metrics)))
 
 (defgeneric %reset-metrics-events (metrics))
 
@@ -92,16 +87,15 @@ able to reclaim it by discarding the object."
 (defgeneric %metrics-emit-event (metrics event))
 
 (defmethod %metrics-emit-event ((metrics metrics) event)
-  (funcall (metrics-emit-fn metrics) event)
-  event)
+  (%emit-boundary-event (metrics-emit-fn metrics) event))
 
 (defmethod %metrics-emit-event ((metrics test-metrics) event)
-  (push event (%metrics-events metrics))
+  (push (%copy-boundary-event event) (%metrics-events metrics))
   event)
 
 (defmethod %metrics-emit-event ((metrics recording-metrics) event)
-  (push event (%metrics-events metrics))
-  (%metrics-emit-event (recording-metrics-delegate metrics) event)
+  (push (%copy-boundary-event event) (%metrics-events metrics))
+  (%metrics-emit-event (recording-metrics-delegate metrics) (%copy-boundary-event event))
   event)
 
 (defmethod metrics-count ((metrics metrics) name amount)

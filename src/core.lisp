@@ -87,7 +87,7 @@ CONTEXT is left unchanged. Removing a key that is absent is a no-op."
   (require-instance context 'boundary-context "CONTEXT")
   (let ((handlers (make-hash-table :test 'eq)))
     (maphash (lambda (key value)
-               (unless (member key keys)
+               (unless (member key keys :test #'eq)
                  (setf (gethash key handlers) value)))
              (boundary-context-handlers context))
     (%make-boundary-context handlers)))

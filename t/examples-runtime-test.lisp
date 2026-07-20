@@ -32,8 +32,10 @@
      ":OPERATION :WRITE-FILE"
      ":EXTERNAL-FORMAT :UTF-8")
     ("examples/recording-logger.lisp"
-     "same-recorded: T"
-     "same-forwarded: T"
+     "equal-recorded: T"
+     "independent-recorded: T"
+     "equal-forwarded: T"
+     "independent-forwarded: T"
      "forwarded: ((:TIMESTAMP 42 :LEVEL :INFO :MESSAGE \"example\" :FIELDS"
      "(:USER \"take\")))"
      "events: ((:TIMESTAMP 42 :LEVEL :INFO :MESSAGE \"example\" :FIELDS (:USER \"take\")))")
@@ -56,7 +58,8 @@
      "after: \"hello world\""
      ":OPERATION :WRITE-FILE")
     ("examples/test-logger.lisp"
-     "same-recorded: T"
+     "equal-recorded: T"
+     "independent-recorded: T"
      "events: ((:TIMESTAMP 101 :LEVEL :WARN :MESSAGE \"test-only\""
      "(:REQUEST-ID \"req-9\")))")
     ("examples/test-network.lisp"

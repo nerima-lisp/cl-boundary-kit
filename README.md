@@ -291,7 +291,10 @@ destination and return the destination. The native copy transfers raw bytes and
 the native rename uses `cl:rename-file` (atomic on the same volume), so both keep
 the exact content rather than round-tripping through a string; the test
 filesystem updates its in-memory entries, and recording filesystems record the
-operation.
+operation. Copying a file to itself is rejected before opening the destination,
+so copy never truncates the source through `:if-exists :supersede`; renaming a
+file to itself is rejected as well, avoiding implementation-dependent host
+behavior and preserving fake filesystem contents.
 `filesystem-read-file-lines` reads a file and returns its contents split into a
 list of lines (following `read-line` semantics, so a trailing newline yields no
 final empty line); it is derived from `filesystem-read-file`, so it works across
@@ -399,7 +402,9 @@ while delegating to a real or fake source (defaulting to
 a list of N distinct elements drawn without replacement, `random-source-shuffle`
 returns a freshly shuffled copy of a sequence (same type, input untouched), and
 `random-source-bytes` returns a fresh `(unsigned-byte 8)` vector of N random
-bytes (useful for nonces, salts, and tokens); all are derived from
+bytes. These helpers are based on Common Lisp `random-state`, not a
+cryptographic RNG; for secrets, tokens, salts, or security nonces, inject a
+boundary backed by your platform CSPRNG. All helpers are derived from
 `random-source-random`, so they work with any random source and a recording
 source records the underlying integer draws.
 
@@ -430,8 +435,9 @@ replaces rather than merges with the parent process's environment, and an
 explicit empty `:environment '()` gives the child none of it; omitting
 `:environment` inherits the parent environment unchanged.
 `*native-process-search-path-p*` controls whether the native runner searches
-`$PATH` for the program (like `execvp`, and `t` by default); bind it to `nil`
-around a call to require an absolute program path instead.
+`$PATH` for the program (like `execvp`). It is `nil` by default so native
+process calls require absolute program paths unless callers explicitly bind it
+to `t` for trusted convenience.
 `make-test-process-boundary` is a queue-backed fake for deterministic tests:
 each `process-boundary-run` call consumes one precomputed result, records the
 call, and signals when the queue is exhausted.
@@ -449,14 +455,23 @@ function, and recording wrappers require a `process-boundary` delegate.
 
 `network-boundary-request` accepts an opaque request object plus an optional
 `:timeout`, which is forwarded unchanged to the configured transport function.
-Recording network boundaries keep both the request and the returned response so
-tests can assert on transport interactions directly, including explicit `nil`
-responses from test queues or delegates.
+Recording network boundaries return the delegate's raw response to the caller
+but sanitize their in-memory call history by default before storing requests
+and responses. The default sanitizer redacts common sensitive fields such as
+authorization headers, cookies, API keys, tokens, passwords, secrets, and
+payload/body/content values while preserving non-sensitive metadata such as
+method, URL, status, and safe headers. Pass explicit `:request-redactor-fn`
+and `:response-redactor-fn` functions, for example `#'identity`, only when a
+test intentionally needs full-fidelity call history.
+The call history preserves explicit `nil` responses from test queues or delegates
+after applying the configured response redactor.
 `make-test-network-boundary` is the matching queue-backed fake for network
 responses: each request consumes one precomputed response, records the request,
-and signals when no responses remain.
+records the exact test call for assertion fidelity, and signals when no
+responses remain.
 `make-network-boundary` requires `:request-fn` to be a function, and
-`make-recording-network-boundary` requires a `network-boundary` delegate.
+`make-recording-network-boundary` requires a `network-boundary` delegate plus
+function-valued redactors when they are supplied.
 
 Boundaries whose native implementation is intentionally unavailable signal the
 `unsupported-boundary-operation` condition. Its readers,
@@ -484,12 +499,13 @@ wrappers over `logger-log` that supply the matching level, so application code
 can call `(logger-info logger "message" :field value)` directly.
 `make-logger` accepts `:timestamp-fn` so log events can stay deterministic in
 tests. `logger-log` returns the emitted event object, and
-`make-recording-logger` records and forwards that same object to its delegate
-sink. If the sink signals an error, the attempted event stays in
+`make-recording-logger` records and forwards equal but independent snapshots to
+its delegate sink. If the sink signals an error, the attempted event stays in
 `recording-log-events` so sink failures remain inspectable in tests.
 `make-test-logger` is the sinkless test double for the same contract: it records
-each emitted event in `recording-log-events`, returns the exact event object to
-the caller, and keeps timestamp generation injectable for deterministic tests.
+each emitted event as an independent snapshot in `recording-log-events`, returns
+an equal event object to the caller, and keeps timestamp generation injectable
+for deterministic tests.
 `make-logger` rejects non-function `:sink-fn` and `:timestamp-fn` values, and
 recording loggers require a `logger` delegate.
 
@@ -569,7 +585,8 @@ of `recorded-call-operations`/`-results`), for example every log event's `:level
 `uuid-generate` returns a fresh identifier string from a UUID source. The
 default `make-uuid-source` generator produces an RFC 4122 version-4 UUID string
 from the host random state, so it is the one non-deterministic path in this
-subsystem.
+subsystem. It is not a secret-token generator; inject `:generate-fn` when UUIDs
+need a cryptographic or platform-policy-specific source.
 `make-sequential-uuid-source` is the deterministic double: it returns
 `"<prefix>-<16 hex digits>"` for a counter that advances by one on each call, so
 two sources created with the same `:prefix` and `:start` produce the same
@@ -592,8 +609,11 @@ call-record contract via `recording-uuid-source-calls`.
 
 The temp-path boundary models allocation of unique temporary file paths.
 `temp-path-next` returns a fresh pathname. The default `make-temp-path-source`
-builds a `"<prefix>-<random hex><suffix>"` name under a `:directory` from the
-host random state, so it is the one non-deterministic path in this subsystem.
+builds a `"<prefix>-<128-bit random hex><suffix>"` name under a `:directory`
+from a per-source random state and skips candidates that already exist. It
+returns a candidate pathname rather than atomically creating the file, so callers
+that need exclusive creation must still open the returned path with an exclusive
+creation mode.
 `make-sequential-temp-path-source` is the deterministic double: it numbers paths
 from an advancing counter, so two sources created with the same arguments
 produce the same path sequence.
@@ -1117,8 +1137,8 @@ executing their snippet body.
 - [`examples/test-process.lisp`](examples/test-process.lisp) shows queue-backed process results for deterministic tests.
 - [`examples/recording-network.lisp`](examples/recording-network.lisp) shows recording network requests, including timeout propagation, with a stub transport.
 - [`examples/test-network.lisp`](examples/test-network.lisp) shows queue-backed network responses for deterministic tests.
-- [`examples/recording-logger.lisp`](examples/recording-logger.lisp) shows that the emitted log event is the same object returned, recorded, and forwarded to a sink.
-- [`examples/test-logger.lisp`](examples/test-logger.lisp) shows a sinkless logger fake whose emitted events stay directly inspectable.
+- [`examples/recording-logger.lisp`](examples/recording-logger.lisp) shows that recorded and forwarded log events are equal but independent snapshots.
+- [`examples/test-logger.lisp`](examples/test-logger.lisp) shows a sinkless logger fake whose emitted events stay inspectable through independent snapshots.
 - [`examples/sequential-uuid.lisp`](examples/sequential-uuid.lisp) shows a deterministic counter-backed UUID source producing a reproducible identifier sequence.
 - [`examples/recording-uuid.lisp`](examples/recording-uuid.lisp) shows recording generated identifiers around a queue-backed UUID source.
 - [`examples/sequential-temp-path.lisp`](examples/sequential-temp-path.lisp) shows a deterministic counter-backed temp-path source producing a reproducible path sequence.
@@ -1167,7 +1187,7 @@ executing their snippet body.
 
 ## Testing
 
-The recommended Linux checkout test command is:
+The recommended pinned checkout test command is:
 
 ```sh
 nix run .#test
@@ -1177,18 +1197,20 @@ The flake pins SBCL, `cl-prolog`, and `cl-weave`, so this path does not require
 Quicklisp or separately installed Common Lisp dependencies. `cl-weave` provides
 the test runner, machine-readable reporting, and coverage integration.
 `cl-prolog` is used by the test system to express and verify cross-boundary
-invariants. These runnable flake apps and checks are intentionally Linux-only
-(`x86_64-linux`), matching the Ubuntu GitHub Actions workflow.
+invariants. These runnable flake apps and checks are emitted for
+`x86_64-linux` and `aarch64-darwin`; the Ubuntu GitHub Actions workflow is the
+canonical Linux CI path.
 
-On a Linux host, run `nix flake check --print-build-logs` to execute every flake
-check, including the canonical checkout runner, machine-readable report
-generation, and the coverage threshold. The CI workflow additionally builds the
-`machine-report` and `coverage` checks as artifacts. They contain `report.json`,
-and, for the coverage check, `coverage.dat`, `coverage-summary.txt`, and the
-`coverage-html/` report. The coverage check currently requires at least 80%
-statement coverage. On macOS and other non-Linux hosts, `nix run .#test` is not
-available and `nix flake check` does not reproduce the Ubuntu CI check set
-because the Linux-only outputs are omitted.
+On a supported Nix host, run `nix flake check --print-build-logs` to execute
+the flake checks for that host, including the checkout runner,
+machine-readable report generation, and the coverage threshold. The CI
+workflow additionally builds the `machine-report` and `coverage` checks as
+artifacts. They contain `report.json`, and, for the coverage check,
+`coverage.dat`, `coverage-summary.txt`, and the `coverage-html/` report. The
+coverage check currently requires at least 80% statement coverage. Hosts outside
+the emitted flake systems are not a compatibility claim; use
+`sbcl --script run-tests.lisp` there when `cl-prolog` and `cl-weave` are already
+discoverable by ASDF.
 
 For local development on any host with an existing SBCL environment, run
 `sbcl --script run-tests.lisp`. Quicklisp itself is not required, but direct
@@ -1225,7 +1247,7 @@ should not be treated as supported contracts unless that document says so.
 The public contract is intentionally narrow:
 
 - The exported symbols listed in `## API Overview` define the supported library
-  surface for `0.3.x`.
+  surface for `0.4.x`.
 - The checked-in README snippets, `examples/*.lisp`, and the
   `asdf:load-system :cl-boundary-kit/test` plus `cl-boundary-kit/test:run-tests`
   flow are treated as regression-checked usage contracts, not illustrative
