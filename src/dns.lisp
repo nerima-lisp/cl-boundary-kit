@@ -1,0 +1,90 @@
+;;;; src/dns.lisp
+
+(in-package #:cl-boundary-kit)
+
+(defclass dns-resolver ()
+  ((resolve-fn :initarg :resolve-fn :reader dns-resolver-resolve-fn)))
+
+(defclass test-dns-resolver (dns-resolver)
+  ((hosts :initarg :hosts :reader test-dns-resolver-hosts)))
+
+(defclass recording-dns-resolver (dns-resolver)
+  ((delegate :initarg :delegate :reader recording-dns-resolver-delegate)
+   (calls :initform '() :accessor %recording-dns-calls)))
+
+(defun %validate-dns-hostname (hostname)
+  (unless (stringp hostname)
+    (error "DNS hostname must be a string: ~S" hostname))
+  hostname)
+
+(defun %validate-dns-addresses (hostname addresses)
+  (unless (listp addresses)
+    (error "DNS addresses for ~S must be a list: ~S" hostname addresses))
+  (dolist (address addresses addresses)
+    (unless (stringp address)
+      (error "DNS address for ~S must be a string: ~S" hostname address))))
+
+(defun make-dns-resolver (&key resolve-fn)
+  "Create a DNS resolver boundary backed by RESOLVE-FN.
+
+`dns-resolve` calls RESOLVE-FN with a hostname string and expects a list of
+address strings back. Wire RESOLVE-FN to a real resolver at the application
+edge; it is validated at construction time."
+  (require-function resolve-fn "RESOLVE-FN")
+  (make-instance 'dns-resolver :resolve-fn resolve-fn))
+
+(defun make-test-dns-resolver (&key hosts)
+  "Create an in-memory DNS resolver seeded from HOSTS.
+
+HOSTS is an alist or plist mapping each hostname string to a list of address
+strings. `dns-resolve` returns the mapped addresses, and signals for a hostname
+that is not present, mirroring a resolution failure."
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (pair (%normalize-kv-initial hosts))
+      (setf (gethash (%validate-dns-hostname (car pair)) table)
+            (%validate-dns-addresses (car pair) (cdr pair))))
+    (make-instance 'test-dns-resolver :resolve-fn nil :hosts table)))
+
+(defun make-recording-dns-resolver (&key (delegate (make-test-dns-resolver)))
+  "Create a DNS resolver that records lookups while delegating to DELEGATE,
+which defaults to an empty `make-test-dns-resolver`."
+  (require-instance delegate 'dns-resolver "DELEGATE")
+  (make-instance 'recording-dns-resolver :resolve-fn nil :delegate delegate))
+
+(defun recording-dns-calls (resolver)
+  "Return the recorded DNS resolver calls in call order."
+  (unless (typep resolver 'recording-dns-resolver)
+    (error "Unsupported DNS resolver type: ~S" resolver))
+  (%snapshot-recorded-calls (%recording-dns-calls resolver)))
+
+(defun reset-recording-dns-calls (resolver)
+  "Clear RESOLVER's recorded call history and return RESOLVER.
+
+A recording DNS resolver otherwise retains every call for the object's whole
+lifetime; call this periodically to bound memory growth instead of only being
+able to reclaim it by discarding the object."
+  (unless (typep resolver 'recording-dns-resolver)
+    (error "Unsupported DNS resolver type: ~S" resolver))
+  (setf (%recording-dns-calls resolver) nil)
+  resolver)
+
+(defmethod dns-resolve ((resolver dns-resolver) hostname)
+  (%validate-dns-hostname hostname)
+  (funcall (dns-resolver-resolve-fn resolver) hostname))
+
+(defmethod dns-resolve ((resolver test-dns-resolver) hostname)
+  (%validate-dns-hostname hostname)
+  (multiple-value-bind (addresses present)
+      (gethash hostname (test-dns-resolver-hosts resolver))
+    (unless present
+      (error "DNS resolution failed: no records for ~S" hostname))
+    (copy-list addresses)))
+
+(defmethod dns-resolve ((resolver recording-dns-resolver) hostname)
+  (%validate-dns-hostname hostname)
+  (let ((result (dns-resolve (recording-dns-resolver-delegate resolver) hostname)))
+    (%record-call (%recording-dns-calls resolver)
+      :operation :resolve
+      :arguments (list hostname)
+      :result result)
+    result))

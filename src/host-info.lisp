@@ -1,0 +1,138 @@
+;;;; src/host-info.lisp
+
+(in-package #:cl-boundary-kit)
+
+(defclass host-info ()
+  ((hostname-fn :initarg :hostname-fn :reader host-info-hostname-fn)
+   (username-fn :initarg :username-fn :reader host-info-username-fn)
+   (pid-fn :initarg :pid-fn :reader host-info-pid-fn)))
+
+(defclass test-host-info (host-info)
+  ((hostname :initarg :hostname :reader %test-host-info-hostname)
+   (username :initarg :username :reader %test-host-info-username)
+   (pid :initarg :pid :reader %test-host-info-pid)))
+
+(defclass recording-host-info (host-info)
+  ((delegate :initarg :delegate :reader recording-host-info-delegate)
+   (calls :initform '() :accessor %recording-host-info-calls)))
+
+(defun %default-host-username ()
+  ;; No portable Common Lisp accessor exists; read USER/USERNAME through
+  ;; SB-EXT:POSIX-GETENV resolved at call time, falling back to "unknown".
+  (let ((getenv (and (find-package "SB-EXT")
+                     (find-symbol "POSIX-GETENV" "SB-EXT"))))
+    (or (and getenv (or (funcall getenv "USER") (funcall getenv "USERNAME")))
+        "unknown")))
+
+(defun %default-host-pid ()
+  ;; SB-POSIX:GETPID resolved at call time so this file loads without SB-POSIX;
+  ;; falls back to 0 when no process-id accessor is available.
+  (let ((getpid (and (find-package "SB-POSIX")
+                     (find-symbol "GETPID" "SB-POSIX"))))
+    (if getpid (funcall getpid) 0)))
+
+(defun %validate-hostname (hostname)
+  (unless (stringp hostname)
+    (error "Host name must be a string: ~S" hostname))
+  hostname)
+
+(defun %validate-username (username)
+  (unless (stringp username)
+    (error "User name must be a string: ~S" username))
+  username)
+
+(defun %validate-pid (pid)
+  (unless (and (integerp pid) (>= pid 0))
+    (error "Process id must be a non-negative integer: ~S" pid))
+  pid)
+
+(defun make-host-info (&key
+                         (hostname-fn #'machine-instance)
+                         (username-fn #'%default-host-username)
+                         (pid-fn #'%default-host-pid))
+  "Create a host-info boundary from HOSTNAME-FN, USERNAME-FN, and PID-FN.
+
+`host-info-hostname`, `host-info-username`, and `host-info-pid` call the matching
+collaborator with no arguments. The defaults read the real host through
+`machine-instance`, the `USER`/`USERNAME` environment, and the process id, so a
+plain `make-host-info` reflects the running process. Every collaborator is
+validated at construction time."
+  (require-function hostname-fn "HOSTNAME-FN")
+  (require-function username-fn "USERNAME-FN")
+  (require-function pid-fn "PID-FN")
+  (make-instance 'host-info
+                 :hostname-fn hostname-fn
+                 :username-fn username-fn
+                 :pid-fn pid-fn))
+
+(defun make-test-host-info (&key (hostname "test-host") (username "tester") (pid 0))
+  "Create a host-info boundary that returns fixed HOSTNAME, USERNAME, and PID.
+
+This is the deterministic double for tests, returning the supplied values
+instead of reading the real host."
+  (make-instance 'test-host-info
+                 :hostname-fn nil :username-fn nil :pid-fn nil
+                 :hostname (%validate-hostname hostname)
+                 :username (%validate-username username)
+                 :pid (%validate-pid pid)))
+
+(defun make-recording-host-info (&key (delegate (make-test-host-info)))
+  "Create a host-info boundary that records reads while delegating to DELEGATE,
+which defaults to a `make-test-host-info`."
+  (require-instance delegate 'host-info "DELEGATE")
+  (make-instance 'recording-host-info
+                 :hostname-fn nil :username-fn nil :pid-fn nil
+                 :delegate delegate))
+
+(defun recording-host-info-calls (host-info)
+  "Return the recorded host-info calls in call order."
+  (unless (typep host-info 'recording-host-info)
+    (error "Unsupported host-info type: ~S" host-info))
+  (%snapshot-recorded-calls (%recording-host-info-calls host-info)))
+
+(defun reset-recording-host-info-calls (host-info)
+  "Clear HOST-INFO's recorded call history and return it.
+
+A recording host-info otherwise retains every call for the object's whole
+lifetime; call this periodically to bound memory growth instead of only being
+able to reclaim it by discarding the object."
+  (unless (typep host-info 'recording-host-info)
+    (error "Unsupported host-info type: ~S" host-info))
+  (setf (%recording-host-info-calls host-info) nil)
+  host-info)
+
+(defmethod host-info-hostname ((host-info host-info))
+  (funcall (host-info-hostname-fn host-info)))
+
+(defmethod host-info-username ((host-info host-info))
+  (funcall (host-info-username-fn host-info)))
+
+(defmethod host-info-pid ((host-info host-info))
+  (funcall (host-info-pid-fn host-info)))
+
+(defmethod host-info-hostname ((host-info test-host-info))
+  (%test-host-info-hostname host-info))
+
+(defmethod host-info-username ((host-info test-host-info))
+  (%test-host-info-username host-info))
+
+(defmethod host-info-pid ((host-info test-host-info))
+  (%test-host-info-pid host-info))
+
+(defmethod host-info-hostname ((host-info recording-host-info))
+  (let ((result (host-info-hostname (recording-host-info-delegate host-info))))
+    (%record-call (%recording-host-info-calls host-info)
+      :operation :hostname :arguments '() :result result)
+    result))
+
+(defmethod host-info-username ((host-info recording-host-info))
+  (let ((result (host-info-username (recording-host-info-delegate host-info))))
+    (%record-call (%recording-host-info-calls host-info)
+      :operation :username :arguments '() :result result)
+    result))
+
+(defmethod host-info-pid ((host-info recording-host-info))
+  (let ((result (host-info-pid (recording-host-info-delegate host-info))))
+    (%record-call (%recording-host-info-calls host-info)
+      :operation :pid :arguments '() :result result)
+    result))

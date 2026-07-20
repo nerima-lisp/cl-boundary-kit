@@ -103,6 +103,18 @@
   (signals error
     (make-recording-network-boundary)))
 
+;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
+;;; double-record every call -- once on the wrapper, once on the delegate's
+;;; own history -- because the recording dispatch recursed through the
+;;; delegate's public NETWORK-BOUNDARY-REQUEST, re-entering the delegate's
+;;; own recording path. Only the wrapper should record.
+(it "recording-network-boundary-does-not-double-record-a-self-recording-delegate"
+  (let* ((delegate (make-test-network-boundary :responses (list "ok")))
+         (network (make-recording-network-boundary :delegate delegate)))
+    (network-boundary-request network '(:method :get :url "https://example.test"))
+    (expect (= (length (recording-network-calls network)) 1) :to-be-truthy)
+    (expect (= (length (recording-network-calls delegate)) 0) :to-be-truthy)))
+
 (it "recording-network-boundary-preserves-explicit-nil-responses-in-call-history"
   (with-network-boundary (network make-recording-network-boundary
                                   :delegate (make-network-boundary
@@ -128,3 +140,33 @@
         :request-fn (lambda (request &key timeout)
                       (declare (ignore request timeout))
                       '(:status 204))))))
+
+(it "reset-recording-network-calls-clears-history-and-returns-the-boundary"
+  (let ((network (make-test-network-boundary :responses (list "ok" "ok2"))))
+    (network-boundary-request network '(:method :get))
+    (expect (= (length (recording-network-calls network)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-network-calls network) network) :to-be-truthy)
+    (expect (null (recording-network-calls network)) :to-be-truthy)
+    (network-boundary-request network '(:method :get))
+    (expect (= (length (recording-network-calls network)) 1) :to-be-truthy)))
+
+(it "reset-recording-network-calls-signals-for-unsupported-boundary-types"
+  (signals-error-message-contains "Unsupported network boundary type"
+      (reset-recording-network-calls
+       (make-network-boundary
+        :request-fn (lambda (request &key timeout)
+                      (declare (ignore request timeout))
+                      '(:status 204))))))
+
+;;; Regression: %RECORD-NETWORK-CALL built its call record by hand instead of
+;;; going through the shared %RECORD-CALL macro, so it never got the
+;;; COPY-TREE write-time protection: mutating the request list the caller
+;;; still holds a reference to corrupted the boundary's own history.
+(it "test-network-boundary-history-is-independent-of-a-mutated-request"
+  (let ((network (make-test-network-boundary :responses (list "ok")))
+        (request (list :method :get :url "https://example.test")))
+    (network-boundary-request network request)
+    (nreverse request)
+    (expect (equal (getf (first (recording-network-calls network)) :request)
+               '(:method :get :url "https://example.test"))
+            :to-be-truthy)))

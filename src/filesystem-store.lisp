@@ -18,3 +18,34 @@
      (getf options :if-exists)
      (getf options :if-does-not-exist)
      (getf options :external-format))))
+
+(defun filesystem-append-file (filesystem path content &key external-format)
+  "Append CONTENT to PATH, creating the file if it is absent, and return the
+store result.
+
+Derived from `filesystem-store-file` with `:if-exists :append` and
+`:if-does-not-exist :create` -- the combination needed to append-or-create --
+so it works across every variant and a recording filesystem records the write
+with those options."
+  (filesystem-store-file filesystem path content
+                         :if-exists :append
+                         :if-does-not-exist :create
+                         :external-format external-format))
+
+(defun filesystem-store-file-lines (filesystem path lines &rest options)
+  "Store LINES (a list of strings) to PATH as newline-terminated text and return
+the store result.
+
+Each line is followed by a newline, so it round-trips with
+`filesystem-read-file-lines`. OPTIONS (`:if-exists`, `:if-does-not-exist`,
+`:external-format`) are forwarded to `filesystem-store-file`, from which this is
+derived, so it works across every variant and a recording filesystem records the
+underlying write."
+  (unless (listp lines)
+    (error "FILESYSTEM-STORE-FILE-LINES lines must be a list of strings: ~S" lines))
+  (let ((content (with-output-to-string (out)
+                   (dolist (line lines)
+                     (unless (stringp line)
+                       (error "FILESYSTEM-STORE-FILE-LINES line must be a string: ~S" line))
+                     (write-line line out)))))
+    (apply #'filesystem-store-file filesystem path content options)))

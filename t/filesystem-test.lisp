@@ -156,6 +156,18 @@
                                                         (list path)
                                                         :result result))))))
 
+;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
+;;; double-record every call -- once on the wrapper, once on the delegate's
+;;; own history -- because MAKE-RECORDING-FILESYSTEM copied the delegate's
+;;; already-self-recording read/write/etc. closures verbatim. Only the
+;;; wrapper should record.
+(it "recording-filesystem-does-not-double-record-a-self-recording-delegate"
+  (let* ((delegate (make-test-filesystem :initial-files (list #P"/tmp/a.txt" "hello")))
+         (fs (make-recording-filesystem :delegate delegate)))
+    (filesystem-read-file fs #P"/tmp/a.txt")
+    (expect (= (length (recording-filesystem-calls fs)) 1) :to-be-truthy)
+    (expect (= (length (recording-filesystem-calls delegate)) 0) :to-be-truthy)))
+
 (it "recording-filesystem-records-read-and-write-options"
   (let ((observed-read-args nil)
         (observed-write-args nil))
@@ -265,6 +277,19 @@
   (signals-error-message-contains "Unsupported filesystem type"
       (recording-filesystem-calls (make-filesystem))))
 
+(it "reset-recording-filesystem-calls-clears-history-and-returns-the-filesystem"
+  (let ((fs (make-test-filesystem :initial-files (list #P"/tmp/a.txt" "hi"))))
+    (filesystem-read-file fs #P"/tmp/a.txt")
+    (expect (= (length (recording-filesystem-calls fs)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-filesystem-calls fs) fs) :to-be-truthy)
+    (expect (null (recording-filesystem-calls fs)) :to-be-truthy)
+    (filesystem-read-file fs #P"/tmp/a.txt")
+    (expect (= (length (recording-filesystem-calls fs)) 1) :to-be-truthy)))
+
+(it "reset-recording-filesystem-calls-signals-for-unsupported-filesystem-types"
+  (signals-error-message-contains "Unsupported filesystem type"
+      (reset-recording-filesystem-calls (make-filesystem))))
+
 ;;; Regression: %SNAPSHOT-RECORDED-CALLS used to only COPY-LIST each call
 ;;; plist, leaving a returned :RESULT list (or :ARGUMENTS) shared with the
 ;;; boundary's own history. Destructively editing the value the caller
@@ -320,3 +345,199 @@
              (expect (equal names '("alpha.txt")) :to-be-truthy)))
       (ignore-errors (delete-file alpha))
       (ignore-errors (uiop:delete-empty-directory directory)))))
+
+(it "test-filesystem-delete-file-removes-an-entry-and-reports-presence"
+  (let ((fs (make-test-filesystem :initial-files '((#P"a.txt" . "hello")))))
+    (expect (eq t (filesystem-path-exists-p fs #P"a.txt")) :to-be-truthy)
+    (expect (eq t (filesystem-delete-file fs #P"a.txt")) :to-be-truthy)
+    (expect (null (filesystem-path-exists-p fs #P"a.txt")) :to-be-truthy)
+    ;; Deleting an absent file reports NIL.
+    (expect (null (filesystem-delete-file fs #P"a.txt")) :to-be-truthy)))
+
+(it "test-filesystem-records-delete-file-calls"
+  (let ((fs (make-test-filesystem :initial-files '((#P"a.txt" . "hello")))))
+    (filesystem-delete-file fs #P"a.txt")
+    (assert-recorded-calls fs (list (boundary-call-plist :delete-file (list #P"a.txt") :result t)))))
+
+(it "recording-filesystem-records-delete-file-with-the-delegate-result"
+  (let ((fs (make-recording-filesystem
+             :delegate (make-test-filesystem :initial-files '((#P"a.txt" . "hello"))))))
+    (expect (eq t (filesystem-delete-file fs #P"a.txt")) :to-be-truthy)
+    (assert-recorded-calls fs (list (boundary-call-plist :delete-file (list #P"a.txt") :result t)))))
+
+(it "make-filesystem-delete-file-removes-a-real-file"
+  (let* ((directory (uiop:ensure-directory-pathname
+                     (merge-pathnames "cl-boundary-kit-delete-test/" (uiop:temporary-directory))))
+         (path (merge-pathnames "victim.txt" directory)))
+    (ensure-directories-exist directory)
+    (with-open-file (out path :direction :output :if-exists :supersede :if-does-not-exist :create)
+      (write-string "bye" out))
+    (unwind-protect
+         (let ((fs (make-filesystem)))
+           (expect (eq t (filesystem-delete-file fs path)) :to-be-truthy)
+           (expect (null (probe-file path)) :to-be-truthy)
+           ;; Deleting again reports NIL rather than signaling.
+           (expect (null (filesystem-delete-file fs path)) :to-be-truthy))
+      (ignore-errors (delete-file path))
+      (ignore-errors (uiop:delete-empty-directory directory)))))
+
+(it "make-filesystem-rejects-a-non-function-delete-file-fn"
+  (signals error
+    (make-filesystem :delete-file-fn :bad)))
+
+(it "test-filesystem-copy-file-duplicates-content-and-keeps-the-source"
+  (let ((fs (make-test-filesystem :initial-files '((#P"a.txt" . "hello")))))
+    (expect (equal #P"b.txt" (filesystem-copy-file fs #P"a.txt" #P"b.txt")) :to-be-truthy)
+    (expect (string= "hello" (filesystem-read-file fs #P"a.txt")) :to-be-truthy)
+    (expect (string= "hello" (filesystem-read-file fs #P"b.txt")) :to-be-truthy)))
+
+(it "test-filesystem-rename-file-moves-content-and-drops-the-source"
+  (let ((fs (make-test-filesystem :initial-files '((#P"a.txt" . "hello")))))
+    (expect (equal #P"b.txt" (filesystem-rename-file fs #P"a.txt" #P"b.txt")) :to-be-truthy)
+    (expect (null (filesystem-path-exists-p fs #P"a.txt")) :to-be-truthy)
+    (expect (string= "hello" (filesystem-read-file fs #P"b.txt")) :to-be-truthy)))
+
+(it "test-filesystem-copy-and-rename-signal-for-a-missing-source"
+  (let ((fs (make-test-filesystem)))
+    (signals error (filesystem-copy-file fs #P"missing.txt" #P"b.txt"))
+    (signals error (filesystem-rename-file fs #P"missing.txt" #P"b.txt"))))
+
+(it "recording-filesystem-records-copy-and-rename"
+  (let ((fs (make-recording-filesystem
+             :delegate (make-test-filesystem :initial-files '((#P"a.txt" . "hi"))))))
+    (filesystem-copy-file fs #P"a.txt" #P"b.txt")
+    (filesystem-rename-file fs #P"b.txt" #P"c.txt")
+    (assert-recorded-calls
+     fs
+     (list (boundary-call-plist :copy-file (list #P"a.txt" #P"b.txt") :result #P"b.txt")
+           (boundary-call-plist :rename-file (list #P"b.txt" #P"c.txt") :result #P"c.txt")))))
+
+(it "make-filesystem-copy-and-rename-operate-on-real-files"
+  (let* ((directory (uiop:ensure-directory-pathname
+                     (merge-pathnames "cl-boundary-kit-move-test/" (uiop:temporary-directory))))
+         (source (merge-pathnames "source.txt" directory))
+         (copy (merge-pathnames "copy.txt" directory))
+         (moved (merge-pathnames "moved.txt" directory)))
+    (ensure-directories-exist directory)
+    (with-open-file (out source :direction :output :if-exists :supersede :if-does-not-exist :create)
+      (write-string "payload" out))
+    (unwind-protect
+         (let ((fs (make-filesystem)))
+           (filesystem-copy-file fs source copy)
+           (expect (not (null (probe-file source))) :to-be-truthy)
+           (expect (string= "payload" (uiop:read-file-string copy)) :to-be-truthy)
+           (filesystem-rename-file fs copy moved)
+           (expect (null (probe-file copy)) :to-be-truthy)
+           (expect (string= "payload" (uiop:read-file-string moved)) :to-be-truthy))
+      (dolist (p (list source copy moved))
+        (ignore-errors (delete-file p)))
+      (ignore-errors (uiop:delete-empty-directory directory)))))
+
+(it "make-filesystem-rejects-non-function-copy-and-rename-fns"
+  (signals error (make-filesystem :copy-file-fn :bad))
+  (signals error (make-filesystem :rename-file-fn :bad)))
+
+(it "test-filesystem-make-and-check-directory"
+  (let ((fs (make-test-filesystem)))
+    (expect (null (filesystem-directory-exists-p fs #P"/tmp/work/")) :to-be-truthy)
+    (filesystem-make-directory fs #P"/tmp/work/")
+    (expect (eq t (filesystem-directory-exists-p fs #P"/tmp/work/")) :to-be-truthy)))
+
+(it "test-filesystem-directory-with-files-exists-implicitly"
+  (let ((fs (make-test-filesystem :initial-files '((#P"/tmp/data/a.txt" . "x")))))
+    (expect (eq t (filesystem-directory-exists-p fs #P"/tmp/data/")) :to-be-truthy)))
+
+(it "test-filesystem-delete-empty-directory-and-refuse-non-empty"
+  (let ((fs (make-test-filesystem :initial-files '((#P"/tmp/full/a.txt" . "x")))))
+    (filesystem-make-directory fs #P"/tmp/empty/")
+    (expect (eq t (filesystem-delete-directory fs #P"/tmp/empty/")) :to-be-truthy)
+    (expect (null (filesystem-directory-exists-p fs #P"/tmp/empty/")) :to-be-truthy)
+    ;; Deleting an absent directory reports NIL.
+    (expect (null (filesystem-delete-directory fs #P"/tmp/absent/")) :to-be-truthy)
+    ;; A non-empty directory refuses deletion.
+    (signals error (filesystem-delete-directory fs #P"/tmp/full/"))))
+
+(it "recording-filesystem-records-directory-operations"
+  (let ((fs (make-recording-filesystem :delegate (make-test-filesystem))))
+    (filesystem-make-directory fs #P"/tmp/d/")
+    (filesystem-directory-exists-p fs #P"/tmp/d/")
+    (filesystem-delete-directory fs #P"/tmp/d/")
+    (assert-recorded-calls
+     fs
+     (list (boundary-call-plist :make-directory (list #P"/tmp/d/") :result #P"/tmp/d/")
+           (boundary-call-plist :directory-exists-p (list #P"/tmp/d/") :result t)
+           (boundary-call-plist :delete-directory (list #P"/tmp/d/") :result t)))))
+
+(it "make-filesystem-directory-operations-work-on-real-directories"
+  (let* ((base (uiop:ensure-directory-pathname
+                (merge-pathnames "cl-boundary-kit-dir-test/" (uiop:temporary-directory))))
+         (sub (merge-pathnames "sub/" base)))
+    (ignore-errors (uiop:delete-empty-directory sub))
+    (ignore-errors (uiop:delete-empty-directory base))
+    (unwind-protect
+         (let ((fs (make-filesystem)))
+           (filesystem-make-directory fs sub)
+           (expect (eq t (filesystem-directory-exists-p fs sub)) :to-be-truthy)
+           (expect (eq t (filesystem-delete-directory fs sub)) :to-be-truthy)
+           (expect (null (filesystem-directory-exists-p fs sub)) :to-be-truthy))
+      (ignore-errors (uiop:delete-empty-directory sub))
+      (ignore-errors (uiop:delete-empty-directory base)))))
+
+(it "make-filesystem-rejects-non-function-directory-collaborators"
+  (signals error (make-filesystem :make-directory-fn :bad))
+  (signals error (make-filesystem :directory-exists-p-fn :bad))
+  (signals error (make-filesystem :delete-directory-fn :bad)))
+
+(it "test-filesystem-read-file-lines-splits-content-with-read-line-semantics"
+  (let ((fs (make-test-filesystem
+             :initial-files (list (cons #P"a.txt" (format nil "one~%two~%three"))
+                                  (cons #P"b.txt" (format nil "trailing~%"))
+                                  (cons #P"empty.txt" "")))))
+    (expect (equal (list "one" "two" "three") (filesystem-read-file-lines fs #P"a.txt")) :to-be-truthy)
+    ;; A trailing newline does not yield a final empty line.
+    (expect (equal (list "trailing") (filesystem-read-file-lines fs #P"b.txt")) :to-be-truthy)
+    (expect (null (filesystem-read-file-lines fs #P"empty.txt")) :to-be-truthy)))
+
+(it "recording-filesystem-read-file-lines-records-the-underlying-read"
+  (let ((fs (make-recording-filesystem
+             :delegate (make-test-filesystem
+                        :initial-files (list (cons #P"a.txt" (format nil "x~%y")))))))
+    (expect (equal (list "x" "y") (filesystem-read-file-lines fs #P"a.txt")) :to-be-truthy)
+    (expect (equal (list :read-file)
+                   (recorded-call-operations (recording-filesystem-calls fs))) :to-be-truthy)))
+
+(it "filesystem-store-file-lines-round-trips-with-read-file-lines"
+  (let ((fs (make-test-filesystem)))
+    (filesystem-store-file-lines fs #P"out.txt" (list "one" "two" "three"))
+    (expect (string= (format nil "one~%two~%three~%") (filesystem-read-file fs #P"out.txt")) :to-be-truthy)
+    (expect (equal (list "one" "two" "three") (filesystem-read-file-lines fs #P"out.txt")) :to-be-truthy)))
+
+(it "filesystem-store-file-lines-forwards-write-options-and-records-the-write"
+  (let ((fs (make-recording-filesystem :delegate (make-test-filesystem))))
+    (filesystem-store-file-lines fs #P"out.txt" (list "x") :if-exists :supersede)
+    (expect (equal (list :write-file)
+                   (recorded-call-operations (recording-filesystem-calls fs))) :to-be-truthy)))
+
+(it "filesystem-store-file-lines-rejects-non-string-lines"
+  (signals error
+    (filesystem-store-file-lines (make-test-filesystem) #P"out.txt" (list 42))))
+
+(it "filesystem-append-file-creates-then-appends"
+  (let ((fs (make-test-filesystem)))
+    ;; Appends to a file that does not exist yet -> creates it.
+    (filesystem-append-file fs #P"log.txt" "first")
+    (expect (string= "first" (filesystem-read-file fs #P"log.txt")) :to-be-truthy)
+    ;; A second append extends the existing content.
+    (filesystem-append-file fs #P"log.txt" "-second")
+    (expect (string= "first-second" (filesystem-read-file fs #P"log.txt")) :to-be-truthy)))
+
+(it "filesystem-append-file-records-the-write-with-append-options"
+  (let ((fs (make-recording-filesystem :delegate (make-test-filesystem))))
+    (filesystem-append-file fs #P"log.txt" "x")
+    (assert-recorded-calls
+     fs
+     (list (boundary-call-plist
+            :write-file
+            (list #P"log.txt" :content "x"
+                  :if-exists :append :if-does-not-exist :create :external-format nil)
+            :result t)))))

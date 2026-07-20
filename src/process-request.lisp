@@ -6,22 +6,29 @@
 
 (defgeneric %process-boundary-run-for-type (boundary-type process-boundary command call-keywords))
 
+;; Each method below performs only the raw effect (native execution, or
+;; consuming one queued test result) with no recording. Recording is
+;; applied once, externally, by PROCESS-BOUNDARY-RUN for :TEST and
+;; :RECORDING kinds, so a recording boundary's delegate -- even a
+;; self-recording :TEST-kind delegate -- is dispatched through its own raw
+;; effect here rather than re-entering its public PROCESS-BOUNDARY-RUN and
+;; double-recording the call.
+
 (defun %process-boundary-run-test (process-boundary command call-keywords)
-  (let ((result
-          (let ((results (%process-results process-boundary)))
-            (unless results
-              (error "Test process boundary has no remaining results for command ~S" command))
-            (let ((result (first results)))
-              (%set-process-results process-boundary (rest results))
-              result))))
-    (%record-process-call-result process-boundary command call-keywords result)))
+  (declare (ignore call-keywords))
+  (let ((results (%process-results process-boundary)))
+    (unless results
+      (error "Test process boundary has no remaining results for command ~S" command))
+    (let ((result (first results)))
+      (%set-process-results process-boundary (rest results))
+      result)))
 
 (defun %process-boundary-run-recording (process-boundary command call-keywords)
-  (let ((result (apply #'process-boundary-run
-                       (%process-delegate process-boundary)
-                       command
-                       call-keywords)))
-    (%record-process-call-result process-boundary command call-keywords result)))
+  (let ((delegate (%process-delegate process-boundary)))
+    (%process-boundary-run-for-type (%process-boundary-type delegate)
+                                    delegate
+                                    command
+                                    call-keywords)))
 
 (defun %process-boundary-run-native (process-boundary command call-keywords)
   (apply (%process-runner process-boundary) command call-keywords))
@@ -53,17 +60,50 @@
   (error "Unsupported process boundary type: ~S" process-boundary))
 
 (defun process-boundary-run
-    (process-boundary command &key arguments input directory environment output error-output timeout)
+    (process-boundary command &key arguments input directory
+                              (environment nil environment-supplied-p)
+                              output error-output timeout)
   "Run COMMAND through PROCESS-BOUNDARY and return the process result."
   (%require-process-boundary process-boundary "PROCESS-BOUNDARY")
-  (let ((call-keywords (%process-call-keywords arguments
-                                               input
-                                               directory
-                                               environment
-                                               output
-                                               error-output
-                                               timeout)))
-    (%process-boundary-run-for-type (%process-boundary-type process-boundary)
-                                    process-boundary
-                                    command
-                                    call-keywords)))
+  (let* ((call-keywords (%process-call-keywords arguments
+                                                input
+                                                directory
+                                                environment
+                                                environment-supplied-p
+                                                output
+                                                error-output
+                                                timeout))
+         (run (lambda ()
+                (%process-boundary-run-for-type (%process-boundary-type process-boundary)
+                                                process-boundary
+                                                command
+                                                call-keywords))))
+    (if (%recording-process-boundary-p process-boundary)
+        (%record-process-call-result process-boundary command call-keywords (funcall run))
+        (funcall run))))
+
+(defun process-result-success-p (result)
+  "Return true when RESULT -- a `process-boundary-run` result plist -- has an exit
+code of 0.
+
+The native runner returns `(:command ... :stdout ... :stderr ... :exit-code N)`,
+so this reads its `:exit-code`; it signals an error when RESULT has no integer
+`:exit-code`, catching a result that does not follow the documented shape."
+  (let ((exit-code (getf result :exit-code)))
+    (unless (integerp exit-code)
+      (error "PROCESS-RESULT-SUCCESS-P expected a process result with an integer :EXIT-CODE, got ~S"
+             result))
+    (zerop exit-code)))
+
+(defun process-result-check (result)
+  "Return RESULT when the process succeeded (exit code 0), signaling an error that
+includes the command, exit code, and captured stderr otherwise.
+
+This is the \"run or fail loudly\" pattern (like a shell's `set -e` or Python's
+`subprocess.check_call`), and it returns RESULT so calls can be chained."
+  (unless (process-result-success-p result)
+    (error "Process ~S failed with exit code ~S: ~A"
+           (getf result :command)
+           (getf result :exit-code)
+           (getf result :stderr)))
+  result)

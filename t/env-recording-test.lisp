@@ -25,3 +25,57 @@
 (it "make-recording-environment-rejects-non-environment-delegate"
   (signals error
     (make-recording-environment :delegate :bad)))
+
+;;; Regression: MAKE-RECORDING-ENVIRONMENT's default delegate (when :DELEGATE
+;;; is omitted) used to be (MAKE-TEST-ENVIRONMENT), an always-empty fake --
+;;; unlike every sibling recording constructor, which defaults to the real
+;;; native boundary (MAKE-RECORDING-FILESYSTEM -> MAKE-FILESYSTEM,
+;;; MAKE-RECORDING-PROCESS-BOUNDARY -> MAKE-PROCESS-BOUNDARY). A caller
+;;; expecting parity with those siblings would silently observe only
+;;; missing/nil bindings.
+(it "make-recording-environment-defaults-to-a-native-delegate"
+  (let ((env (make-recording-environment)))
+    (expect (equal (environment-get env "PATH" "missing")
+               (environment-get (make-environment) "PATH" "missing"))
+            :to-be-truthy)))
+
+;;; Regression: RECORDING-ENVIRONMENT-CALLS performed no kind check at all,
+;;; unlike every sibling accessor (RECORDING-FILESYSTEM-CALLS,
+;;; RECORDING-PROCESS-CALLS, RECORDING-NETWORK-CALLS), which all signal on
+;;; an unsupported boundary type.
+(it "recording-environment-calls-signals-for-unsupported-environment-types"
+  (signals-error-message-contains "Unsupported environment type"
+      (recording-environment-calls (make-environment))))
+
+;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
+;;; double-record every call -- once on the wrapper, once on the delegate's
+;;; own history -- because the recording dispatch recursed through the
+;;; delegate's public ENVIRONMENT-GET/-SET/-LIST functions, re-entering the
+;;; delegate's own recording path. Only the wrapper should record.
+(it "recording-environment-does-not-double-record-a-self-recording-delegate"
+  (let* ((delegate (make-test-environment))
+         (env (make-recording-environment :delegate delegate)))
+    (environment-set env "A" "1")
+    (environment-get env "A")
+    (expect (= (length (recording-environment-calls env)) 2) :to-be-truthy)
+    (expect (= (length (recording-environment-calls delegate)) 0) :to-be-truthy)))
+
+(it "recording-environment-supports-nesting-without-double-recording"
+  (let* ((inner-delegate (make-test-environment :initial-values (list "A" "1")))
+         (inner (make-recording-environment :delegate inner-delegate))
+         (outer (make-recording-environment :delegate inner)))
+    (expect (string= (environment-get outer "A") "1") :to-be-truthy)
+    (expect (= (length (recording-environment-calls outer)) 1) :to-be-truthy)
+    (expect (= (length (recording-environment-calls inner)) 0) :to-be-truthy)
+    (expect (= (length (recording-environment-calls inner-delegate)) 0) :to-be-truthy)))
+
+(it "reset-recording-environment-calls-clears-history-and-returns-the-environment"
+  (let ((env (make-test-environment)))
+    (environment-set env "A" "1")
+    (expect (= (length (recording-environment-calls env)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-environment-calls env) env) :to-be-truthy)
+    (expect (null (recording-environment-calls env)) :to-be-truthy)))
+
+(it "reset-recording-environment-calls-signals-for-unsupported-environment-types"
+  (signals-error-message-contains "Unsupported environment type"
+      (reset-recording-environment-calls (make-environment))))

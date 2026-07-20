@@ -1,0 +1,99 @@
+;;;; src/publisher.lisp
+
+(in-package #:cl-boundary-kit)
+
+(defclass publisher ()
+  ((emit-fn :initarg :emit-fn :reader publisher-emit-fn)))
+
+(defclass test-publisher (publisher)
+  ((events :initform '() :accessor %publisher-events)))
+
+(defclass recording-publisher (publisher)
+  ((delegate :initarg :delegate :reader recording-publisher-delegate)
+   (events :initform '() :accessor %publisher-events)))
+
+(defgeneric %publisher-events (publisher))
+
+(defmethod %publisher-events ((publisher publisher))
+  (error "Unsupported publisher type: ~S" publisher))
+
+(defun %validate-publisher-topic (topic)
+  (unless (or (stringp topic) (and (symbolp topic) topic))
+    (error "Publisher topic must be a non-nil symbol or a string: ~S" topic))
+  topic)
+
+(defun %make-published-message (topic message)
+  (list :topic topic :message message))
+
+(defun make-publisher (&key (emit-fn (lambda (event) (declare (ignore event)) nil)))
+  "Create a publisher boundary that sends messages to EMIT-FN.
+
+EMIT-FN receives each published message event plist. The default drops events,
+so a plain `make-publisher` is a no-op sink; inject EMIT-FN to forward messages
+to a real broker or bus."
+  (require-function emit-fn "EMIT-FN")
+  (make-instance 'publisher :emit-fn emit-fn))
+
+(defun make-test-publisher ()
+  "Create a publisher boundary that stores published messages in memory.
+
+Each `publisher-publish` call records a `(:topic <topic> :message <message>)`
+event and returns it. The events are available through
+`recording-published-messages`."
+  (make-instance 'test-publisher :emit-fn nil))
+
+(defun make-recording-publisher (&key (delegate (make-publisher)))
+  "Create a publisher that records messages before forwarding them to DELEGATE.
+
+DELEGATE defaults to a no-op `make-publisher` sink. The recorded messages are
+available through `recording-published-messages`."
+  (require-instance delegate 'publisher "DELEGATE")
+  (make-instance 'recording-publisher
+                 :emit-fn (publisher-emit-fn delegate)
+                 :delegate delegate))
+
+(defun recording-published-messages (publisher)
+  "Return the recorded published messages in emission order."
+  ;; Copy only the spine: PUBLISHER-PUBLISH returns each event object to the
+  ;; caller, and this reader is contracted to return those same objects (EQ),
+  ;; so entries must not be copied.
+  (reverse (%publisher-events publisher)))
+
+(defgeneric %reset-publisher-events (publisher))
+
+(defmethod %reset-publisher-events ((publisher publisher))
+  (error "Unsupported publisher type: ~S" publisher))
+
+(defmethod %reset-publisher-events ((publisher test-publisher))
+  (setf (%publisher-events publisher) nil))
+
+(defmethod %reset-publisher-events ((publisher recording-publisher))
+  (setf (%publisher-events publisher) nil))
+
+(defun reset-recording-published-messages (publisher)
+  "Clear PUBLISHER's recorded message history and return PUBLISHER.
+
+Recording/test publishers otherwise retain every message for the object's whole
+lifetime; call this periodically to bound memory growth instead of only being
+able to reclaim it by discarding the object."
+  (%reset-publisher-events publisher)
+  publisher)
+
+(defgeneric %publisher-emit-event (publisher event))
+
+(defmethod %publisher-emit-event ((publisher publisher) event)
+  (funcall (publisher-emit-fn publisher) event)
+  event)
+
+(defmethod %publisher-emit-event ((publisher test-publisher) event)
+  (push event (%publisher-events publisher))
+  event)
+
+(defmethod %publisher-emit-event ((publisher recording-publisher) event)
+  (push event (%publisher-events publisher))
+  (%publisher-emit-event (recording-publisher-delegate publisher) event)
+  event)
+
+(defmethod publisher-publish ((publisher publisher) topic message)
+  (%validate-publisher-topic topic)
+  (%publisher-emit-event publisher (%make-published-message topic message)))

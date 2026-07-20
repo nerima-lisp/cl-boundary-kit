@@ -157,6 +157,18 @@
                      :result (process-result :command '("sh" "-c" "printf hi")
                                              :stdout "ok"))))))
 
+;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
+;;; double-record every call -- once on the wrapper, once on the delegate's
+;;; own history -- because the recording dispatch recursed through the
+;;; delegate's public PROCESS-BOUNDARY-RUN, re-entering the delegate's own
+;;; recording path. Only the wrapper should record.
+(it "recording-process-boundary-does-not-double-record-a-self-recording-delegate"
+  (let* ((delegate (make-test-process-boundary :results (list (process-result :stdout "ok"))))
+         (process (make-recording-process-boundary :delegate delegate)))
+    (process-boundary-run process "cmd")
+    (expect (= (length (recording-process-calls process)) 1) :to-be-truthy)
+    (expect (= (length (recording-process-calls delegate)) 0) :to-be-truthy)))
+
 (it "process-boundary-forwards-timeout-to-custom-runner"
   (with-process-boundary-runner (process (process-result :stdout (write-to-string timeout)))
     (let ((result (process-boundary-run process "demo" :timeout +process-test-timeout+)))
@@ -183,6 +195,20 @@
 (it "recording-process-calls-signals-for-unsupported-boundary-types"
   (signals-error-message-contains "Unsupported process boundary type"
       (recording-process-calls (make-process-boundary))))
+
+(it "reset-recording-process-calls-clears-history-and-returns-the-boundary"
+  (let ((process (make-test-process-boundary :results (list (process-result :stdout "ok")
+                                                             (process-result :stdout "ok2")))))
+    (process-boundary-run process "cmd")
+    (expect (= (length (recording-process-calls process)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-process-calls process) process) :to-be-truthy)
+    (expect (null (recording-process-calls process)) :to-be-truthy)
+    (process-boundary-run process "cmd2")
+    (expect (= (length (recording-process-calls process)) 1) :to-be-truthy)))
+
+(it "reset-recording-process-calls-signals-for-unsupported-boundary-types"
+  (signals-error-message-contains "Unsupported process boundary type"
+      (reset-recording-process-calls (make-process-boundary))))
 
 ;;; Regression: captured native output used to be reconstructed line-by-line,
 ;;; which dropped the trailing newline that most tools emit.
@@ -271,3 +297,118 @@
     (expect (let ((stdout (getf result :stdout)))
               (string= (subseq stdout (- (length stdout) 10)) "0123456789"))
             :to-be-truthy)))
+
+(defun %run-native-reporting (var-names &rest environment-args)
+  (let* ((process (make-process-boundary))
+         (runtime (namestring sb-ext:*runtime-pathname*))
+         (probe (format nil "(dolist (v '~S) (format t \"[~~A]\" (sb-ext:posix-getenv v)))"
+                       var-names)))
+    (getf (apply #'process-boundary-run
+                 process runtime
+                 :arguments (list "--non-interactive" "--no-sysinit" "--no-userinit"
+                                  "--eval" probe)
+                 environment-args)
+          :stdout)))
+
+;;; Regression (security): omitting :ENVIRONMENT entirely must still inherit
+;;; the parent process's environment (unchanged existing behavior).
+(it "native-process-run-inherits-the-parent-environment-when-not-supplied"
+  (expect (not (search "[NIL]" (%run-native-reporting '("PATH")))) :to-be-truthy))
+
+;;; Regression (security): %NATIVE-PROCESS-OPTIONS used to test ENVIRONMENT's
+;;; truthiness, so an explicit empty :ENVIRONMENT '() was indistinguishable
+;;; from "not supplied" and silently fell back to inheriting the full parent
+;;; environment -- exactly the case a caller passing :environment '() is
+;;; trying to avoid (e.g. running an untrusted command without leaking
+;;; ambient secrets). It must now reach the child as a genuinely empty
+;;; environment.
+(it "native-process-run-honors-an-explicit-empty-environment-instead-of-inheriting"
+  (expect (search "[NIL]" (%run-native-reporting '("PATH") :environment nil))
+          :to-be-truthy))
+
+;;; Regression: sb-ext:run-program's :ENV wants (KEYWORD . STRING) conses,
+;;; but every other environment representation in this library (e.g.
+;;; ENVIRONMENT-LIST's return value) uses STRING keys, so passing that
+;;; natural alist straight into :ENVIRONMENT used to crash deep inside SBCL
+;;; instead of working.
+(it "native-process-run-accepts-a-string-keyed-environment-alist"
+  (expect (search "[hello][NIL]"
+                  (%run-native-reporting '("MARKER" "PATH")
+                                         :environment '(("MARKER" . "hello"))))
+          :to-be-truthy))
+
+;;; *NATIVE-PROCESS-SEARCH-PATH-P* lets a caller require an absolute program
+;;; path instead of implicit execvp-style $PATH resolution.
+(it "native-process-search-path-p-defaults-to-t-and-searches-path"
+  (expect *native-process-search-path-p* :to-be-truthy)
+  (let ((process (make-process-boundary)))
+    (expect (search "ok" (getf (process-boundary-run process "sh" :arguments (list "-c" "echo ok"))
+                               :stdout))
+            :to-be-truthy)))
+
+(it "native-process-search-path-p-bound-to-nil-requires-an-absolute-path"
+  (let ((process (make-process-boundary))
+        (*native-process-search-path-p* nil))
+    (signals error
+      (process-boundary-run process "sh" :arguments (list "-c" "echo ok")))
+    (expect (equal (getf (process-boundary-run process (namestring sb-ext:*runtime-pathname*)
+                                              :arguments (list "--version"))
+                         :exit-code)
+               0)
+            :to-be-truthy)))
+
+;;; Regression: if the stderr-capture thread failed to start (e.g. resource
+;;; exhaustion), %RUN-NATIVE-PROCESS/CPS exited before ever reaching
+;;; %WAIT-FOR-PROCESS-WITH-TIMEOUT, so the already-spawned child was neither
+;;; killed nor reaped -- it kept running as an untracked orphan, and joining
+;;; the stdout-capture thread (already blocked reading its pipe) would not
+;;; return until that orphan's own natural lifetime ended. sb-thread:make-thread
+;;; is monkey-patched here (via without-package-locks) to fail on its second
+;;; call within a single process-boundary-run, deterministically forcing the
+;;; path that previously leaked; a long child (sleep) proves the fix returns
+;;; promptly rather than waiting out the sleep, and that no process lingers.
+(it "native-process-run-kills-the-child-and-returns-promptly-if-a-capture-thread-fails-to-start"
+  (let* ((process (make-process-boundary))
+         (runtime (namestring sb-ext:*runtime-pathname*))
+         (call-count 0)
+         (original (symbol-function 'sb-thread:make-thread))
+         (start (get-internal-real-time)))
+    (unwind-protect
+        (progn
+          (sb-ext:without-package-locks
+            (setf (symbol-function 'sb-thread:make-thread)
+                  (lambda (function &rest args)
+                    (incf call-count)
+                    (if (= call-count 2)
+                        (error "simulated capture-thread spawn failure")
+                        (apply original function args)))))
+          (signals error
+            (process-boundary-run process runtime
+                                  :arguments (list "--non-interactive" "--no-sysinit" "--no-userinit"
+                                                   "--eval" "(sleep 5)"))))
+      (sb-ext:without-package-locks
+        (setf (symbol-function 'sb-thread:make-thread) original)))
+    ;; Well under the child's 5s sleep: proves the fix didn't block waiting
+    ;; for the child's natural lifetime to end.
+    (expect (< (/ (- (get-internal-real-time) start) internal-time-units-per-second) 2)
+            :to-be-truthy)))
+
+(it "process-result-success-p-reads-the-exit-code"
+  (let ((ok (make-test-process-boundary
+             :results (list (list :stdout "ok" :stderr "" :exit-code 0))))
+        (bad (make-test-process-boundary
+              :results (list (list :stdout "" :stderr "boom" :exit-code 1)))))
+    (expect (eq t (process-result-success-p (process-boundary-run ok "cmd"))) :to-be-truthy)
+    (expect (null (process-result-success-p (process-boundary-run bad "cmd"))) :to-be-truthy)))
+
+(it "process-result-success-p-signals-on-a-result-without-an-integer-exit-code"
+  (signals error
+    (process-result-success-p (list :stdout "x"))))
+
+(it "process-result-check-returns-the-result-on-success"
+  (let ((result (list :command '("cmd") :stdout "ok" :stderr "" :exit-code 0)))
+    (expect (eq result (process-result-check result)) :to-be-truthy)))
+
+(it "process-result-check-signals-with-diagnostics-on-failure"
+  (signals-error-message-contains "boom"
+    (process-result-check (list :command '("cmd") :stdout "" :stderr "boom" :exit-code 2))))

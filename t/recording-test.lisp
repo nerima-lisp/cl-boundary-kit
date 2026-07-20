@@ -49,6 +49,34 @@
                '(:operation :ping :arguments (1 2) :result (:operation :ping :args (1 2))))
             :to-be-truthy)))
 
+;;; Regression: RECORDING-BOUNDARY-INVOKE built its call record by hand
+;;; instead of going through the shared %RECORD-CALL macro, so it never got
+;;; the COPY-TREE write-time protection: mutating a list the caller still
+;;; holds a reference to corrupted the boundary's own history before any
+;;; snapshot was ever taken.
+(it "recording-boundary-history-is-independent-of-a-mutated-argument"
+  (let* ((arg (list 1 2 3))
+         (boundary (make-recording-boundary
+                    :handler (lambda (&rest args)
+                               (declare (ignore args))
+                               :ok))))
+    (recording-boundary-invoke boundary :ping arg)
+    (nreverse arg)
+    (expect (equal (first (getf (first (recording-boundary-calls boundary)) :arguments))
+               '(1 2 3))
+            :to-be-truthy)))
+
+(it "recording-boundary-history-is-independent-of-a-mutated-result"
+  (let ((boundary (make-recording-boundary
+                   :handler (lambda (&rest args)
+                              (declare (ignore args))
+                              (list 1 2 3)))))
+    (let ((result (recording-boundary-invoke boundary :ping)))
+      (nreverse result))
+    (expect (equal (getf (first (recording-boundary-calls boundary)) :result)
+               '(1 2 3))
+            :to-be-truthy)))
+
 (it "recording-boundary-calls-rejects-non-boundary-values"
   (signals error
     (recording-boundary-calls :not-a-boundary)))
@@ -56,3 +84,15 @@
 (it "recording-boundary-invoke-rejects-non-boundary-values"
   (signals error
     (recording-boundary-invoke :not-a-boundary :ping)))
+
+(it "reset-recording-boundary-calls-clears-history-and-returns-the-boundary"
+  (let ((boundary (make-recording-boundary
+                   :handler (lambda (&rest args) (declare (ignore args)) :ok))))
+    (recording-boundary-invoke boundary :ping)
+    (expect (= (length (recording-boundary-calls boundary)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-boundary-calls boundary) boundary) :to-be-truthy)
+    (expect (null (recording-boundary-calls boundary)) :to-be-truthy)))
+
+(it "reset-recording-boundary-calls-rejects-non-boundary-values"
+  (signals error
+    (reset-recording-boundary-calls :not-a-boundary)))

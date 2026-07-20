@@ -13,6 +13,7 @@
                 #:gen-list
                 #:gen-keyword
                 #:gen-string
+                #:gen-member
                 #:run-all
                 #:signals)
   (:export #:run-tests))

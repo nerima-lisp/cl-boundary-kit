@@ -11,6 +11,10 @@
 (defclass test-random-source (random-source)
   ((values :initarg :values :accessor test-random-source-values)))
 
+(defclass recording-random-source (random-source)
+  ((delegate :initarg :delegate :reader recording-random-source-delegate)
+   (calls :initform '() :accessor %recording-random-source-calls)))
+
 (defun %validate-deterministic-random-modulus (modulus)
   (unless (and (integerp modulus) (> modulus 1))
     (error "Deterministic random source modulus must be an integer greater than 1: ~S" modulus))
@@ -56,6 +60,28 @@
                  :state nil
                  :values (%validate-test-random-values values)))
 
+(defun make-recording-random-source (&key (delegate (make-random-source)))
+  "Create a random source that records calls while delegating to DELEGATE."
+  (require-instance delegate 'random-source "DELEGATE")
+  (make-instance 'recording-random-source :state nil :delegate delegate))
+
+(defun recording-random-source-calls (source)
+  "Return the recorded random-source calls in call order."
+  (unless (typep source 'recording-random-source)
+    (error "Unsupported random source type: ~S" source))
+  (%snapshot-recorded-calls (%recording-random-source-calls source)))
+
+(defun reset-recording-random-source-calls (source)
+  "Clear SOURCE's recorded call history and return SOURCE.
+
+A recording random source otherwise retains every call for the object's
+whole lifetime; call this periodically to bound memory growth instead of
+only being able to reclaim it by discarding the object."
+  (unless (typep source 'recording-random-source)
+    (error "Unsupported random source type: ~S" source))
+  (setf (%recording-random-source-calls source) nil)
+  source)
+
 (defun %lcg-step (state modulus)
   (mod (+ (* state 6364136223846793005) 1) modulus))
 
@@ -82,3 +108,74 @@
     (let ((value (%validate-test-random-value (first values) limit)))
       (setf (test-random-source-values source) (rest values))
       value)))
+
+(defmethod random-source-random ((source recording-random-source) limit)
+  (%validate-random-limit limit)
+  (let ((result (random-source-random (recording-random-source-delegate source) limit)))
+    (%record-call (%recording-random-source-calls source)
+      :operation :random
+      :arguments (list limit)
+      :result result)
+    result))
+
+(defun random-source-element (source sequence)
+  "Return a random element of the non-empty SEQUENCE using SOURCE.
+
+Derived from `random-source-random`, so it works with any random source; a
+recording source records the underlying integer draw."
+  (let ((length (length sequence)))
+    (when (zerop length)
+      (error "RANDOM-SOURCE-ELEMENT sequence must be non-empty"))
+    (elt sequence (random-source-random source length))))
+
+(defun random-source-boolean (source)
+  "Return a random boolean from SOURCE, derived from `random-source-random`."
+  (= 0 (random-source-random source 2)))
+
+(defun random-source-bytes (source count)
+  "Return a fresh `(unsigned-byte 8)` vector of COUNT random bytes drawn from SOURCE.
+
+Each byte is a fresh `random-source-random` draw below 256, so it works with any
+random source and a recording source records each draw. Useful for generating
+nonces, salts, and tokens while keeping them deterministic in tests."
+  (unless (and (integerp count) (>= count 0))
+    (error "RANDOM-SOURCE-BYTES count must be a non-negative integer: ~S" count))
+  (let ((bytes (make-array count :element-type '(unsigned-byte 8))))
+    (dotimes (index count bytes)
+      (setf (aref bytes index) (random-source-random source 256)))))
+
+(defun random-source-sample (source sequence count)
+  "Return a list of COUNT distinct elements drawn from SEQUENCE without
+replacement, using SOURCE.
+
+COUNT must be an integer between 0 and the length of SEQUENCE. Implemented as a
+partial Fisher-Yates shuffle (only the first COUNT positions), so it is more
+efficient than a full shuffle when COUNT is small. Derived from
+`random-source-random`; a recording source records the underlying draws, and the
+input is not modified."
+  (let ((length (length sequence)))
+    (unless (and (integerp count) (<= 0 count length))
+      (error "RANDOM-SOURCE-SAMPLE count must be an integer in [0, ~D]: ~S" length count))
+    (let ((vector (make-array length)))
+      (replace vector sequence)
+      (loop for index from 0 below count
+            for pick = (+ index (random-source-random source (- length index)))
+            do (rotatef (aref vector index) (aref vector pick)))
+      (loop for index from 0 below count collect (aref vector index)))))
+
+(defun random-source-shuffle (source sequence)
+  "Return a freshly shuffled copy of SEQUENCE using SOURCE.
+
+Uses a Fisher-Yates shuffle driven by `random-source-random`, so it works with
+any random source and a recording source records the underlying index draws. The
+input is not modified, and the result has the same sequence type (list or
+vector) as SEQUENCE."
+  (let* ((length (length sequence))
+         (vector (make-array length)))
+    (replace vector sequence)
+    (loop for index from (1- length) downto 1
+          for pick = (random-source-random source (1+ index))
+          do (rotatef (aref vector index) (aref vector pick)))
+    (if (listp sequence)
+        (coerce vector 'list)
+        vector)))

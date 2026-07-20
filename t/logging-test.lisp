@@ -16,6 +16,15 @@
     (let ((event (logger-log logger :info "hello" :user "take")))
       (assert-log-event event 1234 :info "hello" '(:user "take")))))
 
+(it "logger-level-helpers-supply-the-matching-level"
+  (let ((logger (make-test-logger :timestamp-fn (lambda () 7))))
+    (assert-log-event (logger-debug logger "d" :k 1) 7 :debug "d" '(:k 1))
+    (assert-log-event (logger-info logger "i") 7 :info "i" '())
+    (assert-log-event (logger-warn logger "w") 7 :warn "w" '())
+    (assert-log-event (logger-error logger "e") 7 :error "e" '())
+    ;; Each helper still records through the normal logging path.
+    (expect (= 4 (length (recording-log-events logger))) :to-be-truthy)))
+
 (it "make-logger-rejects-non-function-collaborators"
   (signals error
     (make-logger :sink-fn :bad))
@@ -100,3 +109,32 @@
 (it "recording-log-events-signals-for-unsupported-logger-types"
   (signals-error-message-contains "Unsupported logger type"
       (recording-log-events (make-logger))))
+
+;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
+;;; double-record every event -- once on the wrapper, once on the delegate's
+;;; own history -- because the recording dispatch recursed through the
+;;; delegate's public %LOGGER-EMIT-EVENT, re-entering the delegate's own
+;;; recording path. Nesting RECORDING-LOGGERs is a different, intentional
+;;; case (each level records its own copy while cascading to the innermost
+;;; real sink) and must keep working -- see
+;;; recording-logger-preserves-event-through-nested-delegates above.
+(it "recording-logger-does-not-double-record-a-self-recording-delegate"
+  (let* ((delegate (make-test-logger))
+         (logger (make-recording-logger :delegate delegate)))
+    (logger-log logger :info "hello")
+    (expect (= (length (recording-log-events logger)) 1) :to-be-truthy)
+    (expect (= (length (recording-log-events delegate)) 0) :to-be-truthy)))
+
+(it "reset-recording-log-events-clears-history-and-returns-the-logger"
+  (let ((logger (make-test-logger)))
+    (logger-log logger :info "one")
+    (logger-log logger :info "two")
+    (expect (= (length (recording-log-events logger)) 2) :to-be-truthy)
+    (expect (eq (reset-recording-log-events logger) logger) :to-be-truthy)
+    (expect (null (recording-log-events logger)) :to-be-truthy)
+    (logger-log logger :info "three")
+    (expect (= (length (recording-log-events logger)) 1) :to-be-truthy)))
+
+(it "reset-recording-log-events-signals-for-unsupported-logger-types"
+  (signals-error-message-contains "Unsupported logger type"
+      (reset-recording-log-events (make-logger))))

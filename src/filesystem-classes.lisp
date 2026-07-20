@@ -6,13 +6,19 @@
 (defconstant +test-filesystem-type+ :test)
 (defconstant +recording-filesystem-type+ :recording)
 
-(defun %make-filesystem-data (type &key read-file-fn write-file-fn probe-file-fn list-directory-fn path-exists-p-fn files calls delegate)
+(defun %make-filesystem-data (type &key read-file-fn write-file-fn probe-file-fn list-directory-fn path-exists-p-fn delete-file-fn copy-file-fn rename-file-fn make-directory-fn directory-exists-p-fn delete-directory-fn files calls delegate)
   (list :type type
         :read-file-fn read-file-fn
         :write-file-fn write-file-fn
         :probe-file-fn probe-file-fn
         :list-directory-fn list-directory-fn
         :path-exists-p-fn path-exists-p-fn
+        :delete-file-fn delete-file-fn
+        :copy-file-fn copy-file-fn
+        :rename-file-fn rename-file-fn
+        :make-directory-fn make-directory-fn
+        :directory-exists-p-fn directory-exists-p-fn
+        :delete-directory-fn delete-directory-fn
         :files files
         :calls calls
         :delegate delegate))
@@ -35,6 +41,24 @@
 (defun %filesystem-path-exists-p-fn (filesystem)
   (getf filesystem :path-exists-p-fn))
 
+(defun %filesystem-delete-file-fn (filesystem)
+  (getf filesystem :delete-file-fn))
+
+(defun %filesystem-copy-file-fn (filesystem)
+  (getf filesystem :copy-file-fn))
+
+(defun %filesystem-rename-file-fn (filesystem)
+  (getf filesystem :rename-file-fn))
+
+(defun %filesystem-make-directory-fn (filesystem)
+  (getf filesystem :make-directory-fn))
+
+(defun %filesystem-directory-exists-p-fn (filesystem)
+  (getf filesystem :directory-exists-p-fn))
+
+(defun %filesystem-delete-directory-fn (filesystem)
+  (getf filesystem :delete-directory-fn))
+
 (defun %filesystem-calls-box (filesystem)
   (getf filesystem :calls))
 
@@ -56,9 +80,18 @@
 (defun %recording-filesystem-p (filesystem)
   (eq (%filesystem-type filesystem) +recording-filesystem-type+))
 
+(defun %recording-or-test-filesystem-p (filesystem)
+  (member (%filesystem-type filesystem)
+          (list +test-filesystem-type+ +recording-filesystem-type+)
+          :test #'eq))
+
 (defmacro %with-recording-filesystem-call ((filesystem operation arguments) &body body)
+  ;; :TEST and :RECORDING filesystems both record onto their OWN calls box
+  ;; around the same BODY, which always calls FILESYSTEM's own (possibly
+  ;; delegate-copied, but never itself self-recording) collaborator
+  ;; functions -- never a delegate's public FILESYSTEM-READ-FILE etc.
   `(let ((filesystem (%require-filesystem ,filesystem)))
-     (if (%recording-filesystem-p filesystem)
+     (if (%recording-or-test-filesystem-p filesystem)
          (%recording-filesystem-call filesystem ,operation ,arguments
                                      (lambda () ,@body))
          (progn ,@body))))
@@ -77,4 +110,18 @@
                 (list +test-filesystem-type+ +recording-filesystem-type+)
                 :test #'eq)
         (%snapshot-recorded-calls (car (%filesystem-calls-box filesystem)))
+        (error "Unsupported filesystem type: ~S" (%filesystem-type filesystem)))))
+
+(defun reset-recording-filesystem-calls (filesystem)
+  "Clear FILESYSTEM's recorded call history and return FILESYSTEM.
+
+Recording/test filesystems otherwise retain every call for the object's
+whole lifetime; call this periodically (e.g. between test cases sharing one
+long-lived filesystem, or in a long-running process) to bound memory growth
+instead of only being able to reclaim it by discarding the object."
+  (let ((filesystem (%require-filesystem filesystem)))
+    (if (%recording-or-test-filesystem-p filesystem)
+        (progn
+          (setf (car (%filesystem-calls-box filesystem)) nil)
+          filesystem)
         (error "Unsupported filesystem type: ~S" (%filesystem-type filesystem)))))

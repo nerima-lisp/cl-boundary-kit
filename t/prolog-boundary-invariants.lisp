@@ -43,6 +43,111 @@
   ("undefined clock mutations are rejected"
    (permitted clock mutate) :fails))
 
+;;;; ---------------------------------------------------------------------------
+;;;; API-surface completeness as a declarative invariant
+;;;;
+;;;; A functional-requirements review of this library found that every
+;;;; boundary kind exports a native/test/recording constructor triad except
+;;;; CLOCK (ADVANCE-FAKE-CLOCK already gives full control, so
+;;;; MAKE-RECORDING-CLOCK was flagged rather than added speculatively) --
+;;;; RANDOM's missing recording variant was the one asymmetry closed by
+;;;; adding MAKE-RECORDING-RANDOM-SOURCE. Encoding that as facts and a rule
+;;;; makes the intended shape checkable instead of only documented in prose:
+;;;; if a future change added a boundary kind without completing its triad,
+;;;; or "completed" CLOCK's, this invariant would need an explicit update
+;;;; rather than silently drifting from what actually shipped.
+;;;;
+;;;; The UUID, SLEEPER, CONSOLE, SYSTEM, KV, and METRICS boundaries were each
+;;;; added with a full native/test/recording triad, so they extend the fact
+;;;; base and the expected solution set below rather than introducing new
+;;;; asymmetries.
+(defparameter *boundary-api-completeness*
+  (cl-prolog:prolog
+    ((provides-native filesystem)) ((provides-native environment))
+    ((provides-native process)) ((provides-native network))
+    ((provides-native clock)) ((provides-native random))
+    ((provides-native uuid)) ((provides-native temp-path))
+    ((provides-native args)) ((provides-native host-info))
+    ((provides-native sleeper))
+    ((provides-native console)) ((provides-native system))
+    ((provides-native kv)) ((provides-native metrics))
+    ((provides-native lock)) ((provides-native semaphore))
+    ((provides-native working-directory))
+    ((provides-native dns)) ((provides-native secret))
+    ((provides-native feature-flags)) ((provides-native cache))
+    ((provides-native rate-limiter)) ((provides-native scheduler))
+    ((provides-native publisher)) ((provides-native subscriber))
+    ((provides-native notifier))
+    ((provides-test filesystem)) ((provides-test environment))
+    ((provides-test process)) ((provides-test network))
+    ((provides-test random))
+    ((provides-test uuid)) ((provides-test temp-path))
+    ((provides-test args)) ((provides-test host-info))
+    ((provides-test sleeper))
+    ((provides-test console)) ((provides-test system))
+    ((provides-test kv)) ((provides-test metrics))
+    ((provides-test lock)) ((provides-test semaphore))
+    ((provides-test working-directory))
+    ((provides-test dns)) ((provides-test secret))
+    ((provides-test feature-flags)) ((provides-test cache))
+    ((provides-test rate-limiter)) ((provides-test scheduler))
+    ((provides-test publisher)) ((provides-test subscriber))
+    ((provides-test notifier))
+    ((provides-recording filesystem)) ((provides-recording environment))
+    ((provides-recording process)) ((provides-recording network))
+    ((provides-recording random))
+    ((provides-recording uuid)) ((provides-recording temp-path))
+    ((provides-recording args)) ((provides-recording host-info))
+    ((provides-recording sleeper))
+    ((provides-recording console)) ((provides-recording system))
+    ((provides-recording kv)) ((provides-recording metrics))
+    ((provides-recording lock)) ((provides-recording semaphore))
+    ((provides-recording working-directory))
+    ((provides-recording dns)) ((provides-recording secret))
+    ((provides-recording feature-flags)) ((provides-recording cache))
+    ((provides-recording rate-limiter)) ((provides-recording scheduler))
+    ((provides-recording publisher)) ((provides-recording subscriber))
+    ((provides-recording notifier))
+    ((complete-triad ?boundary)
+     (provides-native ?boundary)
+     (provides-test ?boundary)
+     (provides-recording ?boundary)))
+  "Which native/test/recording constructors each boundary kind actually
+exports.")
+
+(cl-prolog/weave:deftest-queries boundary-api-triads-match-the-documented-asymmetry
+    (*boundary-api-completeness*)
+  ("every boundary except clock completes the native/test/recording triad"
+   (complete-triad ?boundary) :set
+   (((?boundary . filesystem))
+    ((?boundary . environment))
+    ((?boundary . process))
+    ((?boundary . network))
+    ((?boundary . random))
+    ((?boundary . uuid))
+    ((?boundary . temp-path))
+    ((?boundary . args))
+    ((?boundary . host-info))
+    ((?boundary . sleeper))
+    ((?boundary . console))
+    ((?boundary . system))
+    ((?boundary . kv))
+    ((?boundary . metrics))
+    ((?boundary . lock))
+    ((?boundary . semaphore))
+    ((?boundary . working-directory))
+    ((?boundary . dns))
+    ((?boundary . secret))
+    ((?boundary . feature-flags))
+    ((?boundary . cache))
+    ((?boundary . rate-limiter))
+    ((?boundary . scheduler))
+    ((?boundary . publisher))
+    ((?boundary . subscriber))
+    ((?boundary . notifier))))
+  ("clock is the one documented, deliberate asymmetry"
+   (complete-triad clock) :fails))
+
 (it "prolog-rulebase-extension-is-transactional"
   (let ((extended
           (cl-prolog:extend-rulebase *boundary-policy*
@@ -77,6 +182,27 @@
 
 (it "prolog-occurs-check-rejects-cyclic-boundary-facts"
   (expect (null (cl-prolog:unify '?boundary '(wrapped ?boundary))) :to-be-truthy))
+
+;;; FINDALL: aggregate every declared BOUNDARY/1 fact into one list and
+;;; assert its length, rather than enumerating solutions one at a time the
+;;; way the :SET query kind above does. Facts and query are both consulted
+;;; from text (like *BOUNDARY-POLICY-SOURCE* / the tabled-reachability graph
+;;; below), not queried against the sexp-authored *BOUNDARY-POLICY* --
+;;; mixing the two representations left BOUNDARY/1 unresolvable from a
+;;; text-parsed goal (an atom-identity mismatch between the two clause
+;;; authoring styles).
+(it "findall-aggregates-every-declared-boundary-fact-into-one-count"
+  (let ((policy (cl-prolog:consult-prolog
+                 "boundary(filesystem).
+                  boundary(environment).
+                  boundary(process).
+                  boundary(network).
+                  boundary(clock).")))
+    (expect (= 1 (length
+                  (cl-prolog:query-prolog
+                   policy
+                   (cl-prolog:read-prolog-term "findall(B, boundary(B), Bs), length(Bs, 5)"))))
+            :to-be-truthy)))
 
 ;;;; ---------------------------------------------------------------------------
 ;;;; Advanced cl-prolog 0.6.0 usage

@@ -91,6 +91,27 @@
       (ignore-errors (delete-file path))
       (ignore-errors (uiop:delete-empty-directory directory)))))
 
+;;; Fuzzes the test-filesystem write-mode fix (:IF-EXISTS :OVERWRITE used to
+;;; behave like :SUPERSEDE) across randomized existing/new content lengths,
+;;; via GEN-MEMBER over the three modes -- rather than the fixed-length
+;;; hand-picked strings the example-based regression test uses. Directly
+;;; encodes real CL :OVERWRITE semantics (overwrite from the start, keep any
+;;; existing tail beyond the new content's length) as the oracle.
+(it-property "test-filesystem-write-mode-matches-real-cl-if-exists-semantics"
+    ((existing (gen-string :min-length 0 :max-length 24))
+     (new-content (gen-string :min-length 0 :max-length 24))
+     (mode (gen-member (list :supersede :create :overwrite))))
+  (let* ((entry (cl-boundary-kit::%make-filesystem-entry "path" existing))
+         (result (cl-boundary-kit::%resolve-test-write-content
+                  entry "path" new-content mode nil)))
+    (expect (string= result
+                     (if (and (eq mode :overwrite)
+                              (> (length existing) (length new-content)))
+                         (concatenate 'string new-content
+                                      (subseq existing (length new-content)))
+                         new-content))
+            :to-be-truthy)))
+
 ;;; Demonstrate cl-weave's benchmark facility on the recording hot path.  The
 ;;; assertion is structural (sample count), not wall-clock, so it stays stable
 ;;; in CI while still exercising the measurement API end to end.
@@ -140,4 +161,23 @@
                     (funcall predicate 4 5)
                     (not (funcall predicate -1 5))
                     (not (funcall predicate 5 5))))))))
+    (expect (cl-weave:assert-mutation-score results 1.0) :to-be-truthy)))
+
+;;; Mutation testing (cl-weave): the deterministic random source's LCG step
+;;; is pure arithmetic (+, *, MOD) with no test coverage of the exact
+;;; formula shape -- only of the resulting properties (range, repeatability)
+;;; via the property test above. A mutant that swaps + for - or * for /
+;;; would still produce range-bounded, repeatable output, so it would slip
+;;; past that property test undetected; this oracle pins the exact
+;;; documented recurrence instead.
+(it "lcg-step-oracle-kills-every-injected-mutant"
+  (let ((results
+          (cl-weave:run-mutations
+           '(lambda (state modulus) (mod (+ (* state 6364136223846793005) 1) modulus))
+           (lambda (form mutation)
+             (declare (ignore mutation))
+             (let ((step (eval form)))
+               (and (= (funcall step 1 100) 6)
+                    (= (funcall step 2 100) 11)
+                    (= (funcall step 0 97) 1)))))))
     (expect (cl-weave:assert-mutation-score results 1.0) :to-be-truthy)))

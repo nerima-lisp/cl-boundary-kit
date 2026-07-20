@@ -58,6 +58,26 @@
   ;; so entries must not be copied the way %SNAPSHOT-RECORDED-CALLS would.
   (reverse (%logger-events logger)))
 
+(defgeneric %reset-logger-events (logger))
+
+(defmethod %reset-logger-events ((logger logger))
+  (error "Unsupported logger type: ~S" logger))
+
+(defmethod %reset-logger-events ((logger test-logger))
+  (setf (%logger-events logger) nil))
+
+(defmethod %reset-logger-events ((logger recording-logger))
+  (setf (%logger-events logger) nil))
+
+(defun reset-recording-log-events (logger)
+  "Clear LOGGER's recorded event history and return LOGGER.
+
+Recording/test loggers otherwise retain every event for the object's whole
+lifetime; call this periodically to bound memory growth instead of only
+being able to reclaim it by discarding the object."
+  (%reset-logger-events logger)
+  logger)
+
 (defmethod %logger-emit-event ((logger logger) event)
   (funcall (logger-sink-fn logger) event)
   event)
@@ -67,10 +87,34 @@
   event)
 
 (defmethod %logger-emit-event ((logger recording-logger) event)
+  ;; Nesting recording-loggers is intentional and tested (each level records
+  ;; its own copy while the event cascades to the innermost real sink), so
+  ;; the delegate is still reached via %LOGGER-EMIT-EVENT, not LOGGER's own
+  ;; copied SINK-FN. The one case that must NOT recurse is a TEST-LOGGER
+  ;; delegate: it has no real sink (its own event list *is* its effect), so
+  ;; recursing into its %LOGGER-EMIT-EVENT method would push the event onto
+  ;; the delegate's own history too -- double-recording, not cascading.
+  (push event (%logger-events logger))
   (let ((delegate (recording-logger-delegate logger)))
-    (push event (%logger-events logger))
-    (%logger-emit-event delegate event)
-    event))
+    (unless (typep delegate 'test-logger)
+      (%logger-emit-event delegate event)))
+  event)
 
 (defmethod logger-log ((logger logger) level message &rest fields)
   (%logger-emit-event logger (%make-log-event logger level message fields)))
+
+(defun logger-debug (logger message &rest fields)
+  "Emit a `:debug` level event through LOGGER; sugar over `logger-log`."
+  (apply #'logger-log logger :debug message fields))
+
+(defun logger-info (logger message &rest fields)
+  "Emit an `:info` level event through LOGGER; sugar over `logger-log`."
+  (apply #'logger-log logger :info message fields))
+
+(defun logger-warn (logger message &rest fields)
+  "Emit a `:warn` level event through LOGGER; sugar over `logger-log`."
+  (apply #'logger-log logger :warn message fields))
+
+(defun logger-error (logger message &rest fields)
+  "Emit an `:error` level event through LOGGER; sugar over `logger-log`."
+  (apply #'logger-log logger :error message fields))

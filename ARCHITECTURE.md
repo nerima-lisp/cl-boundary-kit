@@ -39,9 +39,16 @@ These principles matter more than adding new convenience wrappers.
 
 - `src/package.lisp` exports the supported public API
 - `src/protocols.lisp` defines the protocol contract
-- `src/filesystem-*.lisp`, `src/env-classes.lisp`, `src/clock.lisp`,
-  `src/random.lisp`, `src/process*.lisp`, `src/network-*.lisp`, and
-  `src/logging.lisp` implement subsystem-specific boundaries
+- the subsystem implementation files under `src/` (for example
+  `src/filesystem-*.lisp`, `src/env-classes.lisp`, `src/clock.lisp`,
+  `src/random.lisp`, `src/uuid.lisp`, `src/temp-path.lisp`, `src/args.lisp`,
+  `src/host-info.lisp`, `src/sleeper.lisp`, `src/console.lisp`, `src/system.lisp`,
+  `src/kv.lisp`, `src/cache.lisp`, `src/secret.lisp`, `src/feature-flags.lisp`,
+  `src/lock.lisp`, `src/semaphore.lisp`, `src/rate-limiter.lisp`,
+  `src/scheduler.lisp`, `src/working-directory.lisp`, `src/dns.lisp`,
+  `src/process*.lisp`, `src/network-*.lisp`, `src/logging.lisp`,
+  `src/metrics.lisp`, `src/publisher.lisp`, `src/subscriber.lisp`, and
+  `src/notifier.lisp`) each implement a subsystem-specific boundary
 - `src/core.lisp` holds cross-cutting composition and generic recording utilities
 - `src/testing.lisp` exposes lightweight test assertions
 - `t/api-test.lisp`, `t/api-doc-claims-test.lisp`, `t/api-doc-links-test.lisp`,
