@@ -79,3 +79,6 @@ Include:
 - Keep boundary recorders from leaking real system state.
 - Prefer explicit failures over silent fallback behavior when unsupported
   operations are encountered.
+- Prefer absolute paths for native process execution. PATH lookup is disabled by
+  default and should only be enabled around calls that intentionally trust the
+  ambient process environment.

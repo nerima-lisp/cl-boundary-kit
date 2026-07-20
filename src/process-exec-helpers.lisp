@@ -93,11 +93,10 @@
 (defun %normalize-process-environment (environment)
   (mapcar #'%process-environment-entry-string environment))
 
-(defparameter *native-process-search-path-p* t
+(defparameter *native-process-search-path-p* nil
   "Whether the native process boundary searches $PATH for the program, like
-execvp. Bind to NIL around a call so a relative or attacker-influenced
-program name must instead resolve to an absolute path, rather than being
-implicitly resolved against whatever directories $PATH happens to list.")
+execvp. The default is NIL so relative or attacker-influenced program names must
+resolve to absolute paths unless callers explicitly opt in to PATH lookup.")
 
 (defun %native-process-options (input directory environment environment-supplied-p output error-output)
   ;; ENVIRONMENT-SUPPLIED-P (not a truthiness check on ENVIRONMENT) decides

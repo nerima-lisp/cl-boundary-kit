@@ -430,8 +430,9 @@ replaces rather than merges with the parent process's environment, and an
 explicit empty `:environment '()` gives the child none of it; omitting
 `:environment` inherits the parent environment unchanged.
 `*native-process-search-path-p*` controls whether the native runner searches
-`$PATH` for the program (like `execvp`, and `t` by default); bind it to `nil`
-around a call to require an absolute program path instead.
+`$PATH` for the program (like `execvp`). It is `nil` by default so native
+process calls require absolute program paths unless callers explicitly bind it
+to `t` for trusted convenience.
 `make-test-process-boundary` is a queue-backed fake for deterministic tests:
 each `process-boundary-run` call consumes one precomputed result, records the
 call, and signals when the queue is exhausted.

@@ -53,27 +53,31 @@
     (expect (equal (first calls) expected-call) :to-be-truthy)))
 
 (it "process-boundary-runs-command"
-  (with-process-boundary (process)
-    (let ((result (process-boundary-run process "sh" :arguments (list "-c" "printf hi"))))
-    (expect (string= (getf result :stdout) "hi") :to-be-truthy)
-      (expect (= (getf result :exit-code) 0) :to-be-truthy))))
+  (let ((*native-process-search-path-p* t))
+    (with-process-boundary (process)
+      (let ((result (process-boundary-run process "sh" :arguments (list "-c" "printf hi"))))
+        (expect (string= (getf result :stdout) "hi") :to-be-truthy)
+        (expect (= (getf result :exit-code) 0) :to-be-truthy)))))
 
 (it "process-boundary-returns-command-shape-and-stderr"
-  (with-process-boundary (process)
-    (let ((result (process-boundary-run process "sh"
-                                        :arguments (list "-c" "printf out && printf err >&2"))))
-    (expect (equal (getf result :command) '("sh" "-c" "printf out && printf err >&2")) :to-be-truthy)
-    (expect (string= (getf result :stdout) "out") :to-be-truthy)
-    (expect (string= (getf result :stderr) "err") :to-be-truthy)
-      (expect (= (getf result :exit-code) 0) :to-be-truthy))))
+  (let ((*native-process-search-path-p* t))
+    (with-process-boundary (process)
+      (let ((result (process-boundary-run process "sh"
+                                          :arguments (list "-c" "printf out && printf err >&2"))))
+        (expect (equal (getf result :command) '("sh" "-c" "printf out && printf err >&2")) :to-be-truthy)
+        (expect (string= (getf result :stdout) "out") :to-be-truthy)
+        (expect (string= (getf result :stderr) "err") :to-be-truthy)
+        (expect (= (getf result :exit-code) 0) :to-be-truthy)))))
 
 (it "process-boundary-normalizes-list-command-with-arguments"
-  (with-process-boundary (process)
-    (let ((result (process-boundary-run process '("sh" "-c")
-                                        :arguments (list "printf hi"))))
-    (expect (equal (getf result :command) '("sh" "-c" "printf hi")) :to-be-truthy)
-    (expect (string= (getf result :stdout) "hi") :to-be-truthy)
-      (expect (= (getf result :exit-code) 0) :to-be-truthy))))
+  (let ((*native-process-search-path-p* t))
+    (with-process-boundary (process)
+      (let ((result (process-boundary-run process '("sh" "-c")
+                                          :arguments (list "printf hi"))))
+        (expect (equal (getf result :command) '("sh" "-c" "printf hi")) :to-be-truthy)
+        (expect (string= (getf result :stdout) "hi") :to-be-truthy)
+        (expect (= (getf result :exit-code) 0) :to-be-truthy)))))
+
 
 (it "make-process-boundary-rejects-non-function-runner"
   (signals error
@@ -298,6 +302,20 @@
               (string= (subseq stdout (- (length stdout) 10)) "0123456789"))
             :to-be-truthy)))
 
+(it "native-process-run-captures-large-stderr-without-deadlocking"
+  (let* ((process (make-process-boundary))
+         (runtime (namestring sb-ext:*runtime-pathname*))
+         (result (process-boundary-run
+                  process runtime
+                  :arguments (list "--non-interactive" "--no-sysinit" "--no-userinit"
+                                   "--eval"
+                                   "(progn (loop repeat 40000 do (write-string \"0123456789\" *error-output*)) (finish-output *error-output*))")
+                  :timeout 15)))
+    (expect (>= (length (getf result :stderr)) 400000) :to-be-truthy)
+    (expect (let ((stderr (getf result :stderr)))
+              (string= (subseq stderr (- (length stderr) 10)) "0123456789"))
+            :to-be-truthy)))
+
 (defun %run-native-reporting (var-names &rest environment-args)
   (let* ((process (make-process-boundary))
          (runtime (namestring sb-ext:*runtime-pathname*))
@@ -337,24 +355,24 @@
                                          :environment '(("MARKER" . "hello"))))
           :to-be-truthy))
 
-;;; *NATIVE-PROCESS-SEARCH-PATH-P* lets a caller require an absolute program
-;;; path instead of implicit execvp-style $PATH resolution.
-(it "native-process-search-path-p-defaults-to-t-and-searches-path"
-  (expect *native-process-search-path-p* :to-be-truthy)
+;;; *NATIVE-PROCESS-SEARCH-PATH-P* is opt-in so the default native runner does
+;;; not implicitly resolve attacker-influenced program names through $PATH.
+(it "native-process-search-path-p-defaults-to-nil-and-requires-an-absolute-path"
+  (expect (null *native-process-search-path-p*) :to-be-truthy)
   (let ((process (make-process-boundary)))
-    (expect (search "ok" (getf (process-boundary-run process "sh" :arguments (list "-c" "echo ok"))
-                               :stdout))
-            :to-be-truthy)))
-
-(it "native-process-search-path-p-bound-to-nil-requires-an-absolute-path"
-  (let ((process (make-process-boundary))
-        (*native-process-search-path-p* nil))
     (signals error
       (process-boundary-run process "sh" :arguments (list "-c" "echo ok")))
     (expect (equal (getf (process-boundary-run process (namestring sb-ext:*runtime-pathname*)
                                               :arguments (list "--version"))
                          :exit-code)
-               0)
+                   0)
+            :to-be-truthy)))
+
+(it "native-process-search-path-p-bound-to-t-searches-path"
+  (let ((process (make-process-boundary))
+        (*native-process-search-path-p* t))
+    (expect (search "ok" (getf (process-boundary-run process "sh" :arguments (list "-c" "echo ok"))
+                               :stdout))
             :to-be-truthy)))
 
 ;;; Regression: if the stderr-capture thread failed to start (e.g. resource
