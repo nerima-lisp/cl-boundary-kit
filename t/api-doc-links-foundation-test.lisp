@@ -73,11 +73,11 @@
          (testing-repl-snippet (first-readme-fenced-code-block "## Testing" "## Compatibility" "lisp")))
     (assert-contains-all compatibility
                          '("Provides a pinned Nix test path through `nix run .#test`"
-                           "Treats that pinned Nix test path as Linux-only (`x86_64-linux`)"
-                           "Exercises the full Linux flake check set through `nix flake check`"
+                           "Emits pinned Nix apps and checks for `x86_64-linux` and `aarch64-darwin`"
+                           "Exercises the supported host flake check set through `nix flake check`"
                            "Does not require Quicklisp when using the Nix flake"
                            "Supports direct `sbcl --script run-tests.lisp` execution"
-                           "Does not treat non-Linux `nix flake check` evaluation as equivalent evidence"
+                           "Does not claim compatibility for hosts outside the emitted flake systems"
                            "README installation, quick-start, and test commands"
                            "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL"
                            "successful completion"
@@ -105,7 +105,6 @@
   (let* ((release (repository-file-string "RELEASE.md"))
          (compatibility (repository-file-string "COMPATIBILITY.md"))
          (api-tests (api-test-suite-string))
-         (example-tests (repository-file-string "t/examples-runtime-test.lisp"))
          (example-helpers (repository-file-string "t/examples-test-helpers.lisp")))
     (assert-contains-all release
                          '("the checkout installation flow"

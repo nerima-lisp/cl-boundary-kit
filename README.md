@@ -1187,7 +1187,7 @@ executing their snippet body.
 
 ## Testing
 
-The recommended Linux checkout test command is:
+The recommended pinned checkout test command is:
 
 ```sh
 nix run .#test
@@ -1197,18 +1197,20 @@ The flake pins SBCL, `cl-prolog`, and `cl-weave`, so this path does not require
 Quicklisp or separately installed Common Lisp dependencies. `cl-weave` provides
 the test runner, machine-readable reporting, and coverage integration.
 `cl-prolog` is used by the test system to express and verify cross-boundary
-invariants. These runnable flake apps and checks are intentionally Linux-only
-(`x86_64-linux`), matching the Ubuntu GitHub Actions workflow.
+invariants. These runnable flake apps and checks are emitted for
+`x86_64-linux` and `aarch64-darwin`; the Ubuntu GitHub Actions workflow is the
+canonical Linux CI path.
 
-On a Linux host, run `nix flake check --print-build-logs` to execute every flake
-check, including the canonical checkout runner, machine-readable report
-generation, and the coverage threshold. The CI workflow additionally builds the
-`machine-report` and `coverage` checks as artifacts. They contain `report.json`,
-and, for the coverage check, `coverage.dat`, `coverage-summary.txt`, and the
-`coverage-html/` report. The coverage check currently requires at least 80%
-statement coverage. On macOS and other non-Linux hosts, `nix run .#test` is not
-available and `nix flake check` does not reproduce the Ubuntu CI check set
-because the Linux-only outputs are omitted.
+On a supported Nix host, run `nix flake check --print-build-logs` to execute
+the flake checks for that host, including the checkout runner,
+machine-readable report generation, and the coverage threshold. The CI
+workflow additionally builds the `machine-report` and `coverage` checks as
+artifacts. They contain `report.json`, and, for the coverage check,
+`coverage.dat`, `coverage-summary.txt`, and the `coverage-html/` report. The
+coverage check currently requires at least 80% statement coverage. Hosts outside
+the emitted flake systems are not a compatibility claim; use
+`sbcl --script run-tests.lisp` there when `cl-prolog` and `cl-weave` are already
+discoverable by ASDF.
 
 For local development on any host with an existing SBCL environment, run
 `sbcl --script run-tests.lisp`. Quicklisp itself is not required, but direct
