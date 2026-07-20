@@ -4,6 +4,10 @@
 *.fas
 *.lib
 
+# Nix build outputs
+/result
+/result-*
+
 # Editor/tool scratch output
 .playwright-mcp/
 tmp/
