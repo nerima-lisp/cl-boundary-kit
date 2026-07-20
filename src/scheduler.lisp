@@ -51,13 +51,25 @@ schedule order. Thunks are omitted because they are not meaningfully comparable.
           (%ordered-test-scheduler-tasks scheduler)))
 
 (defun test-scheduler-run-pending (scheduler)
-  "Run every pending task of SCHEDULER in schedule order, clear the queue, and
-return the list of thunk results."
+  "Run pending tasks of SCHEDULER in schedule order and return their results.
+
+Successfully completed tasks are removed. If a task signals an error, that task
+and the tasks after it remain pending, and the original error is re-signaled."
   (unless (typep scheduler 'test-scheduler)
     (error "Unsupported scheduler type: ~S" scheduler))
-  (let ((tasks (%ordered-test-scheduler-tasks scheduler)))
+  (let ((tasks (%ordered-test-scheduler-tasks scheduler))
+        (results '()))
     (setf (%test-scheduler-tasks scheduler) '())
-    (mapcar (lambda (task) (funcall (third task))) tasks)))
+    (loop
+      (when (endp tasks)
+        (return (nreverse results)))
+      (let ((task (pop tasks)))
+        (handler-case
+            (push (funcall (third task)) results)
+          (error (condition)
+            (setf (%test-scheduler-tasks scheduler)
+                  (reverse (cons task tasks)))
+            (error condition)))))))
 
 (defun make-recording-scheduler (&key (delegate (make-test-scheduler)))
   "Create a scheduler that records calls while delegating to DELEGATE, which
