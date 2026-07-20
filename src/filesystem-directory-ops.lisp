@@ -2,16 +2,24 @@
 
 (in-package #:cl-boundary-kit)
 
+(defun %ensure-directory-pathname (path)
+  ;; A pathname built from a string without a trailing separator (e.g.
+  ;; #P"/tmp/mydir") parses "mydir" as the NAME, so move any NAME/TYPE
+  ;; component into the directory list once instead of round-tripping through
+  ;; NAMESTRING on every directory operation.
+  (if (or (pathname-name path) (pathname-type path))
+      (make-pathname :directory (append (or (pathname-directory path) '(:relative))
+                                        (list (file-namestring path)))
+                     :name nil :type nil :version nil
+                     :defaults path)
+      path))
+
 (defun %filesystem-directory-pathname (path)
   "Return PATH as a directory pathname (with a trailing separator).
 
 Uses only portable Common Lisp string manipulation so this file loads without
 UIOP (for example the examples bootstrap)."
-  (let ((namestring (namestring (pathname path))))
-    (if (and (plusp (length namestring))
-             (char= (char namestring (1- (length namestring))) #\/))
-        (pathname namestring)
-        (pathname (concatenate 'string namestring "/")))))
+  (%ensure-directory-pathname (pathname path)))
 
 (defun %real-filesystem-make-directory (path)
   "Create the directory PATH on the real filesystem and return its pathname."

@@ -291,7 +291,10 @@ destination and return the destination. The native copy transfers raw bytes and
 the native rename uses `cl:rename-file` (atomic on the same volume), so both keep
 the exact content rather than round-tripping through a string; the test
 filesystem updates its in-memory entries, and recording filesystems record the
-operation.
+operation. Copying a file to itself is rejected before opening the destination,
+so copy never truncates the source through `:if-exists :supersede`; renaming a
+file to itself is rejected as well, avoiding implementation-dependent host
+behavior and preserving fake filesystem contents.
 `filesystem-read-file-lines` reads a file and returns its contents split into a
 list of lines (following `read-line` semantics, so a trailing newline yields no
 final empty line); it is derived from `filesystem-read-file`, so it works across

@@ -81,9 +81,9 @@
   (eq (%filesystem-type filesystem) +recording-filesystem-type+))
 
 (defun %recording-or-test-filesystem-p (filesystem)
-  (member (%filesystem-type filesystem)
-          (list +test-filesystem-type+ +recording-filesystem-type+)
-          :test #'eq))
+  (let ((type (%filesystem-type filesystem)))
+    (or (eq type +test-filesystem-type+)
+        (eq type +recording-filesystem-type+))))
 
 (defmacro %with-recording-filesystem-call ((filesystem operation arguments) &body body)
   ;; :TEST and :RECORDING filesystems both record onto their OWN calls box
@@ -106,9 +106,7 @@
 (defun recording-filesystem-calls (filesystem)
   "Return the recorded filesystem calls in call order."
   (let ((filesystem (%require-filesystem filesystem)))
-    (if (member (%filesystem-type filesystem)
-                (list +test-filesystem-type+ +recording-filesystem-type+)
-                :test #'eq)
+    (if (%recording-or-test-filesystem-p filesystem)
         (%snapshot-recorded-calls (car (%filesystem-calls-box filesystem)))
         (error "Unsupported filesystem type: ~S" (%filesystem-type filesystem)))))
 

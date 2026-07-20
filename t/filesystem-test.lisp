@@ -146,6 +146,38 @@
                            "new"
                            :if-exists :error)))
 
+(it "test-filesystem-copies-seeded-file-content"
+  (let* ((path #P"/tmp/seed.txt")
+         (content (copy-seq "seed"))
+         (fs (make-test-filesystem :initial-files (list path content))))
+    (setf (char content 0) #\S)
+    (expect (string= (filesystem-read-file fs path) "seed") :to-be-truthy)))
+
+(it "test-filesystem-copies-written-file-content"
+  (let* ((path #P"/tmp/write.txt")
+         (content (copy-seq "write"))
+         (fs (make-test-filesystem)))
+    (filesystem-store-file fs path content)
+    (setf (char content 0) #\W)
+    (expect (string= (filesystem-read-file fs path) "write") :to-be-truthy)))
+
+(it "test-filesystem-read-file-returns-independent-content"
+  (let* ((path #P"/tmp/read.txt")
+         (fs (make-test-filesystem :initial-files (list path "read")))
+         (read-back (filesystem-read-file fs path)))
+    (setf (char read-back 0) #\R)
+    (expect (string= (filesystem-read-file fs path) "read") :to-be-truthy)))
+
+(it "test-filesystem-copy-file-does-not-expose-source-content"
+  (let* ((source #P"/tmp/source.txt")
+         (destination #P"/tmp/destination.txt")
+         (fs (make-test-filesystem :initial-files (list source "copy"))))
+    (filesystem-copy-file fs source destination)
+    (let ((read-back (filesystem-read-file fs destination)))
+      (setf (char read-back 0) #\C))
+    (expect (string= (filesystem-read-file fs source) "copy") :to-be-truthy)
+    (expect (string= (filesystem-read-file fs destination) "copy") :to-be-truthy)))
+
 (it "recording-filesystem-records"
   (let* ((fs (make-recording-filesystem))
          (path #P"/tmp/example.txt"))
@@ -303,7 +335,7 @@
                                               (declare (ignore directory))
                                               entries)))))
     (let ((result (filesystem-list-directory fs #P"/tmp/")))
-      (nreverse result)
+      (setf result (nreverse result))
       (expect (equal (getf (first (recording-filesystem-calls fs)) :result)
                  (list "a.txt" "b.txt")) :to-be-truthy))))
 
@@ -365,6 +397,14 @@
     (expect (eq t (filesystem-delete-file fs #P"a.txt")) :to-be-truthy)
     (assert-recorded-calls fs (list (boundary-call-plist :delete-file (list #P"a.txt") :result t)))))
 
+(it "recording-filesystem-records-delete-file-when-delegate-reports-absence"
+  (let ((fs (make-recording-filesystem
+             :delegate (make-filesystem :delete-file-fn (lambda (path)
+                                                          (declare (ignore path))
+                                                          nil)))))
+    (expect (null (filesystem-delete-file fs #P"missing.txt")) :to-be-truthy)
+    (assert-recorded-calls fs (list (boundary-call-plist :delete-file (list #P"missing.txt") :result nil)))))
+
 (it "make-filesystem-delete-file-removes-a-real-file"
   (let* ((directory (uiop:ensure-directory-pathname
                      (merge-pathnames "cl-boundary-kit-delete-test/" (uiop:temporary-directory))))
@@ -391,11 +431,23 @@
     (expect (string= "hello" (filesystem-read-file fs #P"a.txt")) :to-be-truthy)
     (expect (string= "hello" (filesystem-read-file fs #P"b.txt")) :to-be-truthy)))
 
+(it "test-filesystem-copy-file-rejects-self-copy"
+  (let ((fs (make-test-filesystem :initial-files '((#P"a.txt" . "hello")))))
+    (signals error
+      (filesystem-copy-file fs #P"a.txt" #P"a.txt"))
+    (expect (string= "hello" (filesystem-read-file fs #P"a.txt")) :to-be-truthy)))
+
 (it "test-filesystem-rename-file-moves-content-and-drops-the-source"
   (let ((fs (make-test-filesystem :initial-files '((#P"a.txt" . "hello")))))
     (expect (equal #P"b.txt" (filesystem-rename-file fs #P"a.txt" #P"b.txt")) :to-be-truthy)
     (expect (null (filesystem-path-exists-p fs #P"a.txt")) :to-be-truthy)
     (expect (string= "hello" (filesystem-read-file fs #P"b.txt")) :to-be-truthy)))
+
+(it "test-filesystem-rename-file-rejects-self-rename"
+  (let ((fs (make-test-filesystem :initial-files '((#P"a.txt" . "hello")))))
+    (signals error
+      (filesystem-rename-file fs #P"a.txt" #P"a.txt"))
+    (expect (string= "hello" (filesystem-read-file fs #P"a.txt")) :to-be-truthy)))
 
 (it "test-filesystem-copy-and-rename-signal-for-a-missing-source"
   (let ((fs (make-test-filesystem)))
@@ -431,6 +483,36 @@
            (expect (string= "payload" (uiop:read-file-string moved)) :to-be-truthy))
       (dolist (p (list source copy moved))
         (ignore-errors (delete-file p)))
+      (ignore-errors (uiop:delete-empty-directory directory)))))
+
+(it "make-filesystem-copy-file-rejects-self-copy-without-truncating"
+  (let* ((directory (uiop:ensure-directory-pathname
+                     (merge-pathnames "cl-boundary-kit-self-copy-test/" (uiop:temporary-directory))))
+         (path (merge-pathnames "source.txt" directory)))
+    (ensure-directories-exist directory)
+    (with-open-file (out path :direction :output :if-exists :supersede :if-does-not-exist :create)
+      (write-string "payload" out))
+    (unwind-protect
+         (let ((fs (make-filesystem)))
+           (signals error
+             (filesystem-copy-file fs path path))
+           (expect (string= "payload" (uiop:read-file-string path)) :to-be-truthy))
+      (ignore-errors (delete-file path))
+      (ignore-errors (uiop:delete-empty-directory directory)))))
+
+(it "make-filesystem-rename-file-rejects-self-rename-without-deleting"
+  (let* ((directory (uiop:ensure-directory-pathname
+                     (merge-pathnames "cl-boundary-kit-self-rename-test/" (uiop:temporary-directory))))
+         (path (merge-pathnames "source.txt" directory)))
+    (ensure-directories-exist directory)
+    (with-open-file (out path :direction :output :if-exists :supersede :if-does-not-exist :create)
+      (write-string "payload" out))
+    (unwind-protect
+         (let ((fs (make-filesystem)))
+           (signals error
+             (filesystem-rename-file fs path path))
+           (expect (string= "payload" (uiop:read-file-string path)) :to-be-truthy))
+      (ignore-errors (delete-file path))
       (ignore-errors (uiop:delete-empty-directory directory)))))
 
 (it "make-filesystem-rejects-non-function-copy-and-rename-fns"
