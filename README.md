@@ -452,14 +452,23 @@ function, and recording wrappers require a `process-boundary` delegate.
 
 `network-boundary-request` accepts an opaque request object plus an optional
 `:timeout`, which is forwarded unchanged to the configured transport function.
-Recording network boundaries keep both the request and the returned response so
-tests can assert on transport interactions directly, including explicit `nil`
-responses from test queues or delegates.
+Recording network boundaries return the delegate's raw response to the caller
+but sanitize their in-memory call history by default before storing requests
+and responses. The default sanitizer redacts common sensitive fields such as
+authorization headers, cookies, API keys, tokens, passwords, secrets, and
+payload/body/content values while preserving non-sensitive metadata such as
+method, URL, status, and safe headers. Pass explicit `:request-redactor-fn`
+and `:response-redactor-fn` functions, for example `#'identity`, only when a
+test intentionally needs full-fidelity call history.
+The call history preserves explicit `nil` responses from test queues or delegates
+after applying the configured response redactor.
 `make-test-network-boundary` is the matching queue-backed fake for network
 responses: each request consumes one precomputed response, records the request,
-and signals when no responses remain.
+records the exact test call for assertion fidelity, and signals when no
+responses remain.
 `make-network-boundary` requires `:request-fn` to be a function, and
-`make-recording-network-boundary` requires a `network-boundary` delegate.
+`make-recording-network-boundary` requires a `network-boundary` delegate plus
+function-valued redactors when they are supplied.
 
 Boundaries whose native implementation is intentionally unavailable signal the
 `unsupported-boundary-operation` condition. Its readers,
