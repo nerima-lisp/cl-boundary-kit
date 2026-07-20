@@ -36,11 +36,12 @@
      ,docstring
      (,implementation options)))
 
-(defun %make-env-boundary (&key kind get-fn set-fn list-fn delegate)
+(defun %make-env-boundary (&key kind get-fn set-fn unset-fn list-fn delegate)
   (make-instance 'env-boundary
                  :kind kind
                  :get-fn get-fn
                  :set-fn set-fn
+                 :unset-fn unset-fn
                  :list-fn list-fn
                  :delegate delegate))
 

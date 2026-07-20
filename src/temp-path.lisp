@@ -1,0 +1,136 @@
+;;;; src/temp-path.lisp
+
+(in-package #:cl-boundary-kit)
+
+(defclass temp-path-source ()
+  ((next-fn :initarg :next-fn :reader temp-path-source-next-fn)))
+
+(defclass sequential-temp-path-source (temp-path-source)
+  ((directory :initarg :directory :reader sequential-temp-path-source-directory)
+   (prefix :initarg :prefix :reader sequential-temp-path-source-prefix)
+   (suffix :initarg :suffix :reader sequential-temp-path-source-suffix)
+   (counter :initarg :counter :accessor sequential-temp-path-source-counter)))
+
+(defclass test-temp-path-source (temp-path-source)
+  ((paths :initarg :paths :accessor test-temp-path-source-paths)))
+
+(defclass recording-temp-path-source (temp-path-source)
+  ((delegate :initarg :delegate :reader recording-temp-path-source-delegate)
+   (calls :initform '() :accessor %recording-temp-path-source-calls)))
+
+(defun %validate-temp-path-directory (directory)
+  (unless (or (pathnamep directory) (stringp directory))
+    (error "Temp path directory must be a pathname or string: ~S" directory))
+  (pathname directory))
+
+(defun %validate-temp-path-string (value name)
+  (unless (stringp value)
+    (error "~A must be a string: ~S" name value))
+  value)
+
+(defun %validate-temp-path-start (start)
+  (unless (and (integerp start) (>= start 0))
+    (error "Sequential temp path start must be a non-negative integer: ~S" start))
+  start)
+
+(defun %validate-test-temp-paths (paths)
+  (unless (listp paths)
+    (error "Test temp path source paths must be a list: ~S" paths))
+  paths)
+
+(defun %temp-path-under (directory name)
+  (merge-pathnames (pathname name) directory))
+
+(defun %random-temp-path (directory prefix suffix)
+  ;; The one non-deterministic default: 64 random bits of hex uniqueness under
+  ;; DIRECTORY. Tests use the sequential or queue-backed doubles instead, so the
+  ;; global *RANDOM-STATE* here is the intended real-world effect.
+  (%temp-path-under directory
+                    (format nil "~A-~(~16,'0x~)~A" prefix (random (expt 2 64)) suffix)))
+
+(defun make-temp-path-source (&key (directory #P"/tmp/") (prefix "tmp") (suffix ""))
+  "Create a temp-path source that allocates unique pathnames under DIRECTORY.
+
+Each `temp-path-next` returns a fresh \"<prefix>-<random hex><suffix>\" pathname
+under DIRECTORY using the host random state, so this is the one non-deterministic
+path in this subsystem."
+  (let ((directory (%validate-temp-path-directory directory))
+        (prefix (%validate-temp-path-string prefix "PREFIX"))
+        (suffix (%validate-temp-path-string suffix "SUFFIX")))
+    (make-instance 'temp-path-source
+                   :next-fn (lambda () (%random-temp-path directory prefix suffix)))))
+
+(defun make-sequential-temp-path-source (&key (directory #P"/tmp/") (prefix "tmp") (suffix "") (start 0))
+  "Create a deterministic temp-path source that returns counter-numbered paths.
+
+Each `temp-path-next` returns \"<prefix>-<8 hex digits><suffix>\" under DIRECTORY
+for a counter that advances by one on each call, so two sources created with the
+same arguments produce the same path sequence. Intended for tests and
+reproducible examples."
+  (make-instance 'sequential-temp-path-source
+                 :next-fn nil
+                 :directory (%validate-temp-path-directory directory)
+                 :prefix (%validate-temp-path-string prefix "PREFIX")
+                 :suffix (%validate-temp-path-string suffix "SUFFIX")
+                 :counter (%validate-temp-path-start start)))
+
+(defun make-test-temp-path-source (&key paths)
+  "Create a queue-backed temp-path source that returns PATHS in order.
+
+Each `temp-path-next` consumes one precomputed path (a pathname or string,
+coerced to a pathname) and signals when the queue is exhausted."
+  (make-instance 'test-temp-path-source
+                 :next-fn nil
+                 :paths (%validate-test-temp-paths paths)))
+
+(defun make-recording-temp-path-source (&key (delegate (make-temp-path-source)))
+  "Create a temp-path source that records calls while delegating to DELEGATE."
+  (require-instance delegate 'temp-path-source "DELEGATE")
+  (make-instance 'recording-temp-path-source :next-fn nil :delegate delegate))
+
+(defun recording-temp-path-source-calls (source)
+  "Return the recorded temp-path-source calls in call order."
+  (unless (typep source 'recording-temp-path-source)
+    (error "Unsupported temp path source type: ~S" source))
+  (%snapshot-recorded-calls (%recording-temp-path-source-calls source)))
+
+(defun reset-recording-temp-path-source-calls (source)
+  "Clear SOURCE's recorded call history and return SOURCE.
+
+A recording temp-path source otherwise retains every call for the object's whole
+lifetime; call this periodically to bound memory growth instead of only being
+able to reclaim it by discarding the object."
+  (unless (typep source 'recording-temp-path-source)
+    (error "Unsupported temp path source type: ~S" source))
+  (setf (%recording-temp-path-source-calls source) nil)
+  source)
+
+(defmethod temp-path-next ((source temp-path-source))
+  (funcall (temp-path-source-next-fn source)))
+
+(defmethod temp-path-next ((source sequential-temp-path-source))
+  (let ((counter (sequential-temp-path-source-counter source)))
+    (setf (sequential-temp-path-source-counter source) (1+ counter))
+    (%temp-path-under (sequential-temp-path-source-directory source)
+                      (format nil "~A-~(~8,'0x~)~A"
+                              (sequential-temp-path-source-prefix source)
+                              counter
+                              (sequential-temp-path-source-suffix source)))))
+
+(defmethod temp-path-next ((source test-temp-path-source))
+  (let ((paths (test-temp-path-source-paths source)))
+    (unless paths
+      (error "Test temp path source has no remaining paths"))
+    (let ((path (first paths)))
+      (unless (or (pathnamep path) (stringp path))
+        (error "Test temp path source path must be a pathname or string: ~S" path))
+      (setf (test-temp-path-source-paths source) (rest paths))
+      (pathname path))))
+
+(defmethod temp-path-next ((source recording-temp-path-source))
+  (let ((result (temp-path-next (recording-temp-path-source-delegate source))))
+    (%record-call (%recording-temp-path-source-calls source)
+      :operation :next
+      :arguments '()
+      :result result)
+    result))

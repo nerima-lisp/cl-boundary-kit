@@ -55,6 +55,19 @@
   (incf (fake-clock-monotonic-time clock) monotonic-delta)
   clock)
 
+(defun call-with-elapsed (clock thunk)
+  "Call THUNK and return two values: THUNK's result and the monotonic time that
+elapsed during it, measured with CLOCK.
+
+Reads `clock-monotonic` before and after THUNK. With a real clock this measures
+real elapsed time; with a fake clock it measures whatever `advance-fake-clock`
+moved forward, so timing stays deterministic in tests. Composes with
+`metrics-timing`, which consumes an elapsed duration."
+  (require-function thunk "THUNK")
+  (let ((start (clock-monotonic clock)))
+    (let ((result (funcall thunk)))
+      (values result (- (clock-monotonic clock) start)))))
+
 (defmethod clock-now ((clock clock))
   (funcall (clock-now-fn clock)))
 

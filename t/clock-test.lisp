@@ -57,3 +57,22 @@
       (advance-fake-clock clock "not-a-number"))
     (signals error
       (advance-fake-clock clock 1 :monotonic-delta "not-a-number"))))
+
+(it "call-with-elapsed-returns-the-result-and-monotonic-duration"
+  (let ((clock (make-fake-clock :start 0 :monotonic-start 100)))
+    (multiple-value-bind (result elapsed)
+        (call-with-elapsed clock
+                           (lambda () (advance-fake-clock clock 5 :monotonic-delta 7) :done))
+      (expect (eq :done result) :to-be-truthy)
+      (expect (= 7 elapsed) :to-be-truthy))))
+
+(it "call-with-elapsed-reports-zero-when-the-clock-does-not-advance"
+  (let ((clock (make-fake-clock :start 0)))
+    (multiple-value-bind (result elapsed)
+        (call-with-elapsed clock (lambda () :done))
+      (expect (eq :done result) :to-be-truthy)
+      (expect (= 0 elapsed) :to-be-truthy))))
+
+(it "call-with-elapsed-rejects-a-non-function-thunk"
+  (signals error
+    (call-with-elapsed (make-fake-clock) :bad)))

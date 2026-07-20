@@ -81,3 +81,29 @@
     (if (%recording-process-boundary-p process-boundary)
         (%record-process-call-result process-boundary command call-keywords (funcall run))
         (funcall run))))
+
+(defun process-result-success-p (result)
+  "Return true when RESULT -- a `process-boundary-run` result plist -- has an exit
+code of 0.
+
+The native runner returns `(:command ... :stdout ... :stderr ... :exit-code N)`,
+so this reads its `:exit-code`; it signals an error when RESULT has no integer
+`:exit-code`, catching a result that does not follow the documented shape."
+  (let ((exit-code (getf result :exit-code)))
+    (unless (integerp exit-code)
+      (error "PROCESS-RESULT-SUCCESS-P expected a process result with an integer :EXIT-CODE, got ~S"
+             result))
+    (zerop exit-code)))
+
+(defun process-result-check (result)
+  "Return RESULT when the process succeeded (exit code 0), signaling an error that
+includes the command, exit code, and captured stderr otherwise.
+
+This is the \"run or fail loudly\" pattern (like a shell's `set -e` or Python's
+`subprocess.check_call`), and it returns RESULT so calls can be chained."
+  (unless (process-result-success-p result)
+    (error "Process ~S failed with exit code ~S: ~A"
+           (getf result :command)
+           (getf result :exit-code)
+           (getf result :stderr)))
+  result)

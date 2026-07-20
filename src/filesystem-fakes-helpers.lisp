@@ -121,6 +121,29 @@
     (path)
   (not (null (%filesystem-entry-for-path files path))))
 
+(define-test-filesystem-operation-fn %make-test-filesystem-delete-fn
+    (path)
+  ;; REMHASH returns whether the entry was present, matching the delete
+  ;; contract shared with kv-delete and cache-evict.
+  (remhash path files))
+
+(define-test-filesystem-operation-fn %make-test-filesystem-copy-fn
+    (source destination)
+  (let ((entry (%filesystem-entry-for-path files source)))
+    (unless entry
+      (error "Test filesystem cannot copy missing file ~S" source))
+    (%set-filesystem-entry-in files destination (%filesystem-entry-content entry))
+    destination))
+
+(define-test-filesystem-operation-fn %make-test-filesystem-rename-fn
+    (source destination)
+  (let ((entry (%filesystem-entry-for-path files source)))
+    (unless entry
+      (error "Test filesystem cannot rename missing file ~S" source))
+    (%set-filesystem-entry-in files destination (%filesystem-entry-content entry))
+    (remhash source files)
+    destination))
+
 (defun %seed-test-filesystem-files (files initial-files)
   (%normalize-test-files-cps
    initial-files
@@ -128,7 +151,43 @@
      (dolist (binding bindings)
        (%set-filesystem-entry-in files (car binding) (cdr binding))))))
 
-(defun %instantiate-test-filesystem (files call-box)
+(defun %test-directory-has-files-p (files directory)
+  (let ((prefix (%directory-path-prefix directory)))
+    (block scan
+      (maphash (lambda (path entry)
+                 (declare (ignore entry))
+                 (let ((path-name (namestring (pathname path))))
+                   (when (and (<= (length prefix) (length path-name))
+                              (string= prefix path-name :end2 (length prefix)))
+                     (return-from scan t))))
+               files)
+      nil)))
+
+(defun %make-test-filesystem-make-directory-fn (files directories)
+  (declare (ignore files))
+  (lambda (path)
+    (let ((directory (%directory-path-prefix path)))
+      (setf (gethash directory directories) t)
+      (pathname directory))))
+
+(defun %make-test-filesystem-directory-exists-p-fn (files directories)
+  (lambda (path)
+    (let ((directory (%directory-path-prefix path)))
+      (or (not (null (gethash directory directories)))
+          (%test-directory-has-files-p files path)))))
+
+(defun %make-test-filesystem-delete-directory-fn (files directories)
+  (lambda (path)
+    (let ((directory (%directory-path-prefix path)))
+      (cond
+        ((%test-directory-has-files-p files path)
+         (error "Test filesystem cannot delete non-empty directory ~S" path))
+        ((gethash directory directories)
+         (remhash directory directories)
+         t)
+        (t nil)))))
+
+(defun %instantiate-test-filesystem (files directories call-box)
   (%make-filesystem-data
    +test-filesystem-type+
    :files files
@@ -137,7 +196,13 @@
    :write-file-fn (%make-test-filesystem-write-fn files)
    :probe-file-fn (%make-test-filesystem-probe-fn files)
    :list-directory-fn (%make-test-filesystem-list-directory-fn files)
-   :path-exists-p-fn (%make-test-filesystem-path-exists-p-fn files)))
+   :path-exists-p-fn (%make-test-filesystem-path-exists-p-fn files)
+   :delete-file-fn (%make-test-filesystem-delete-fn files)
+   :copy-file-fn (%make-test-filesystem-copy-fn files)
+   :rename-file-fn (%make-test-filesystem-rename-fn files)
+   :make-directory-fn (%make-test-filesystem-make-directory-fn files directories)
+   :directory-exists-p-fn (%make-test-filesystem-directory-exists-p-fn files directories)
+   :delete-directory-fn (%make-test-filesystem-delete-directory-fn files directories)))
 
 (defstruct (%filesystem-entry (:constructor %make-filesystem-entry (in content))
                               (:conc-name %filesystem-entry-))

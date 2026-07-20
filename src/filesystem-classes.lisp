@@ -6,13 +6,19 @@
 (defconstant +test-filesystem-type+ :test)
 (defconstant +recording-filesystem-type+ :recording)
 
-(defun %make-filesystem-data (type &key read-file-fn write-file-fn probe-file-fn list-directory-fn path-exists-p-fn files calls delegate)
+(defun %make-filesystem-data (type &key read-file-fn write-file-fn probe-file-fn list-directory-fn path-exists-p-fn delete-file-fn copy-file-fn rename-file-fn make-directory-fn directory-exists-p-fn delete-directory-fn files calls delegate)
   (list :type type
         :read-file-fn read-file-fn
         :write-file-fn write-file-fn
         :probe-file-fn probe-file-fn
         :list-directory-fn list-directory-fn
         :path-exists-p-fn path-exists-p-fn
+        :delete-file-fn delete-file-fn
+        :copy-file-fn copy-file-fn
+        :rename-file-fn rename-file-fn
+        :make-directory-fn make-directory-fn
+        :directory-exists-p-fn directory-exists-p-fn
+        :delete-directory-fn delete-directory-fn
         :files files
         :calls calls
         :delegate delegate))
@@ -34,6 +40,24 @@
 
 (defun %filesystem-path-exists-p-fn (filesystem)
   (getf filesystem :path-exists-p-fn))
+
+(defun %filesystem-delete-file-fn (filesystem)
+  (getf filesystem :delete-file-fn))
+
+(defun %filesystem-copy-file-fn (filesystem)
+  (getf filesystem :copy-file-fn))
+
+(defun %filesystem-rename-file-fn (filesystem)
+  (getf filesystem :rename-file-fn))
+
+(defun %filesystem-make-directory-fn (filesystem)
+  (getf filesystem :make-directory-fn))
+
+(defun %filesystem-directory-exists-p-fn (filesystem)
+  (getf filesystem :directory-exists-p-fn))
+
+(defun %filesystem-delete-directory-fn (filesystem)
+  (getf filesystem :delete-directory-fn))
 
 (defun %filesystem-calls-box (filesystem)
   (getf filesystem :calls))

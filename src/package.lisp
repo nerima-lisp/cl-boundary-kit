@@ -5,9 +5,14 @@
   (:export
    #:make-boundary-context
    #:boundary-context-get
+   #:boundary-context-require
    #:boundary-context-present-p
    #:boundary-context-keys
+   #:boundary-context-count
+   #:boundary-context-alist
    #:boundary-context-with
+   #:boundary-context-remove
+   #:boundary-context-merge
    #:make-recording-boundary
    #:recording-boundary-calls
    #:reset-recording-boundary-calls
@@ -17,10 +22,19 @@
    #:unsupported-boundary-operation-detail
    #:make-filesystem
    #:filesystem-read-file
+   #:filesystem-read-file-lines
    #:filesystem-store-file
+   #:filesystem-store-file-lines
+   #:filesystem-append-file
    #:filesystem-probe-file
    #:filesystem-list-directory
    #:filesystem-path-exists-p
+   #:filesystem-delete-file
+   #:filesystem-copy-file
+   #:filesystem-rename-file
+   #:filesystem-make-directory
+   #:filesystem-directory-exists-p
+   #:filesystem-delete-directory
    #:make-test-filesystem
    #:make-recording-filesystem
    #:recording-filesystem-calls
@@ -29,7 +43,9 @@
    #:environment-get
    #:environment-present-p
    #:environment-set
+   #:environment-unset
    #:environment-list
+   #:call-with-environment-variable
    #:make-test-environment
    #:make-recording-environment
    #:recording-environment-calls
@@ -37,6 +53,7 @@
    #:make-clock
    #:clock-now
    #:clock-monotonic
+   #:call-with-elapsed
    #:make-fake-clock
    #:advance-fake-clock
    #:make-random-source
@@ -46,9 +63,161 @@
    #:recording-random-source-calls
    #:reset-recording-random-source-calls
    #:random-source-random
+   #:random-source-element
+   #:random-source-boolean
+   #:random-source-bytes
+   #:random-source-sample
+   #:random-source-shuffle
+   #:make-uuid-source
+   #:make-sequential-uuid-source
+   #:make-test-uuid-source
+   #:make-recording-uuid-source
+   #:recording-uuid-source-calls
+   #:reset-recording-uuid-source-calls
+   #:uuid-generate
+   #:make-temp-path-source
+   #:make-sequential-temp-path-source
+   #:make-test-temp-path-source
+   #:make-recording-temp-path-source
+   #:recording-temp-path-source-calls
+   #:reset-recording-temp-path-source-calls
+   #:temp-path-next
+   #:make-args
+   #:make-test-args
+   #:make-recording-args
+   #:recording-args-calls
+   #:reset-recording-args-calls
+   #:args-list
+   #:args-count
+   #:args-nth
+   #:args-rest
+   #:make-host-info
+   #:make-test-host-info
+   #:make-recording-host-info
+   #:recording-host-info-calls
+   #:reset-recording-host-info-calls
+   #:host-info-hostname
+   #:host-info-username
+   #:host-info-pid
+   #:make-sleeper
+   #:make-test-sleeper
+   #:make-recording-sleeper
+   #:recording-sleeper-calls
+   #:reset-recording-sleeper-calls
+   #:sleeper-sleep
+   #:make-console
+   #:make-test-console
+   #:test-console-output
+   #:test-console-errors
+   #:make-recording-console
+   #:recording-console-calls
+   #:reset-recording-console-calls
+   #:console-read-line
+   #:console-write-line
+   #:console-write
+   #:console-write-error
+   #:console-prompt
+   #:console-format
+   #:console-format-line
+   #:make-system-boundary
+   #:make-test-system-boundary
+   #:test-system-exit-codes
+   #:make-recording-system-boundary
+   #:recording-system-calls
+   #:reset-recording-system-calls
+   #:system-exit
+   #:make-kv-store
+   #:make-test-kv-store
+   #:make-recording-kv-store
+   #:recording-kv-calls
+   #:reset-recording-kv-calls
+   #:kv-get
+   #:kv-put
+   #:kv-delete
+   #:kv-keys
+   #:kv-update
+   #:kv-clear
+   #:kv-get-or-put
+   #:kv-increment
+   #:make-lock
+   #:make-test-lock
+   #:test-lock-held-p
+   #:make-recording-lock
+   #:recording-lock-calls
+   #:reset-recording-lock-calls
+   #:lock-acquire
+   #:lock-release
+   #:call-with-lock
+   #:make-semaphore
+   #:make-test-semaphore
+   #:make-recording-semaphore
+   #:recording-semaphore-calls
+   #:reset-recording-semaphore-calls
+   #:semaphore-acquire
+   #:semaphore-release
+   #:semaphore-available
+   #:call-with-semaphore
+   #:make-working-directory
+   #:make-test-working-directory
+   #:make-recording-working-directory
+   #:recording-working-directory-calls
+   #:reset-recording-working-directory-calls
+   #:working-directory-get
+   #:working-directory-set
+   #:call-with-working-directory
+   #:make-dns-resolver
+   #:make-test-dns-resolver
+   #:make-recording-dns-resolver
+   #:recording-dns-calls
+   #:reset-recording-dns-calls
+   #:dns-resolve
+   #:make-secret-store
+   #:make-test-secret-store
+   #:make-recording-secret-store
+   #:recording-secret-calls
+   #:reset-recording-secret-calls
+   #:secret-get
+   #:secret-names
+   #:make-feature-flags
+   #:make-test-feature-flags
+   #:make-recording-feature-flags
+   #:recording-feature-flag-calls
+   #:reset-recording-feature-flag-calls
+   #:feature-enabled-p
+   #:feature-flags-enabled
+   #:call-if-feature-enabled
+   #:make-cache
+   #:make-test-cache
+   #:make-recording-cache
+   #:recording-cache-calls
+   #:reset-recording-cache-calls
+   #:cache-get
+   #:cache-put
+   #:cache-evict
+   #:cache-fetch
+   #:cache-clear
+   #:make-rate-limiter
+   #:make-test-rate-limiter
+   #:make-recording-rate-limiter
+   #:recording-rate-limiter-calls
+   #:reset-recording-rate-limiter-calls
+   #:rate-limiter-allow-p
+   #:rate-limiter-available
+   #:call-if-allowed
+   #:make-scheduler
+   #:make-test-scheduler
+   #:test-scheduler-pending
+   #:test-scheduler-run-pending
+   #:make-recording-scheduler
+   #:recording-scheduler-calls
+   #:reset-recording-scheduler-calls
+   #:scheduler-schedule
+   #:scheduler-cancel
    #:make-process-boundary
    #:make-test-process-boundary
    #:process-boundary-run
+   #:process-result-success-p
+   #:process-result-check
    #:*native-process-search-path-p*
    #:make-recording-process-boundary
    #:recording-process-calls
@@ -62,10 +231,61 @@
    #:make-logger
    #:make-test-logger
    #:logger-log
+   #:logger-debug
+   #:logger-info
+   #:logger-warn
+   #:logger-error
    #:make-recording-logger
    #:recording-log-events
    #:reset-recording-log-events
+   #:make-metrics
+   #:make-test-metrics
+   #:make-recording-metrics
+   #:recording-metric-events
+   #:reset-recording-metric-events
+   #:metrics-count
+   #:metrics-gauge
+   #:metrics-timing
+   #:metrics-increment
+   #:make-publisher
+   #:make-test-publisher
+   #:make-recording-publisher
+   #:recording-published-messages
+   #:reset-recording-published-messages
+   #:publisher-publish
+   #:make-subscriber
+   #:make-test-subscriber
+   #:make-recording-subscriber
+   #:recording-subscriber-calls
+   #:reset-recording-subscriber-calls
+   #:subscriber-poll
+   #:subscriber-poll-batch
+   #:make-notifier
+   #:make-test-notifier
+   #:make-recording-notifier
+   #:recording-sent-notifications
+   #:reset-recording-sent-notifications
+   #:notifier-notify
    #:assert-recorded-call
    #:assert-recorded-call-count
    #:assert-recorded-call-sequence
+   #:assert-no-recorded-call
+   #:assert-recorded-call-order
+   #:assert-recorded-operations
+   #:filter-recorded-calls
+   #:count-recorded-calls
+   #:find-recorded-call
+   #:recorded-call-operations
+   #:recorded-call-results
+   #:recorded-call-operation
+   #:recorded-call-arguments
+   #:recorded-call-result
+   #:nth-recorded-call
+   #:last-recorded-call
+   #:event-values
+   #:find-event
+   #:count-events
+   #:assert-event-present
+   #:assert-no-event
+   #:assert-event-count
    #:boundary-call-plist))

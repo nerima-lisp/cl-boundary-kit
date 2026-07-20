@@ -102,3 +102,19 @@ being able to reclaim it by discarding the object."
 
 (defmethod logger-log ((logger logger) level message &rest fields)
   (%logger-emit-event logger (%make-log-event logger level message fields)))
+
+(defun logger-debug (logger message &rest fields)
+  "Emit a `:debug` level event through LOGGER; sugar over `logger-log`."
+  (apply #'logger-log logger :debug message fields))
+
+(defun logger-info (logger message &rest fields)
+  "Emit an `:info` level event through LOGGER; sugar over `logger-log`."
+  (apply #'logger-log logger :info message fields))
+
+(defun logger-warn (logger message &rest fields)
+  "Emit a `:warn` level event through LOGGER; sugar over `logger-log`."
+  (apply #'logger-log logger :warn message fields))
+
+(defun logger-error (logger message &rest fields)
+  "Emit an `:error` level event through LOGGER; sugar over `logger-log`."
+  (apply #'logger-log logger :error message fields))

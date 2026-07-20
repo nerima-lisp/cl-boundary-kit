@@ -11,6 +11,9 @@
    (set-fn :initarg :set-fn
            :initform nil
            :reader environment-set-fn)
+   (unset-fn :initarg :unset-fn
+             :initform nil
+             :reader environment-unset-fn)
    (list-fn :initarg :list-fn
             :initform nil
             :reader environment-list-fn)
@@ -28,17 +31,22 @@
     (multiple-value-bind (set-fn set-supplied-p)
         (%plist-ref-values options :set-fn nil)
       (declare (ignore set-supplied-p))
-      (multiple-value-bind (list-fn list-supplied-p)
-          (%plist-ref-values options :list-fn #'%native-environment-list)
-        (declare (ignore list-supplied-p))
-        (require-function get-fn "GET-FN")
-        (require-optional-function set-fn "SET-FN")
-        (require-function list-fn "LIST-FN")
-        (%make-env-boundary
-         :kind :native
-         :get-fn get-fn
-         :set-fn set-fn
-         :list-fn list-fn)))))
+      (multiple-value-bind (unset-fn unset-supplied-p)
+          (%plist-ref-values options :unset-fn nil)
+        (declare (ignore unset-supplied-p))
+        (multiple-value-bind (list-fn list-supplied-p)
+            (%plist-ref-values options :list-fn #'%native-environment-list)
+          (declare (ignore list-supplied-p))
+          (require-function get-fn "GET-FN")
+          (require-optional-function set-fn "SET-FN")
+          (require-optional-function unset-fn "UNSET-FN")
+          (require-function list-fn "LIST-FN")
+          (%make-env-boundary
+           :kind :native
+           :get-fn get-fn
+           :set-fn set-fn
+           :unset-fn unset-fn
+           :list-fn list-fn))))))
 
 (%define-plist-constructor make-environment
     "Create a native environment boundary from plist OPTIONS."
@@ -57,6 +65,8 @@
                   (gethash name table))
         :set-fn (lambda (name value)
                   (setf (gethash name table) value))
+        :unset-fn (lambda (name)
+                    (remhash name table))
         :list-fn (lambda ()
                    (%sorted-environment-entries-from-table table)))))))
 
@@ -85,6 +95,7 @@
      :delegate delegate
      :get-fn (environment-get-fn delegate)
      :set-fn (environment-set-fn delegate)
+     :unset-fn (environment-unset-fn delegate)
      :list-fn (environment-list-fn delegate))))
 
 (%define-plist-constructor make-recording-environment
@@ -125,6 +136,34 @@
           (unsupported-operation 'environment-set
                                  "native environment mutation is unavailable")))
   "Bind NAME to VALUE in ENVIRONMENT and return VALUE.")
+
+(%define-recording-environment-operation environment-unset
+    (environment name)
+    :unset
+    (list name)
+    (let ((unsetter (environment-unset-fn environment)))
+      (if unsetter
+          (and (funcall unsetter name) t)
+          (unsupported-operation 'environment-unset
+                                 "native environment mutation is unavailable")))
+  "Remove NAME from ENVIRONMENT and return whether it was bound.")
+
+(defun call-with-environment-variable (environment name value thunk)
+  "Temporarily bind NAME to VALUE in ENVIRONMENT for the duration of THUNK.
+
+Sets NAME to VALUE, calls THUNK, and then restores NAME's previous value (or
+unsets it when it was absent) in an `unwind-protect` cleanup, so a non-local exit
+still restores it. Returns THUNK's value. Requires an environment that supports
+`environment-set` (and `environment-unset` when NAME was absent). A recording
+environment records the set and the restoring set or unset."
+  (require-function thunk "THUNK")
+  (let* ((present (environment-present-p environment name))
+         (previous (and present (environment-get environment name))))
+    (environment-set environment name value)
+    (unwind-protect (funcall thunk)
+      (if present
+          (environment-set environment name previous)
+          (environment-unset environment name)))))
 
 (defun recording-environment-calls (environment)
   "Return the recorded environment calls in call order."

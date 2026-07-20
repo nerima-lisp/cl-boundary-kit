@@ -392,3 +392,23 @@
     ;; for the child's natural lifetime to end.
     (expect (< (/ (- (get-internal-real-time) start) internal-time-units-per-second) 2)
             :to-be-truthy)))
+
+(it "process-result-success-p-reads-the-exit-code"
+  (let ((ok (make-test-process-boundary
+             :results (list (list :stdout "ok" :stderr "" :exit-code 0))))
+        (bad (make-test-process-boundary
+              :results (list (list :stdout "" :stderr "boom" :exit-code 1)))))
+    (expect (eq t (process-result-success-p (process-boundary-run ok "cmd"))) :to-be-truthy)
+    (expect (null (process-result-success-p (process-boundary-run bad "cmd"))) :to-be-truthy)))
+
+(it "process-result-success-p-signals-on-a-result-without-an-integer-exit-code"
+  (signals error
+    (process-result-success-p (list :stdout "x"))))
+
+(it "process-result-check-returns-the-result-on-success"
+  (let ((result (list :command '("cmd") :stdout "ok" :stderr "" :exit-code 0)))
+    (expect (eq result (process-result-check result)) :to-be-truthy)))
+
+(it "process-result-check-signals-with-diagnostics-on-failure"
+  (signals-error-message-contains "boom"
+    (process-result-check (list :command '("cmd") :stdout "" :stderr "boom" :exit-code 2))))

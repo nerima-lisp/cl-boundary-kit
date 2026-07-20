@@ -16,6 +16,15 @@
     (let ((event (logger-log logger :info "hello" :user "take")))
       (assert-log-event event 1234 :info "hello" '(:user "take")))))
 
+(it "logger-level-helpers-supply-the-matching-level"
+  (let ((logger (make-test-logger :timestamp-fn (lambda () 7))))
+    (assert-log-event (logger-debug logger "d" :k 1) 7 :debug "d" '(:k 1))
+    (assert-log-event (logger-info logger "i") 7 :info "i" '())
+    (assert-log-event (logger-warn logger "w") 7 :warn "w" '())
+    (assert-log-event (logger-error logger "e") 7 :error "e" '())
+    ;; Each helper still records through the normal logging path.
+    (expect (= 4 (length (recording-log-events logger))) :to-be-truthy)))
+
 (it "make-logger-rejects-non-function-collaborators"
   (signals error
     (make-logger :sink-fn :bad))

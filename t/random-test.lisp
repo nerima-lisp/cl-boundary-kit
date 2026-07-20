@@ -134,3 +134,70 @@
 (it "reset-recording-random-source-calls-signals-for-unsupported-source-types"
   (signals error
     (reset-recording-random-source-calls (make-random-source :state (make-random-state t)))))
+
+(it "random-source-element-picks-an-element-by-the-drawn-index"
+  (let ((source (make-test-random-source :values '(0 2))))
+    (expect (eq :a (random-source-element source #(:a :b :c))) :to-be-truthy)
+    (expect (eq :c (random-source-element source '(:a :b :c))) :to-be-truthy)))
+
+(it "random-source-element-rejects-an-empty-sequence"
+  (signals error
+    (random-source-element (make-test-random-source :values '(0)) #())))
+
+(it "random-source-boolean-maps-a-two-value-draw-to-a-boolean"
+  (let ((source (make-test-random-source :values '(0 1))))
+    (expect (eq t (random-source-boolean source)) :to-be-truthy)
+    (expect (null (random-source-boolean source)) :to-be-truthy)))
+
+(it "random-source-element-on-a-recording-source-records-the-integer-draw"
+  (let ((source (make-recording-random-source
+                 :delegate (make-test-random-source :values '(1)))))
+    (expect (eq :b (random-source-element source #(:a :b :c))) :to-be-truthy)
+    (expect (equal (recording-random-source-calls source)
+                   (list (boundary-call-plist :random (list 3) :result 1))) :to-be-truthy)))
+
+(it "random-source-shuffle-permutes-deterministically-without-mutating-the-input"
+  ;; Fisher-Yates draws limits 3 then 2 (for a length-3 sequence). With draws
+  ;; 0 and 0 the resulting order is fully determined.
+  (let* ((source (make-test-random-source :values '(0 0)))
+         (input (list :a :b :c))
+         (result (random-source-shuffle source input)))
+    (expect (equal (list :b :c :a) result) :to-be-truthy)
+    ;; The input list is left untouched.
+    (expect (equal (list :a :b :c) input) :to-be-truthy)))
+
+(it "random-source-shuffle-preserves-the-sequence-type-and-handles-empty-input"
+  (let ((source (make-test-random-source :values '(0 0))))
+    (expect (vectorp (random-source-shuffle source #(:a :b :c))) :to-be-truthy))
+  (expect (null (random-source-shuffle (make-test-random-source) '())) :to-be-truthy))
+
+(it "random-source-bytes-draws-a-byte-vector-deterministically"
+  (let* ((source (make-test-random-source :values '(0 255 128)))
+         (bytes (random-source-bytes source 3)))
+    (expect (typep bytes '(simple-array (unsigned-byte 8) (*))) :to-be-truthy)
+    (expect (equalp #(0 255 128) bytes) :to-be-truthy)))
+
+(it "random-source-bytes-with-count-zero-returns-an-empty-vector"
+  (expect (zerop (length (random-source-bytes (make-test-random-source) 0))) :to-be-truthy))
+
+(it "random-source-bytes-rejects-a-negative-count"
+  (signals error
+    (random-source-bytes (make-test-random-source) -1)))
+
+(it "random-source-sample-draws-distinct-elements-deterministically"
+  ;; Partial Fisher-Yates for count 2 over a length-3 sequence draws limits 3
+  ;; then 2. Draws 0 and 0 pick index 0 then index 1.
+  (let* ((source (make-test-random-source :values '(0 0)))
+         (result (random-source-sample source #(:a :b :c) 2)))
+    (expect (equal (list :a :b) result) :to-be-truthy)))
+
+(it "random-source-sample-handles-the-boundary-counts"
+  (expect (null (random-source-sample (make-test-random-source) #(:a :b :c) 0)) :to-be-truthy)
+  (let ((source (make-test-random-source :values '(0 0 0))))
+    (expect (= 3 (length (random-source-sample source #(:a :b :c) 3))) :to-be-truthy)))
+
+(it "random-source-sample-rejects-an-out-of-range-count"
+  (signals error
+    (random-source-sample (make-test-random-source) #(:a :b) 3))
+  (signals error
+    (random-source-sample (make-test-random-source) #(:a :b) -1)))

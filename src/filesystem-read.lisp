@@ -24,3 +24,21 @@
              path
              :external-format external-format)
   "Return the textual contents of PATH from FILESYSTEM.")
+
+(defun %split-file-lines (string)
+  ;; READ-LINE semantics: each newline terminates a line and a trailing newline
+  ;; does not yield a final empty line, so "a\nb\n" splits to ("a" "b").
+  (with-input-from-string (stream string)
+    (loop for line = (read-line stream nil nil)
+          while line
+          collect line)))
+
+(defun filesystem-read-file-lines (filesystem path &key external-format)
+  "Read PATH from FILESYSTEM and return its contents split into a list of lines.
+
+Derived from `filesystem-read-file`, so it works across the native, test, and
+recording variants and a recording filesystem records the underlying read. Line
+splitting follows `read-line` semantics: a trailing newline does not produce a
+final empty line."
+  (%split-file-lines
+   (filesystem-read-file filesystem path :external-format external-format)))
