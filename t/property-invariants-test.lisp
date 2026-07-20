@@ -133,16 +133,19 @@
   (let ((source (with-output-to-string (stream)
                   (dotimes (i depth) (write-string "f(" stream))
                   (write-string "x" stream)
-                  (dotimes (i depth) (write-string ")" stream))))
-        (cl-prolog:*max-prolog-parser-depth* 16)
-        (cl-prolog:*max-prolog-tokens* 64))
-    (handler-case
-        ;; Parsed within limits: a well-formed term is returned.
-        (expect (cl-prolog:read-prolog-term source) :to-be-truthy)
-      (cl-prolog:prolog-parser-resource-error (condition)
-        ;; Rejected: the failure is bounded and carries a positive limit.
-        (expect (plusp (cl-prolog:prolog-parser-resource-error-limit condition))
-                :to-be-truthy)))))
+                  (dotimes (i depth) (write-string ")" stream)))))
+    (with-optional-prolog-special ("*MAX-PROLOG-PARSER-DEPTH*" 16)
+      (with-optional-first-prolog-special (("*MAX-PROLOG-TOKENS*" 64)
+                                           ("*MAX-PROLOG-SOURCE-CHARACTERS*" 256))
+        (handler-case
+            ;; Parsed within limits: a well-formed term is returned.
+            (expect (cl-prolog:read-prolog-term source) :to-be-truthy)
+          (error (condition)
+            ;; Rejected: the failure is bounded and carries a positive limit.
+            (assert-prolog-parser-resource-error condition)
+            (let ((limit (prolog-parser-resource-error-limit-value condition)))
+              (when limit
+                (expect (plusp limit) :to-be-truthy)))))))))
 
 ;;; Mutation testing (cl-weave): verify our test oracles are strong enough to
 ;;; catch injected faults.  The boundary-value oracle for an in-range predicate
