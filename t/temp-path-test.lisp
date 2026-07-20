@@ -27,10 +27,50 @@
     (expect (not (equal first second)) :to-be-truthy)
     (expect (equal #P"/tmp/" (make-pathname :name nil :type nil :defaults first)) :to-be-truthy)))
 
+(it "make-temp-path-source-skips-existing-random-candidates"
+  (let* ((state (make-random-state t))
+         (probe-state (make-random-state state))
+         (occupied (merge-pathnames
+                    (pathname (format nil "x-~(~32,'0x~).tmp"
+                                      (random (ash 1 128) probe-state)))
+                    #P"/tmp/"))
+         (source (make-temp-path-source :directory #P"/tmp/"
+                                        :prefix "x"
+                                        :suffix ".tmp"
+                                        :state state)))
+    (unwind-protect
+         (progn
+           (with-open-file (stream occupied
+                                   :direction :output
+                                   :if-exists :supersede
+                                   :if-does-not-exist :create)
+             (write-string "occupied" stream))
+           (expect (not (equal occupied (temp-path-next source))) :to-be-truthy))
+      (when (probe-file occupied)
+        (delete-file occupied)))))
+
+(it "make-temp-path-source-rejects-invalid-random-state"
+  (signals error
+    (make-temp-path-source :state :bad)))
+
 (it "test-temp-path-source-consumes-queued-paths"
   (let ((source (make-test-temp-path-source :paths (list #P"/tmp/a" "/tmp/b"))))
     (expect (equal #P"/tmp/a" (temp-path-next source)) :to-be-truthy)
     (expect (equal #P"/tmp/b" (temp-path-next source)) :to-be-truthy)))
+
+(it "test-temp-path-source-copies-seeded-paths"
+  (let* ((paths (list #P"/tmp/a" "/tmp/b"))
+         (source (make-test-temp-path-source :paths paths)))
+    (setf (first paths) #P"/tmp/changed"
+          (rest paths) nil)
+    (expect (equal #P"/tmp/a" (temp-path-next source)) :to-be-truthy)
+    (expect (equal #P"/tmp/b" (temp-path-next source)) :to-be-truthy)))
+
+(it "test-temp-path-source-copies-mutable-seeded-path-strings"
+  (let* ((path (copy-seq "/tmp/original-path"))
+         (source (make-test-temp-path-source :paths (list path))))
+    (setf (char path 5) #\X)
+    (expect (equal #P"/tmp/original-path" (temp-path-next source)) :to-be-truthy)))
 
 (it "test-temp-path-source-signals-when-paths-are-exhausted"
   (let ((source (make-test-temp-path-source :paths (list #P"/tmp/a"))))

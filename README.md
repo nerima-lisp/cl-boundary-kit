@@ -606,8 +606,11 @@ call-record contract via `recording-uuid-source-calls`.
 
 The temp-path boundary models allocation of unique temporary file paths.
 `temp-path-next` returns a fresh pathname. The default `make-temp-path-source`
-builds a `"<prefix>-<random hex><suffix>"` name under a `:directory` from the
-host random state, so it is the one non-deterministic path in this subsystem.
+builds a `"<prefix>-<128-bit random hex><suffix>"` name under a `:directory`
+from a per-source random state and skips candidates that already exist. It
+returns a candidate pathname rather than atomically creating the file, so callers
+that need exclusive creation must still open the returned path with an exclusive
+creation mode.
 `make-sequential-temp-path-source` is the deterministic double: it numbers paths
 from an advancing counter, so two sources created with the same arguments
 produce the same path sequence.
