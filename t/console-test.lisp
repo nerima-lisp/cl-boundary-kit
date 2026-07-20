@@ -23,6 +23,14 @@
     (expect (string= "b" (console-read-line console)) :to-be-truthy)
     (expect (null (console-read-line console)) :to-be-truthy)))
 
+(it "test-console-copies-seeded-input-lines"
+  (let* ((input-lines (list "a" "b"))
+         (console (make-test-console :input-lines input-lines)))
+    (setf (first input-lines) "changed"
+          (rest input-lines) nil)
+    (expect (string= "a" (console-read-line console)) :to-be-truthy)
+    (expect (string= "b" (console-read-line console)) :to-be-truthy)))
+
 (it "test-console-captures-output-and-error-lines-oldest-first"
   (let ((console (make-test-console)))
     (console-write-line console "one")

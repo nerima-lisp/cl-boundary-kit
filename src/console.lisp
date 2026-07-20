@@ -61,7 +61,7 @@ touching the terminal."
                  :input-stream nil
                  :output-stream nil
                  :error-stream nil
-                 :input-lines (%validate-console-input-lines input-lines)))
+                 :input-lines (copy-list (%validate-console-input-lines input-lines))))
 
 (defun test-console-output (console)
   "Return the text written to CONSOLE's standard output, oldest first.

@@ -42,7 +42,7 @@ that is not present, mirroring a resolution failure."
   (let ((table (make-hash-table :test 'equal)))
     (dolist (pair (%normalize-kv-initial hosts))
       (setf (gethash (%validate-dns-hostname (car pair)) table)
-            (%validate-dns-addresses (car pair) (cdr pair))))
+            (copy-list (%validate-dns-addresses (car pair) (cdr pair)))))
     (make-instance 'test-dns-resolver :resolve-fn nil :hosts table)))
 
 (defun make-recording-dns-resolver (&key (delegate (make-test-dns-resolver)))

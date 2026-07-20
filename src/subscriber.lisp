@@ -30,10 +30,10 @@ at the application edge; it is validated at construction time."
   "Create a queue-backed subscriber fake that yields MESSAGES in order.
 
 Each `subscriber-poll` call consumes one queued message and returns NIL once the
-queue is exhausted, mirroring a poll that finds nothing waiting."
+  queue is exhausted, mirroring a poll that finds nothing waiting."
   (make-instance 'test-subscriber
                  :poll-fn nil
-                 :messages (%validate-subscriber-messages messages)))
+                 :messages (copy-list (%validate-subscriber-messages messages))))
 
 (defun make-recording-subscriber (&key (delegate (make-test-subscriber)))
   "Create a subscriber that records polls while delegating to DELEGATE, which

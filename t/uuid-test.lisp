@@ -43,6 +43,14 @@
     (expect (string= "a" (uuid-generate source)) :to-be-truthy)
     (expect (string= "b" (uuid-generate source)) :to-be-truthy)))
 
+(it "test-uuid-source-copies-seeded-values"
+  (let* ((values (list "a" "b"))
+         (source (make-test-uuid-source :values values)))
+    (setf (first values) "changed"
+          (rest values) nil)
+    (expect (string= "a" (uuid-generate source)) :to-be-truthy)
+    (expect (string= "b" (uuid-generate source)) :to-be-truthy)))
+
 (it "test-uuid-source-signals-when-values-are-exhausted"
   (let ((source (make-test-uuid-source :values (list "only"))))
     (expect (string= "only" (uuid-generate source)) :to-be-truthy)

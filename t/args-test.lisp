@@ -29,6 +29,13 @@
     (setf (first copy) "mutated")
     (expect (string= "a" (args-nth args 0)) :to-be-truthy)))
 
+(it "make-test-args-copies-the-seeded-argument-list"
+  (let* ((arguments (list "app" "--flag" "value"))
+         (args (make-test-args :arguments arguments)))
+    (setf (first arguments) "changed"
+          (rest arguments) nil)
+    (expect (equal (list "app" "--flag" "value") (args-list args)) :to-be-truthy)))
+
 (it "make-args-defaults-to-the-host-argument-vector"
   (let ((args (make-args)))
     (expect (listp (args-list args)) :to-be-truthy)

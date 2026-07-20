@@ -78,6 +78,25 @@
         (expect (string= (getf result :stdout) "hi") :to-be-truthy)
         (expect (= (getf result :exit-code) 0) :to-be-truthy)))))
 
+(it "process-boundary-copies-string-command-argument-tail"
+  (with-process-boundary-runner
+      (process (process-result
+                :command (cl-boundary-kit::normalize-command command arguments)))
+    (let* ((arguments (list "one" "two"))
+           (result (process-boundary-run process "cmd" :arguments arguments)))
+      (setf (first arguments) "changed"
+            (rest arguments) nil)
+      (expect (equal (getf result :command) '("cmd" "one" "two")) :to-be-truthy))))
+
+(it "process-boundary-copies-list-command-argument-tail"
+  (with-process-boundary-runner
+      (process (process-result
+                :command (cl-boundary-kit::normalize-command command arguments)))
+    (let* ((arguments (list "one" "two"))
+           (result (process-boundary-run process '("cmd" "--flag") :arguments arguments)))
+      (setf (first arguments) "changed"
+            (rest arguments) nil)
+      (expect (equal (getf result :command) '("cmd" "--flag" "one" "two")) :to-be-truthy))))
 
 (it "make-process-boundary-rejects-non-function-runner"
   (signals error
@@ -107,6 +126,16 @@
                                    :result (process-result :stdout "two"
                                                            :stderr "warn"
                                                            :exit-code 3)))) :to-be-truthy)))
+
+(it "test-process-boundary-copies-seeded-results-list"
+  (let* ((first-result (process-result :stdout "one"))
+         (second-result (process-result :stdout "two"))
+         (results (list first-result second-result))
+         (process (make-test-process-boundary :results results)))
+    (setf (first results) (process-result :stdout "changed")
+          (rest results) nil)
+    (expect (equal first-result (process-boundary-run process "first")) :to-be-truthy)
+    (expect (equal second-result (process-boundary-run process "second")) :to-be-truthy)))
 
 (it "test-process-boundary-signals-when-results-are-exhausted"
   (with-test-process-boundary (process :results nil)
@@ -160,6 +189,19 @@
                      :arguments '("printf hi")
                      :result (process-result :command '("sh" "-c" "printf hi")
                                              :stdout "ok"))))))
+
+(it "recording-process-boundary-history-is-independent-of-mutated-command-arguments"
+  (with-recording-process-runner (process (process-result :stdout "ok"))
+    (let ((command (list "sh" "-c"))
+          (arguments (list "printf hi")))
+      (process-boundary-run process command :arguments arguments)
+      (setf (first command) "changed"
+            (first arguments) "changed")
+      (assert-single-recorded-process-call
+       process
+       (process-call :command '("sh" "-c")
+                     :arguments '("printf hi")
+                     :result (process-result :stdout "ok"))))))
 
 ;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
 ;;; double-record every call -- once on the wrapper, once on the delegate's

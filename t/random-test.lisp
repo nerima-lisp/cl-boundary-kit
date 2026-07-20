@@ -77,6 +77,14 @@
     (expect (= 1 (random-source-random source 10)) :to-be-truthy)
     (expect (= 0 (random-source-random source 10)) :to-be-truthy)))
 
+(it "test-random-source-copies-seeded-values"
+  (let* ((values (list 3 1 0))
+         (source (make-test-random-source :values values)))
+    (setf (first values) 9
+          (rest values) nil)
+    (expect (= 3 (random-source-random source 10)) :to-be-truthy)
+    (expect (= 1 (random-source-random source 10)) :to-be-truthy)))
+
 (it "test-random-source-supports-real-limits"
   (let ((source (make-test-random-source :values '(0.25d0 1.25d0))))
     (expect (= 0.25d0 (random-source-random source 1.0d0)) :to-be-truthy)

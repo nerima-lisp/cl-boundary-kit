@@ -399,7 +399,9 @@ while delegating to a real or fake source (defaulting to
 a list of N distinct elements drawn without replacement, `random-source-shuffle`
 returns a freshly shuffled copy of a sequence (same type, input untouched), and
 `random-source-bytes` returns a fresh `(unsigned-byte 8)` vector of N random
-bytes (useful for nonces, salts, and tokens); all are derived from
+bytes. These helpers are based on Common Lisp `random-state`, not a
+cryptographic RNG; for secrets, tokens, salts, or security nonces, inject a
+boundary backed by your platform CSPRNG. All helpers are derived from
 `random-source-random`, so they work with any random source and a recording
 source records the underlying integer draws.
 
@@ -571,7 +573,8 @@ of `recorded-call-operations`/`-results`), for example every log event's `:level
 `uuid-generate` returns a fresh identifier string from a UUID source. The
 default `make-uuid-source` generator produces an RFC 4122 version-4 UUID string
 from the host random state, so it is the one non-deterministic path in this
-subsystem.
+subsystem. It is not a secret-token generator; inject `:generate-fn` when UUIDs
+need a cryptographic or platform-policy-specific source.
 `make-sequential-uuid-source` is the deterministic double: it returns
 `"<prefix>-<16 hex digits>"` for a counter that advances by one on each call, so
 two sources created with the same `:prefix` and `:start` produce the same

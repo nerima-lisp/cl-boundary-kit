@@ -28,8 +28,8 @@
     (setf (aref bytes 8) (logior #x80 (logand (aref bytes 8) #x3f)))
     (with-output-to-string (out)
       (loop for index below 16
-            do (when (member index '(4 6 8 10))
-                 (write-char #\- out))
+            do (case index
+                 ((4 6 8 10) (write-char #\- out)))
                (format out "~(~2,'0x~)" (aref bytes index))))))
 
 (defun %validate-uuid-prefix (prefix)
@@ -57,7 +57,8 @@
 
 GENERATE-FN is called with no arguments and must return an identifier string.
 The default generator produces a fresh RFC 4122 version-4 UUID string using the
-host random state."
+host random state; inject GENERATE-FN for cryptographic or policy-specific
+identifier requirements."
   (require-function generate-fn "GENERATE-FN")
   (make-instance 'uuid-source :generate-fn generate-fn))
 
@@ -82,7 +83,7 @@ Each `uuid-generate` call consumes one precomputed string and signals when the
 queue is exhausted."
   (make-instance 'test-uuid-source
                  :generate-fn nil
-                 :values (%validate-test-uuid-values values)))
+                 :values (copy-list (%validate-test-uuid-values values))))
 
 (defun make-recording-uuid-source (&key (delegate (make-uuid-source)))
   "Create a UUID source that records calls while delegating to DELEGATE."
