@@ -7,17 +7,15 @@
   (getf boundary :boundary-type))
 
 (defun %process-boundary-p (boundary)
-  (member (%process-boundary-type boundary)
-          (list +process-boundary-type+
-                +test-process-boundary-type+
-                +recording-process-boundary-type+)
-          :test #'eq))
+  (let ((type (%process-boundary-type boundary)))
+    (or (eq type +process-boundary-type+)
+        (eq type +test-process-boundary-type+)
+        (eq type +recording-process-boundary-type+))))
 
 (defun %recording-process-boundary-p (boundary)
-  (member (%process-boundary-type boundary)
-          (list +test-process-boundary-type+
-                +recording-process-boundary-type+)
-          :test #'eq))
+  (let ((type (%process-boundary-type boundary)))
+    (or (eq type +test-process-boundary-type+)
+        (eq type +recording-process-boundary-type+))))
 
 (defun %require-process-boundary (boundary name)
   (unless (%process-boundary-p boundary)

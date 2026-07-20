@@ -72,7 +72,9 @@
 (it "make-cache-rejects-non-function-collaborators"
   (signals error
     (make-cache :get-fn :bad
-                :put-fn (lambda (k v ttl) v)
+                :put-fn (lambda (k v ttl)
+                          (declare (ignore k ttl))
+                          v)
                 :evict-fn (lambda (k) k))))
 
 (it "recording-cache-records-every-operation"

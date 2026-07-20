@@ -25,7 +25,9 @@
 (it "make-kv-store-rejects-non-function-collaborators"
   (signals error
     (make-kv-store :get-fn :bad
-                   :put-fn (lambda (k v) v)
+                   :put-fn (lambda (k v)
+                             (declare (ignore k))
+                             v)
                    :delete-fn (lambda (k) k)
                    :keys-fn (lambda () '()))))
 

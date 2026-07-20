@@ -6,26 +6,22 @@
 
 (defun run-lisp-forms-in-fresh-sbcl (forms)
   (let* ((sbcl-program (namestring sb-ext:*runtime-pathname*))
-         (script-path (merge-pathnames
-                       (format nil "cl-boundary-kit-readme-test-~36R.lisp"
-                               (random (expt 36 8)))
-                       (uiop:temporary-directory)))
          (script (format nil "(require :asdf)~%(pushnew :cl-boundary-kit-verify-readme-testing *features*)~%~{~A~%~}~%(uiop:quit 0)~%"
                          forms)))
-    (unwind-protect
-         (progn
-           (with-open-file (stream script-path
-                                   :direction :output
-                                   :if-exists :supersede
-                                   :if-does-not-exist :create)
-             (write-string script stream))
-           (uiop:run-program (list sbcl-program "--script" (namestring script-path))
-                             :directory (repository-root)
-                             :output :string
-                             :error-output :string
-                             :ignore-error-status t
-                             :timeout +fresh-sbcl-timeout+))
-      (ignore-errors (delete-file script-path)))))
+    (uiop:with-temporary-file (:stream stream
+                               :pathname script-path
+                               :directory (uiop:temporary-directory)
+                               :prefix "cl-boundary-kit-readme-test-"
+                               :suffix ".lisp"
+                               :direction :output)
+      (write-string script stream)
+      :close-stream
+      (uiop:run-program (list sbcl-program "--script" (namestring script-path))
+                        :directory (repository-root)
+                        :output :string
+                        :error-output :string
+                        :ignore-error-status t
+                        :timeout +fresh-sbcl-timeout+))))
 
 (defmacro define-fresh-sbcl-case-markers (&rest cases)
   `(progn

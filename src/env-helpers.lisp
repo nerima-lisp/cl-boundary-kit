@@ -80,15 +80,12 @@
          (push binding entries))))))
 
 (defun %plist-ref-values (plist key default)
-  (loop for rest on plist by #'cddr
-        do (cond
-             ((null rest)
-              (return (values default nil)))
-             ((null (cdr rest))
-              (error "Option list ended after ~S." (car rest)))
-             ((eq (car rest) key)
-              (return (values (cadr rest) t))))
-        finally (return (values default nil))))
+  (do ((rest plist (cddr rest)))
+      ((null rest) (values default nil))
+    (when (null (cdr rest))
+      (error "Option list ended after ~S." (car rest)))
+    (when (eq (car rest) key)
+      (return (values (cadr rest) t)))))
 
 (defun %normalize-environment-values-cps (initial-values kont)
   (cond
