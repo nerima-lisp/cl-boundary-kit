@@ -13,6 +13,62 @@ called out explicitly here. When a supported replacement exists, include
 migration guidance so consumers can move without inferring policy from code
 diffs alone.
 
+## 0.4.0
+
+This is a hardening release. It contains two intentionally breaking default
+changes; both preserve the old behavior when opted back in.
+
+### Changed (breaking)
+
+- The native process boundary no longer searches `$PATH` by default.
+  `*native-process-search-path-p*` now defaults to `nil`, so
+  `make-process-boundary` requires an absolute program path unless the caller
+  explicitly binds the variable to `t`. This prevents implicit execvp-style
+  resolution of a relative or attacker-influenced program name.
+  Migration: wrap trusted `$PATH`-dependent calls in
+  `(let ((*native-process-search-path-p* t)) ...)`.
+- Recording network boundaries now redact their in-memory call history by
+  default. The delegate still returns the raw response to the caller, but stored
+  requests and responses pass through a default sanitizer that redacts common
+  sensitive fields (authorization headers, cookies, API keys, tokens,
+  passwords, secrets, and payload/body/content values).
+  Migration: pass `:request-redactor-fn #'identity` and
+  `:response-redactor-fn #'identity` to `make-recording-network-boundary` when a
+  test intentionally needs full-fidelity history.
+
+### Added
+
+- Independent-snapshot helpers (`%copy-boundary-value` and friends) so recorded
+  history and emitted events are equal but independent copies; a caller that
+  mutates a returned event or sink payload can no longer corrupt boundary
+  history.
+- The default temp-path source now uses 128-bit randomness, threads an
+  injectable per-source random state, and skips candidate names that already
+  exist on disk.
+
+### Fixed
+
+- Copying or renaming a file to itself is rejected before the destination is
+  opened, so a copy can never truncate its own source through `:if-exists
+  :supersede`, and rename-to-self no longer depends on host behavior.
+- The filesystem delete operation tolerates a concurrent removal as a no-op
+  instead of erroring.
+- The scheduler preserves the failing task and all tasks queued after it when a
+  task signals, and re-signals the error, instead of clearing the queue.
+- Queue-backed test doubles (args, console, dns, random, subscriber, uuid,
+  process) copy their seeded lists, so later mutation of a caller's list cannot
+  corrupt the double.
+
+### Documentation and build
+
+- The Nix flake emits runnable apps and checks for `aarch64-darwin` in addition
+  to `x86_64-linux`, and `run-tests.lisp` discovers local `cl-prolog`/`cl-weave`
+  checkouts so `sbcl --script run-tests.lisp` works without Quicklisp.
+- The random and UUID sources are documented as non-cryptographic; inject a
+  CSPRNG-backed source for secrets, tokens, salts, or nonces.
+- The cl-prolog invariant tests resolve library specials and conditions
+  dynamically so the suite degrades gracefully across cl-prolog versions.
+
 ## 0.3.0
 
 ### Added
