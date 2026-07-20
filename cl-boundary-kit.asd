@@ -3,7 +3,7 @@
 (asdf:defsystem "cl-boundary-kit"
   :description "Explicit boundary abstractions for Common Lisp"
   :long-description "Protocol-first boundary abstractions, fakes, and recording test doubles for explicit filesystem, environment, clock, random, process, network, and logging effects."
-  :version "0.2.0"
+  :version "0.3.0"
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
@@ -20,6 +20,9 @@
    (:file "recording-boundary")
    (:file "protocols")
    (:file "filesystem-classes")
+   (:file "filesystem-delete")
+   (:file "filesystem-move")
+   (:file "filesystem-directory-ops")
    (:file "filesystem-fakes-helpers")
    (:file "filesystem-fakes" :depends-on ("filesystem-fakes-helpers"))
    (:file "filesystem-read")
@@ -35,6 +38,23 @@
    (:file "env-classes" :depends-on ("env-helpers"))
    (:file "clock")
    (:file "random")
+   (:file "uuid")
+   (:file "temp-path")
+   (:file "args")
+   (:file "host-info")
+   (:file "sleeper")
+   (:file "console")
+   (:file "system")
+   (:file "kv")
+   (:file "lock")
+   (:file "semaphore")
+   (:file "working-directory")
+   (:file "dns")
+   (:file "secret")
+   (:file "feature-flags")
+   (:file "cache")
+   (:file "rate-limiter")
+   (:file "scheduler")
    (:file "process")
    (:file "process-helpers" :depends-on ("process"))
    (:file "process-exec-helpers" :depends-on ("process-helpers"))
@@ -50,13 +70,17 @@
    (:file "network-recording-boundary")
    (:file "network-request")
    (:file "logging")
+   (:file "metrics")
+   (:file "publisher")
+   (:file "subscriber")
+   (:file "notifier")
    (:file "testing-helpers")
    (:file "testing" :depends-on ("testing-helpers"))))
 
 (asdf:defsystem "cl-boundary-kit/test"
   :description "Test system for cl-boundary-kit"
   :long-description "Regression tests for the cl-boundary-kit public API, documentation contracts, examples, and the documented checkout test runner."
-  :version "0.2.0"
+  :version "0.3.0"
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
@@ -75,9 +99,30 @@
    (:file "env-recording-test")
    (:file "clock-test")
    (:file "random-test")
+   (:file "uuid-test")
+   (:file "temp-path-test")
+   (:file "args-test")
+   (:file "host-info-test")
+   (:file "sleeper-test")
+   (:file "console-test")
+   (:file "system-test")
+   (:file "kv-test")
+   (:file "lock-test")
+   (:file "semaphore-test")
+   (:file "working-directory-test")
+   (:file "dns-test")
+   (:file "secret-test")
+   (:file "feature-flags-test")
+   (:file "cache-test")
+   (:file "rate-limiter-test")
+   (:file "scheduler-test")
    (:file "process-test")
    (:file "network-test")
    (:file "logging-test")
+   (:file "metrics-test")
+   (:file "publisher-test")
+   (:file "subscriber-test")
+   (:file "notifier-test")
    (:file "context-test")
    (:file "recording-test")
    (:file "property-invariants-test")

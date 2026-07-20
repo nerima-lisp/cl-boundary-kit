@@ -37,7 +37,7 @@
         rec {
           cl-boundary-kit = pkgs.sbcl.buildASDFSystem {
             pname = "cl-boundary-kit";
-            version = "0.2.0";
+            version = "0.3.0";
             src = self;
             systems = [ "cl-boundary-kit" ];
           };
