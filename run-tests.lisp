@@ -9,17 +9,10 @@
                                *compile-file-truename*
                                (error "Unable to determine the script location"))))
 
-(defparameter +local-test-dependencies+ '("cl-prolog" "cl-weave"))
+(defparameter +local-test-dependencies+ '("cl-prolog" "cl-weave" "cl-log-kit" "cl-process-kit" "cl-json-kit"))
 
 (defun parent-directory (directory)
   (uiop:ensure-directory-pathname (truename (merge-pathnames "../" directory))))
-
-(defun ancestor-directories (directory max-depth)
-  (remove-duplicates
-   (loop repeat max-depth
-         for current = (parent-directory directory) then (parent-directory current)
-         collect current)
-   :test #'equal))
 
 (defun system-asdf-wildcard (root system-name)
   (merge-pathnames
@@ -35,15 +28,20 @@
                                 :type nil
                                 :defaults (truename asd-file)))))
 
-(defun local-asdf-dependency-directories (root system-name)
-  (let ((search-roots (ancestor-directories root 4)))
-    (loop for search-root in search-roots
-          append (asdf-system-directories-under search-root system-name))))
-
 (defun local-asdf-directories (root)
-  (cons root
-        (loop for dependency in +local-test-dependencies+
-              append (local-asdf-dependency-directories root dependency))))
+  (labels ((find-first-dependency-directory (directory system-name remaining-depth)
+             (when (plusp remaining-depth)
+               (let* ((parent (parent-directory directory))
+                      (matches (asdf-system-directories-under parent system-name)))
+                 (or (first matches)
+                     (find-first-dependency-directory parent system-name (1- remaining-depth)))))))
+    (remove-duplicates
+     (cons root
+           (loop for dependency in +local-test-dependencies+
+                 for dependency-directory = (find-first-dependency-directory root dependency 4)
+                 when dependency-directory
+                   collect dependency-directory))
+     :test #'equal)))
 
 (defun source-registry-entry (directory)
   (format nil "~A//" (namestring directory)))
