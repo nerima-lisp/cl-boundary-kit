@@ -148,6 +148,75 @@ exports.")
   ("clock is the one documented, deliberate asymmetry"
    (complete-triad clock) :fails))
 
+;;; Dynamic database: a plugin can register a wholly new boundary kind at
+;;; runtime by ASSERTZ-ing facts into a policy copy, immediately making it
+;;; PERMITTED; RETRACT reverses that grant. This extends the
+;;; untrusted-policy-source scenario above (a config file parsed once via
+;;; CONSULT-PROLOG) to a policy that a running process can still mutate after
+;;; it was built, the way a plugin loaded mid-session would.
+;;;
+;;; The grant lives under its own REGISTERED-BOUNDARY/REGISTERED-EFFECT
+;;; predicates rather than BOUNDARY/EFFECT: those already carry the static
+;;; facts *BOUNDARY-POLICY* was built with, and ISO permission rules forbid
+;;; ASSERTZ/RETRACT against a predicate that already has clauses unless it was
+;;; declared DYNAMIC in advance. A fresh predicate has no such history, so it
+;;; is free to become dynamic on first use.
+
+(defun %call-with-empty-dynamic-registration (policy body)
+  "Seed PLUGIN-REGISTRATION's predicates as dynamic-but-empty, then run BODY.
+
+A predicate with zero clauses and no dynamic declaration raises an
+existence error on lookup rather than simply failing. ASSERTZ-ing and
+immediately RETRACT-ing a throwaway fact registers the predicate as dynamic
+with an empty extension, so BODY can query it before anything real is
+registered without tripping that error."
+  (cl-prolog:query-prolog policy '(cl-prolog:assertz (registered-boundary %seed%)))
+  (cl-prolog:query-prolog policy '(cl-prolog:assertz (registered-effect %seed% %seed%)))
+  (cl-prolog:query-prolog policy '(cl-prolog:retract (registered-boundary %seed%)))
+  (cl-prolog:query-prolog policy '(cl-prolog:retract (registered-effect %seed% %seed%)))
+  (funcall body))
+
+(it "runtime-plugin-registration-via-assertz-and-retract-updates-permitted-facts"
+  (let ((policy (cl-prolog:extend-rulebase *boundary-policy*
+                  ((permitted ?boundary ?operation)
+                   (registered-boundary ?boundary)
+                   (registered-effect ?boundary ?operation)))))
+    (%call-with-empty-dynamic-registration policy
+     (lambda ()
+       (expect (cl-prolog:prolog-succeeds-p policy '(permitted plugin invoke))
+               :to-be-null)
+       (cl-prolog:query-prolog policy '(cl-prolog:assertz (registered-boundary plugin)))
+       (cl-prolog:query-prolog policy '(cl-prolog:assertz (registered-effect plugin invoke)))
+       (expect (cl-prolog:prolog-succeeds-p policy '(permitted plugin invoke))
+               :to-be-truthy)
+       (cl-prolog:query-prolog policy '(cl-prolog:retract (registered-effect plugin invoke)))
+       (expect (cl-prolog:prolog-succeeds-p policy '(permitted plugin invoke))
+               :to-be-null)
+       ;; The original shared policy is untouched by mutating its extended copy.
+       (expect (cl-prolog:prolog-succeeds-p *boundary-policy* '(boundary plugin))
+               :to-be-null)))))
+
+;;; Negation as failure: "clock mutation is not permitted" stated as a rule
+;;; (using NOT rather than the :FAILS query kind above) so the restriction is
+;;; itself a declarative fact a query can depend on, not only an assertion a
+;;; test makes about the absence of solutions.
+
+(defparameter *boundary-policy-with-negation*
+  (cl-prolog:extend-rulebase *boundary-policy*
+    ((clock-mutation-forbidden) (not (permitted clock mutate)))))
+
+(it "negation-as-failure-declares-clock-mutation-forbidden"
+  (expect (cl-prolog:prolog-succeeds-p
+           *boundary-policy-with-negation* '(clock-mutation-forbidden))
+          :to-be-truthy)
+  ;; A permitted operation is NOT forbidden -- the negated rule tracks the
+  ;; underlying PERMITTED facts rather than always succeeding.
+  (expect (cl-prolog:prolog-succeeds-p
+           (cl-prolog:extend-rulebase *boundary-policy-with-negation*
+             ((clock-observation-forbidden) (not (permitted clock observe))))
+           '(clock-observation-forbidden))
+          :to-be-null))
+
 (it "prolog-rulebase-extension-is-transactional"
   (let ((extended
           (cl-prolog:extend-rulebase *boundary-policy*

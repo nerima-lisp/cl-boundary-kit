@@ -48,8 +48,7 @@
       (recording-boundary-invoke boundary op 1 2))
     (let ((calls (recording-boundary-calls boundary)))
       (expect (= (length calls) (length ops)) :to-be-truthy)
-      (expect (equal (mapcar (lambda (call) (getf call :operation)) calls) ops)
-              :to-be-truthy)
+      (expect calls :to-have-recorded-operations ops)
       ;; Mutating the snapshot must not corrupt the boundary's own history.
       (when calls
         (setf (getf (first calls) :operation) :tampered)
