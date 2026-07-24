@@ -12,8 +12,7 @@
   ((delegate :initarg :delegate :reader recording-publisher-delegate)
    (events :initform '() :accessor %publisher-events)))
 
-(defmethod %publisher-events ((publisher publisher))
-  (error "Unsupported publisher type: ~S" publisher))
+(define-emit-event-boundary-dispatch publisher)
 
 (defun %validate-publisher-topic (topic)
   (unless (or (stringp topic) (and (symbolp topic) topic))
@@ -55,17 +54,6 @@ available through `recording-published-messages`."
   "Return the recorded published messages in emission order."
   (%snapshot-boundary-events (%publisher-events publisher)))
 
-(defgeneric %reset-publisher-events (publisher))
-
-(defmethod %reset-publisher-events ((publisher publisher))
-  (error "Unsupported publisher type: ~S" publisher))
-
-(defmethod %reset-publisher-events ((publisher test-publisher))
-  (setf (%publisher-events publisher) nil))
-
-(defmethod %reset-publisher-events ((publisher recording-publisher))
-  (setf (%publisher-events publisher) nil))
-
 (defun reset-recording-published-messages (publisher)
   "Clear PUBLISHER's recorded message history and return PUBLISHER.
 
@@ -74,20 +62,6 @@ lifetime; call this periodically to bound memory growth instead of only being
 able to reclaim it by discarding the object."
   (%reset-publisher-events publisher)
   publisher)
-
-(defgeneric %publisher-emit-event (publisher event))
-
-(defmethod %publisher-emit-event ((publisher publisher) event)
-  (%emit-boundary-event (publisher-emit-fn publisher) event))
-
-(defmethod %publisher-emit-event ((publisher test-publisher) event)
-  (push (%copy-boundary-event event) (%publisher-events publisher))
-  event)
-
-(defmethod %publisher-emit-event ((publisher recording-publisher) event)
-  (push (%copy-boundary-event event) (%publisher-events publisher))
-  (%publisher-emit-event (recording-publisher-delegate publisher) (%copy-boundary-event event))
-  event)
 
 (defmethod publisher-publish ((publisher publisher) topic message)
   (%validate-publisher-topic topic)

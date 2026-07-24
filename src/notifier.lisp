@@ -12,8 +12,7 @@
   ((delegate :initarg :delegate :reader recording-notifier-delegate)
    (events :initform '() :accessor %notifier-events)))
 
-(defmethod %notifier-events ((notifier notifier))
-  (error "Unsupported notifier type: ~S" notifier))
+(define-emit-event-boundary-dispatch notifier)
 
 (defun %validate-notification-field (value name)
   (unless (stringp value)
@@ -56,17 +55,6 @@ available through `recording-sent-notifications`."
   "Return the recorded notifications in send order."
   (%snapshot-boundary-events (%notifier-events notifier)))
 
-(defgeneric %reset-notifier-events (notifier))
-
-(defmethod %reset-notifier-events ((notifier notifier))
-  (error "Unsupported notifier type: ~S" notifier))
-
-(defmethod %reset-notifier-events ((notifier test-notifier))
-  (setf (%notifier-events notifier) nil))
-
-(defmethod %reset-notifier-events ((notifier recording-notifier))
-  (setf (%notifier-events notifier) nil))
-
 (defun reset-recording-sent-notifications (notifier)
   "Clear NOTIFIER's recorded notification history and return NOTIFIER.
 
@@ -75,20 +63,6 @@ whole lifetime; call this periodically to bound memory growth instead of only
 being able to reclaim it by discarding the object."
   (%reset-notifier-events notifier)
   notifier)
-
-(defgeneric %notifier-emit-event (notifier event))
-
-(defmethod %notifier-emit-event ((notifier notifier) event)
-  (%emit-boundary-event (notifier-emit-fn notifier) event))
-
-(defmethod %notifier-emit-event ((notifier test-notifier) event)
-  (push (%copy-boundary-event event) (%notifier-events notifier))
-  event)
-
-(defmethod %notifier-emit-event ((notifier recording-notifier) event)
-  (push (%copy-boundary-event event) (%notifier-events notifier))
-  (%notifier-emit-event (recording-notifier-delegate notifier) (%copy-boundary-event event))
-  event)
 
 (defmethod notifier-notify ((notifier notifier) recipient subject body)
   (%validate-notification-field recipient "Notification recipient")

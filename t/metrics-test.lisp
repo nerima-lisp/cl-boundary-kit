@@ -91,3 +91,16 @@
     (expect (equal (list :type :count :name "hits" :value 1)
                    (metrics-increment metrics "hits")) :to-be-truthy)
     (expect (= 1 (length (recording-metric-events metrics))) :to-be-truthy)))
+
+(it "reset-recording-metric-events-clears-a-test-metrics-history"
+  (let ((metrics (make-test-metrics)))
+    (metrics-count metrics "hits" 1)
+    (expect (= 1 (length (recording-metric-events metrics))) :to-be-truthy)
+    (expect (eq metrics (reset-recording-metric-events metrics)) :to-be-truthy)
+    (expect (null (recording-metric-events metrics)) :to-be-truthy)))
+
+(it "reset-recording-metric-events-clears-a-recording-metrics-history"
+  (let ((metrics (make-recording-metrics)))
+    (metrics-count metrics "hits" 1)
+    (expect (eq metrics (reset-recording-metric-events metrics)) :to-be-truthy)
+    (expect (null (recording-metric-events metrics)) :to-be-truthy)))

@@ -157,3 +157,16 @@
 (it "reset-recording-log-events-signals-for-unsupported-logger-types"
   (signals-error-message-contains "Unsupported logger type"
       (reset-recording-log-events (make-logger))))
+
+(it "reset-recording-log-events-clears-a-test-logger-history"
+  (let ((logger (make-test-logger)))
+    (logger-log logger :info "hello")
+    (expect (= 1 (length (recording-log-events logger))) :to-be-truthy)
+    (expect (eq logger (reset-recording-log-events logger)) :to-be-truthy)
+    (expect (null (recording-log-events logger)) :to-be-truthy)))
+
+(it "reset-recording-log-events-clears-a-recording-logger-history"
+  (let ((logger (make-recording-logger)))
+    (logger-log logger :info "hello")
+    (expect (eq logger (reset-recording-log-events logger)) :to-be-truthy)
+    (expect (null (recording-log-events logger)) :to-be-truthy)))
