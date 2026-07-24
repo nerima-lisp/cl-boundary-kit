@@ -15,4 +15,5 @@
                   '(:method :get :url "https://example.test")
                   :timeout 5)))
   (format t "~&response: ~S~%" response)
-  (format t "~&calls: ~S~%" (cl-boundary-kit:recording-network-calls network)))
+  (format t "~&calls: ~S~%"
+          (cl-boundary-kit:recording-network-calls network)))

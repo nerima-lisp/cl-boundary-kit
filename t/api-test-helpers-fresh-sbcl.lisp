@@ -62,7 +62,7 @@
     (string-lines (nth 0 (readme-fenced-code-blocks "## Quick Start" "## Core Concepts" "lisp")))
     (string-lines (nth 1 (readme-fenced-code-blocks "## Quick Start" "## Core Concepts" "lisp")))))
   (documentation-fresh-sbcl-testing-repl-lines
-   (string-lines (first-readme-fenced-code-block "## Testing" "## Compatibility" "lisp")))
+   (string-lines (first (readme-fenced-code-blocks "## Testing" "## Compatibility" "lisp"))))
   (documentation-fresh-sbcl-contributing-installation-lines
    (string-lines
     (replace-substring
