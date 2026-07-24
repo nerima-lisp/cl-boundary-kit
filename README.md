@@ -1244,11 +1244,13 @@ The recommended pinned checkout test command is:
 nix run .#test
 ```
 
-The flake pins SBCL, `cl-prolog`, and `cl-weave`, so this path does not require
-Quicklisp or separately installed Common Lisp dependencies. `cl-weave` provides
-the test runner, machine-readable reporting, and coverage integration.
-`cl-prolog` is used by the test system to express and verify cross-boundary
-invariants. These runnable flake apps and checks are emitted for
+The flake pins SBCL, `cl-prolog`, `cl-weave`, `cl-log-kit`, `cl-process-kit`,
+and `cl-json-kit`, so this path does not require Quicklisp or separately
+installed Common Lisp dependencies. `cl-weave` provides the test runner,
+machine-readable reporting, and coverage integration. `cl-prolog` is used by
+the test system to express and verify cross-boundary invariants; `cl-log-kit`,
+`cl-process-kit`, and `cl-json-kit` back the optional adapters exercised by
+the test suite. These runnable flake apps and checks are emitted for
 `x86_64-linux` and `aarch64-darwin`; the Ubuntu GitHub Actions workflow is the
 canonical Linux CI path.
 
@@ -1260,13 +1262,15 @@ artifacts. They contain `report.json`, and, for the coverage check,
 `coverage.dat`, `coverage-summary.txt`, and the `coverage-html/` report. The
 coverage check currently requires at least 80% statement coverage. Hosts outside
 the emitted flake systems are not a compatibility claim; use
-`sbcl --script run-tests.lisp` there when `cl-prolog` and `cl-weave` are already
-discoverable by ASDF.
+`sbcl --script run-tests.lisp` there when `cl-prolog`, `cl-weave`,
+`cl-log-kit`, `cl-process-kit`, and `cl-json-kit` are already discoverable by
+ASDF.
 
 For local development on any host with an existing SBCL environment, run
 `sbcl --script run-tests.lisp`. Quicklisp itself is not required, but direct
-SBCL and REPL use requires `cl-prolog` and `cl-weave` to be discoverable by
-ASDF. The suite exercises
+SBCL and REPL use requires `cl-prolog`, `cl-weave`, `cl-log-kit`,
+`cl-process-kit`, and `cl-json-kit` to be discoverable by ASDF. The suite
+exercises
 filesystem, environment, clock, random, process, network, logging, recording,
 and boundary composition behavior.
 
@@ -1298,7 +1302,7 @@ should not be treated as supported contracts unless that document says so.
 The public contract is intentionally narrow:
 
 - The exported symbols listed in `## API Overview` define the supported library
-  surface for `0.4.x`.
+  surface for `0.5.x`.
 - The checked-in README snippets, `examples/*.lisp`, and the
   `asdf:load-system :cl-boundary-kit/test` plus `cl-boundary-kit/test:run-tests`
   flow are treated as regression-checked usage contracts, not illustrative

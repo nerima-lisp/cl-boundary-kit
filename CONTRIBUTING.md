@@ -43,8 +43,9 @@ To load the library itself with ASDF from a local checkout:
 (asdf:load-system :cl-boundary-kit)
 ```
 
-Direct SBCL test execution is also available when `cl-prolog` and `cl-weave`
-are already discoverable by ASDF:
+Direct SBCL test execution is also available when `cl-prolog`, `cl-weave`,
+`cl-log-kit`, `cl-process-kit`, and `cl-json-kit` are already discoverable by
+ASDF:
 
 ```sh
 sbcl --script run-tests.lisp

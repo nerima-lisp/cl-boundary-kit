@@ -12,9 +12,10 @@ verification in this repository.
   including the checkout runner, a `cl-weave` JSON report, and an 80% coverage
   threshold
 - Does not require Quicklisp when using the Nix flake; Nix supplies SBCL,
-  `cl-prolog`, and `cl-weave`
-- Supports direct `sbcl --script run-tests.lisp` execution when `cl-prolog` and
-  `cl-weave` are already discoverable by ASDF
+  `cl-prolog`, `cl-weave`, `cl-log-kit`, `cl-process-kit`, and `cl-json-kit`
+- Supports direct `sbcl --script run-tests.lisp` execution when `cl-prolog`,
+  `cl-weave`, `cl-log-kit`, `cl-process-kit`, and `cl-json-kit` are already
+  discoverable by ASDF
 - Does not claim compatibility for hosts outside the emitted flake systems;
   direct SBCL execution is the fallback there
 - Regression-checks the README installation, quick-start, and test commands

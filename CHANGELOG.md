@@ -13,6 +13,45 @@ called out explicitly here. When a supported replacement exists, include
 migration guidance so consumers can move without inferring policy from code
 diffs alone.
 
+## 0.5.0
+
+### Added
+
+- Optional adapters for three dependency-light sibling libraries, each in its
+  own optional ASDF system so the core stays dependency-light:
+  - `process-kit-run-fn` (`cl-boundary-kit/process-kit`), a `:run-fn` backed by
+    `cl-process-kit` with process-group timeout and SIGTERM/SIGKILL escalation,
+    usable in place of the hand-rolled `sb-ext:run-program` runner.
+  - `recording-calls-to-json` (`cl-boundary-kit/json`), which serializes
+    recorded call-history plists as a JSON array via `cl-json-kit`.
+  - `make-log-kit-sink-fn`, which adapts a `cl-log-kit` logger into a
+    `:sink-fn` for `make-logger`.
+
+### Fixed
+
+- `copy-value` now copies bit-vectors instead of returning them uncopied, so a
+  caller can no longer mutate a stored or recorded bit-vector value in place.
+- `scheduler-cancel` now always takes effect: cancelling a task that had
+  already been snapshotted into a running `test-scheduler-run-pending` batch
+  previously failed to skip it silently.
+- `run-tests.lisp` no longer collects a stale or duplicate ancestor checkout
+  of a local test dependency; it now stops at the first ancestor directory
+  that has a match.
+
+### Documentation and build
+
+- The project's GitHub org changed from `takeokunn` to `nerima-lisp`; update
+  any bookmarked repository, issue, or security-advisory links accordingly.
+- The Nix flake and `run-tests.lisp` now also discover `cl-log-kit`,
+  `cl-process-kit`, and `cl-json-kit`, pinning the first two by commit (no
+  tagged release yet) and `cl-json-kit` at `v0.2.0`; `cl-weave` and
+  `cl-prolog` are bumped to `v0.10.0` and `v0.7.0`.
+- Internal refactor, no behavior change: `console.lisp`, the
+  `filesystem-fakes-*` sources, `process-exec-helpers.lisp`, and `testing.lisp`
+  are each split into smaller, single-purpose modules, and boundary sources
+  share recording/event-dispatch macros instead of duplicating the same
+  accessor pair per boundary.
+
 ## 0.4.0
 
 This is a hardening release. It contains two intentionally breaking default
