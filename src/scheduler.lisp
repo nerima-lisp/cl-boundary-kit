@@ -8,6 +8,10 @@
 
 (defclass test-scheduler (scheduler)
   ((tasks :initform '() :accessor %test-scheduler-tasks)
+   (pending-task-ids :initform (make-hash-table :test 'eql)
+                     :accessor %test-scheduler-pending-task-ids)
+   (cancelled-task-ids :initform (make-hash-table :test 'eql)
+                       :accessor %test-scheduler-cancelled-task-ids)
    (next-id :initform 1 :accessor %test-scheduler-next-id)))
 
 (defclass recording-scheduler (scheduler)
@@ -42,13 +46,25 @@ application edge; both collaborators are validated at construction time."
 (defun %ordered-test-scheduler-tasks (scheduler)
   (reverse (%test-scheduler-tasks scheduler)))
 
+(defun %test-scheduler-task-cancelled-p (scheduler task)
+  (gethash (first task) (%test-scheduler-cancelled-task-ids scheduler)))
+
+(defun %test-scheduler-task-pending-p (scheduler task)
+  (gethash (first task) (%test-scheduler-pending-task-ids scheduler)))
+
+(defun %test-scheduler-live-tasks (scheduler)
+  (remove-if (lambda (task)
+               (or (%test-scheduler-task-cancelled-p scheduler task)
+                   (not (%test-scheduler-task-pending-p scheduler task))))
+             (%ordered-test-scheduler-tasks scheduler)))
+
 (defun test-scheduler-pending (scheduler)
   "Return the pending tasks of SCHEDULER as `(:id <id> :delay <delay>)` plists in
 schedule order. Thunks are omitted because they are not meaningfully comparable."
   (unless (typep scheduler 'test-scheduler)
     (error "Unsupported scheduler type: ~S" scheduler))
   (mapcar (lambda (task) (list :id (first task) :delay (second task)))
-          (%ordered-test-scheduler-tasks scheduler)))
+          (%test-scheduler-live-tasks scheduler)))
 
 (defun test-scheduler-run-pending (scheduler)
   "Run pending tasks of SCHEDULER in schedule order and return their results.
@@ -57,9 +73,11 @@ Successfully completed tasks are removed. If a task signals an error, that task
 and the tasks after it remain pending, and the original error is re-signaled."
   (unless (typep scheduler 'test-scheduler)
     (error "Unsupported scheduler type: ~S" scheduler))
-  (let ((tasks (%ordered-test-scheduler-tasks scheduler))
+  (let ((tasks (%test-scheduler-live-tasks scheduler))
         (results '()))
     (setf (%test-scheduler-tasks scheduler) '())
+    (clrhash (%test-scheduler-pending-task-ids scheduler))
+    (clrhash (%test-scheduler-cancelled-task-ids scheduler))
     (loop
       (when (endp tasks)
         (return (nreverse results)))
@@ -69,6 +87,13 @@ and the tasks after it remain pending, and the original error is re-signaled."
           (error (condition)
             (setf (%test-scheduler-tasks scheduler)
                   (reverse (cons task tasks)))
+            (setf (gethash (first task) (%test-scheduler-pending-task-ids scheduler))
+                  t)
+            (loop for remaining in tasks do
+              (setf (gethash (first remaining)
+                             (%test-scheduler-pending-task-ids scheduler))
+                    t))
+            (clrhash (%test-scheduler-cancelled-task-ids scheduler))
             (error condition)))))))
 
 (defun make-recording-scheduler (&key (delegate (make-test-scheduler)))
@@ -78,22 +103,8 @@ but not the thunk, so the history stays comparable."
   (require-instance delegate 'scheduler "DELEGATE")
   (make-instance 'recording-scheduler :schedule-fn nil :cancel-fn nil :delegate delegate))
 
-(defun recording-scheduler-calls (scheduler)
-  "Return the recorded scheduler calls in call order."
-  (unless (typep scheduler 'recording-scheduler)
-    (error "Unsupported scheduler type: ~S" scheduler))
-  (%snapshot-recorded-calls (%recording-scheduler-calls scheduler)))
-
-(defun reset-recording-scheduler-calls (scheduler)
-  "Clear SCHEDULER's recorded call history and return SCHEDULER.
-
-A recording scheduler otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep scheduler 'recording-scheduler)
-    (error "Unsupported scheduler type: ~S" scheduler))
-  (setf (%recording-scheduler-calls scheduler) nil)
-  scheduler)
+(define-recording-call-log recording-scheduler-calls reset-recording-scheduler-calls
+    (scheduler recording-scheduler %recording-scheduler-calls) "scheduler")
 
 (defmethod scheduler-schedule ((scheduler scheduler) delay thunk)
   (%validate-schedule-delay delay)
@@ -109,13 +120,14 @@ able to reclaim it by discarding the object."
   (let ((id (%test-scheduler-next-id scheduler)))
     (setf (%test-scheduler-next-id scheduler) (1+ id))
     (push (list id delay thunk) (%test-scheduler-tasks scheduler))
+    (setf (gethash id (%test-scheduler-pending-task-ids scheduler)) t)
     id))
 
 (defmethod scheduler-cancel ((scheduler test-scheduler) id)
-  (let ((present (find id (%test-scheduler-tasks scheduler) :key #'first)))
-    (setf (%test-scheduler-tasks scheduler)
-          (remove id (%test-scheduler-tasks scheduler) :key #'first))
-    (and present t)))
+  (when (gethash id (%test-scheduler-pending-task-ids scheduler))
+    (unless (gethash id (%test-scheduler-cancelled-task-ids scheduler))
+      (setf (gethash id (%test-scheduler-cancelled-task-ids scheduler)) t)
+      t)))
 
 (defmethod scheduler-schedule ((scheduler recording-scheduler) delay thunk)
   (%validate-schedule-delay delay)

@@ -83,3 +83,8 @@
 (it "reset-recording-secret-calls-signals-for-unsupported-store-types"
   (signals error
     (reset-recording-secret-calls (make-test-secret-store))))
+
+(it "secret-names-returns-the-names-fn-result"
+  (let ((store (make-secret-store :get-fn (lambda (name) (declare (ignore name)) (values nil nil))
+                                  :names-fn (lambda () (list "API_KEY" "DB_PASSWORD")))))
+    (expect (equal (secret-names store) (list "API_KEY" "DB_PASSWORD")) :to-be-truthy)))

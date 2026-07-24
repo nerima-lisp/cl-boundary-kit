@@ -6,7 +6,9 @@
   (:import-from #:cl-weave
                 #:expect
                 #:it
+                #:it-each
                 #:it-property
+                #:defmatcher
                 #:benchmark
                 #:benchmark-result-samples
                 #:gen-integer
@@ -68,38 +70,11 @@
     (when (and status (boundp symbol))
       symbol)))
 
-(defun prolog-special-available-p (name)
-  (not (null (prolog-special-symbol name))))
-
-(defun first-prolog-special-binding (bindings)
-  (dolist (binding bindings
-           (error "CL-PROLOG exposes none of the requested specials: ~S"
-                  (mapcar #'first bindings)))
-    (let ((symbol (prolog-special-symbol (first binding))))
-      (when symbol
-        (return (values symbol (second binding)))))))
-
 (defun first-prolog-special-binding-or-nil (bindings)
   (dolist (binding bindings (values nil nil))
     (let ((symbol (prolog-special-symbol (first binding))))
       (when symbol
         (return (values symbol (second binding)))))))
-
-(defmacro with-prolog-special ((name value) &body body)
-  `(let ((symbol (prolog-special-symbol ,name)))
-     (unless symbol
-       (error "CL-PROLOG does not expose ~A" ,name))
-     (progv (list symbol) (list ,value)
-       ,@body)))
-
-(defmacro with-first-prolog-special (bindings &body body)
-  `(multiple-value-bind (symbol value)
-       (first-prolog-special-binding
-        (list ,@(mapcar (lambda (binding)
-                          `(list ,(first binding) ,(second binding)))
-                        bindings)))
-     (progv (list symbol) (list value)
-       ,@body)))
 
 (defmacro with-optional-prolog-special ((name value) &body body)
   `(let ((symbol (prolog-special-symbol ,name)))

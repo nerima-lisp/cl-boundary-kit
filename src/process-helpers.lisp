@@ -32,6 +32,9 @@
       (getf boundary :calls)
       (error "Unsupported process boundary type: ~S" boundary)))
 
+(defun (setf %process-calls) (new-value boundary)
+  (setf (getf boundary :calls) new-value))
+
 (defun %process-runner (boundary)
   (getf boundary :run-fn))
 

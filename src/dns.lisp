@@ -51,22 +51,8 @@ which defaults to an empty `make-test-dns-resolver`."
   (require-instance delegate 'dns-resolver "DELEGATE")
   (make-instance 'recording-dns-resolver :resolve-fn nil :delegate delegate))
 
-(defun recording-dns-calls (resolver)
-  "Return the recorded DNS resolver calls in call order."
-  (unless (typep resolver 'recording-dns-resolver)
-    (error "Unsupported DNS resolver type: ~S" resolver))
-  (%snapshot-recorded-calls (%recording-dns-calls resolver)))
-
-(defun reset-recording-dns-calls (resolver)
-  "Clear RESOLVER's recorded call history and return RESOLVER.
-
-A recording DNS resolver otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep resolver 'recording-dns-resolver)
-    (error "Unsupported DNS resolver type: ~S" resolver))
-  (setf (%recording-dns-calls resolver) nil)
-  resolver)
+(define-recording-call-log recording-dns-calls reset-recording-dns-calls
+    (resolver recording-dns-resolver %recording-dns-calls) "DNS resolver")
 
 (defmethod dns-resolve ((resolver dns-resolver) hostname)
   (%validate-dns-hostname hostname)

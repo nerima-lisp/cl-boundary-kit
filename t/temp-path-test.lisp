@@ -106,3 +106,18 @@
 (it "reset-recording-temp-path-source-calls-signals-for-unsupported-source-types"
   (signals error
     (reset-recording-temp-path-source-calls (make-temp-path-source))))
+
+;;; Constructor and queue validation error branches.
+
+(it "make-temp-path-source-rejects-a-non-pathname-directory"
+  (signals-error-message-contains "Temp path directory must be a pathname or string"
+    (make-temp-path-source :directory 42)))
+
+(it "make-test-temp-path-source-rejects-non-list-paths"
+  (signals-error-message-contains "Test temp path source paths must be a list"
+    (make-test-temp-path-source :paths 42)))
+
+(it "test-temp-path-next-rejects-a-non-pathname-queued-path"
+  (let ((source (make-test-temp-path-source :paths (list 42))))
+    (signals-error-message-contains "Test temp path source path must be a pathname or string"
+      (temp-path-next source))))

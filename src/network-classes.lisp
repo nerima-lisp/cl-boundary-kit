@@ -27,3 +27,15 @@
 
 (defmethod %network-calls ((boundary t))
   (error "Unsupported network boundary type: ~S" boundary))
+
+(defgeneric (setf %network-calls) (new-value boundary))
+
+(defmethod (setf %network-calls) (new-value (boundary test-network-boundary))
+  (setf (%test-network-calls boundary) new-value))
+
+(defmethod (setf %network-calls) (new-value (boundary recording-network-boundary))
+  (setf (%recording-network-calls boundary) new-value))
+
+(defmethod (setf %network-calls) (new-value (boundary t))
+  (declare (ignore new-value))
+  (error "Unsupported network boundary type: ~S" boundary))

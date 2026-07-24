@@ -60,22 +60,8 @@ that does."
   (require-instance delegate 'system-boundary "DELEGATE")
   (make-instance 'recording-system-boundary :exit-fn nil :delegate delegate))
 
-(defun recording-system-calls (system)
-  "Return the recorded system-boundary calls in call order."
-  (unless (typep system 'recording-system-boundary)
-    (error "Unsupported system boundary type: ~S" system))
-  (%snapshot-recorded-calls (%recording-system-calls system)))
-
-(defun reset-recording-system-calls (system)
-  "Clear SYSTEM's recorded call history and return SYSTEM.
-
-A recording system boundary otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep system 'recording-system-boundary)
-    (error "Unsupported system boundary type: ~S" system))
-  (setf (%recording-system-calls system) nil)
-  system)
+(define-recording-call-log recording-system-calls reset-recording-system-calls
+    (system recording-system-boundary %recording-system-calls) "system boundary")
 
 (defmethod system-exit ((system system-boundary) &optional (code 0))
   (%validate-exit-code code)

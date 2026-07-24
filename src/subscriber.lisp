@@ -41,22 +41,8 @@ defaults to an empty `make-test-subscriber`."
   (require-instance delegate 'subscriber "DELEGATE")
   (make-instance 'recording-subscriber :poll-fn nil :delegate delegate))
 
-(defun recording-subscriber-calls (subscriber)
-  "Return the recorded subscriber calls in call order."
-  (unless (typep subscriber 'recording-subscriber)
-    (error "Unsupported subscriber type: ~S" subscriber))
-  (%snapshot-recorded-calls (%recording-subscriber-calls subscriber)))
-
-(defun reset-recording-subscriber-calls (subscriber)
-  "Clear SUBSCRIBER's recorded call history and return SUBSCRIBER.
-
-A recording subscriber otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep subscriber 'recording-subscriber)
-    (error "Unsupported subscriber type: ~S" subscriber))
-  (setf (%recording-subscriber-calls subscriber) nil)
-  subscriber)
+(define-recording-call-log recording-subscriber-calls reset-recording-subscriber-calls
+    (subscriber recording-subscriber %recording-subscriber-calls) "subscriber")
 
 (defun subscriber-poll-batch (subscriber max)
   "Poll SUBSCRIBER up to MAX times, collecting messages until a poll returns NIL

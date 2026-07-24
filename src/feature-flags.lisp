@@ -52,22 +52,8 @@ DELEGATE, which defaults to an all-off `make-test-feature-flags`."
   (require-instance delegate 'feature-flags "DELEGATE")
   (make-instance 'recording-feature-flags :enabled-fn nil :delegate delegate))
 
-(defun recording-feature-flag-calls (flags)
-  "Return the recorded feature-flag calls in call order."
-  (unless (typep flags 'recording-feature-flags)
-    (error "Unsupported feature flags type: ~S" flags))
-  (%snapshot-recorded-calls (%recording-feature-flag-calls flags)))
-
-(defun reset-recording-feature-flag-calls (flags)
-  "Clear FLAGS's recorded call history and return FLAGS.
-
-A recording feature-flags boundary otherwise retains every call for the object's
-whole lifetime; call this periodically to bound memory growth instead of only
-being able to reclaim it by discarding the object."
-  (unless (typep flags 'recording-feature-flags)
-    (error "Unsupported feature flags type: ~S" flags))
-  (setf (%recording-feature-flag-calls flags) nil)
-  flags)
+(define-recording-call-log recording-feature-flag-calls reset-recording-feature-flag-calls
+    (flags recording-feature-flags %recording-feature-flag-calls) "feature flags")
 
 (defun call-if-feature-enabled (flags name thunk &optional disabled-thunk)
   "If feature NAME is enabled in FLAGS, call THUNK and return its value; otherwise
@@ -96,10 +82,7 @@ path when off\" pattern."
                                "feature flag enumeration is unavailable"))))
 
 (defmethod feature-flags-enabled ((flags test-feature-flags))
-  (sort (loop for name being the hash-keys of (test-feature-flags-enabled flags)
-              collect name)
-        #'string<
-        :key #'princ-to-string))
+  (%sorted-hash-keys (test-feature-flags-enabled flags)))
 
 (defmethod feature-enabled-p ((flags test-feature-flags) name)
   (%validate-feature-name name)

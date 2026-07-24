@@ -73,3 +73,15 @@
 (it "call-with-working-directory-rejects-a-non-function-thunk"
   (signals error
     (call-with-working-directory (make-test-working-directory) #P"/tmp/" :bad)))
+
+(it "native-working-directory-set-updates-default-pathname-defaults"
+  ;; Exercises the native SET-FN, which mutates *DEFAULT-PATHNAME-DEFAULTS*;
+  ;; the previous value is restored so the rest of the suite is unaffected.
+  (let ((working-directory (make-working-directory))
+        (previous *default-pathname-defaults*))
+    (unwind-protect
+         (progn
+           (working-directory-set working-directory #P"/tmp/")
+           (expect (equal *default-pathname-defaults* #P"/tmp/") :to-be-truthy)
+           (expect (equal (working-directory-get working-directory) #P"/tmp/") :to-be-truthy))
+      (setf *default-pathname-defaults* previous))))

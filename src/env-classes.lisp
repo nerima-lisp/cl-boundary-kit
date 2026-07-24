@@ -165,24 +165,9 @@ environment records the set and the restoring set or unset."
           (environment-set environment name previous)
           (environment-unset environment name)))))
 
-(defun recording-environment-calls (environment)
-  "Return the recorded environment calls in call order."
-  (%with-environment (environment)
-    (if (or (%test-environment-p environment)
-            (%recording-environment-p environment))
-        (%snapshot-recorded-calls (%environment-calls environment))
-        (error "Unsupported environment type: ~S" (environment-kind environment)))))
+(define-predicate-guarded-call-log recording-environment-calls reset-recording-environment-calls
+    (environment (require-instance environment 'env-boundary "ENVIRONMENT")
+     %recording-or-test-environment-p (%environment-calls environment)
+     (environment-kind environment))
+    "environment")
 
-(defun reset-recording-environment-calls (environment)
-  "Clear ENVIRONMENT's recorded call history and return ENVIRONMENT.
-
-Recording/test environments otherwise retain every call for the object's
-whole lifetime; call this periodically to bound memory growth instead of
-only being able to reclaim it by discarding the object."
-  (%with-environment (environment)
-    (if (or (%test-environment-p environment)
-            (%recording-environment-p environment))
-        (progn
-          (setf (%environment-calls environment) nil)
-          environment)
-        (error "Unsupported environment type: ~S" (environment-kind environment)))))

@@ -53,22 +53,9 @@ the real process directory unless you pass a delegate that does."
                  :get-fn nil :set-fn nil
                  :delegate delegate))
 
-(defun recording-working-directory-calls (working-directory)
-  "Return the recorded working-directory calls in call order."
-  (unless (typep working-directory 'recording-working-directory)
-    (error "Unsupported working directory type: ~S" working-directory))
-  (%snapshot-recorded-calls (%recording-working-directory-calls working-directory)))
-
-(defun reset-recording-working-directory-calls (working-directory)
-  "Clear WORKING-DIRECTORY's recorded call history and return it.
-
-A recording working directory otherwise retains every call for the object's
-whole lifetime; call this periodically to bound memory growth instead of only
-being able to reclaim it by discarding the object."
-  (unless (typep working-directory 'recording-working-directory)
-    (error "Unsupported working directory type: ~S" working-directory))
-  (setf (%recording-working-directory-calls working-directory) nil)
-  working-directory)
+(define-recording-call-log recording-working-directory-calls reset-recording-working-directory-calls
+    (working-directory recording-working-directory %recording-working-directory-calls)
+    "working directory")
 
 (defun call-with-working-directory (working-directory path thunk)
   "Temporarily set WORKING-DIRECTORY to PATH for the duration of THUNK, then

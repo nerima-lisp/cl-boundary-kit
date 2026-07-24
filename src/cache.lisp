@@ -59,22 +59,8 @@ to an empty `make-test-cache`."
   (make-instance 'recording-cache :get-fn nil :put-fn nil :evict-fn nil
                                   :delegate delegate))
 
-(defun recording-cache-calls (cache)
-  "Return the recorded cache calls in call order."
-  (unless (typep cache 'recording-cache)
-    (error "Unsupported cache type: ~S" cache))
-  (%snapshot-recorded-calls (%recording-cache-calls cache)))
-
-(defun reset-recording-cache-calls (cache)
-  "Clear CACHE's recorded call history and return CACHE.
-
-A recording cache otherwise retains every call for the object's whole lifetime;
-call this periodically to bound memory growth instead of only being able to
-reclaim it by discarding the object."
-  (unless (typep cache 'recording-cache)
-    (error "Unsupported cache type: ~S" cache))
-  (setf (%recording-cache-calls cache) nil)
-  cache)
+(define-recording-call-log recording-cache-calls reset-recording-cache-calls
+    (cache recording-cache %recording-cache-calls) "cache")
 
 (defmethod cache-fetch ((cache cache) key thunk &key ttl)
   ;; Read-through / memoize, derived from the protocol so it works for the
@@ -106,15 +92,17 @@ reclaim it by discarding the object."
   (funcall (cache-evict-fn cache) key))
 
 (defmethod cache-get ((cache test-cache) key &optional default)
-  (multiple-value-bind (entry present) (gethash key (test-cache-table cache))
-    (if (not present)
-        (values default nil)
-        (let ((expiry (cdr entry)))
-          (if (and expiry (>= (funcall (test-cache-now-fn cache)) expiry))
-              ;; Expired: drop it and report absent.
-              (progn (remhash key (test-cache-table cache))
-                     (values default nil))
-              (values (car entry) t))))))
+  (let ((table (test-cache-table cache)))
+    (multiple-value-bind (entry present) (gethash key table)
+      (if (not present)
+          (values default nil)
+          (let ((expiry (cdr entry))
+                (now (funcall (test-cache-now-fn cache))))
+            (if (and expiry (>= now expiry))
+                ;; Expired: drop it and report absent.
+                (progn (remhash key table)
+                       (values default nil))
+                (values (car entry) t)))))))
 
 (defmethod cache-put ((cache test-cache) key value &key ttl)
   (%validate-cache-ttl ttl)

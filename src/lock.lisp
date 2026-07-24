@@ -52,22 +52,8 @@ DELEGATE defaults to a non-reentrant `make-test-lock`."
                  :acquire-fn nil :release-fn nil
                  :delegate delegate))
 
-(defun recording-lock-calls (lock)
-  "Return the recorded lock calls in call order."
-  (unless (typep lock 'recording-lock)
-    (error "Unsupported lock type: ~S" lock))
-  (%snapshot-recorded-calls (%recording-lock-calls lock)))
-
-(defun reset-recording-lock-calls (lock)
-  "Clear LOCK's recorded call history and return LOCK.
-
-A recording lock otherwise retains every call for the object's whole lifetime;
-call this periodically to bound memory growth instead of only being able to
-reclaim it by discarding the object."
-  (unless (typep lock 'recording-lock)
-    (error "Unsupported lock type: ~S" lock))
-  (setf (%recording-lock-calls lock) nil)
-  lock)
+(define-recording-call-log recording-lock-calls reset-recording-lock-calls
+    (lock recording-lock %recording-lock-calls) "lock")
 
 (defun call-with-lock (lock thunk)
   "Acquire LOCK, call THUNK, and release LOCK even if THUNK signals; return THUNK's value.

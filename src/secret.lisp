@@ -47,25 +47,10 @@ tests or logs inspect. DELEGATE defaults to an empty `make-test-secret-store`."
   (require-instance delegate 'secret-store "DELEGATE")
   (make-instance 'recording-secret-store :get-fn nil :delegate delegate))
 
-(defun recording-secret-calls (store)
-  "Return the recorded secret store calls in call order.
-
-Each recorded call carries the requested name and a `:redacted` result rather
-than the real secret value."
-  (unless (typep store 'recording-secret-store)
-    (error "Unsupported secret store type: ~S" store))
-  (%snapshot-recorded-calls (%recording-secret-calls store)))
-
-(defun reset-recording-secret-calls (store)
-  "Clear STORE's recorded call history and return STORE.
-
-A recording secret store otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep store 'recording-secret-store)
-    (error "Unsupported secret store type: ~S" store))
-  (setf (%recording-secret-calls store) nil)
-  store)
+(define-recording-call-log recording-secret-calls reset-recording-secret-calls
+    (store recording-secret-store %recording-secret-calls) "secret store"
+    "Each recorded call carries the requested name and a `:redacted` result rather
+than the real secret value.")
 
 (defmethod secret-names ((store secret-store))
   (let ((names-fn (secret-store-names-fn store)))
@@ -75,35 +60,35 @@ able to reclaim it by discarding the object."
                                "secret name enumeration is unavailable"))))
 
 (defmethod secret-names ((store test-secret-store))
-  (sort (loop for name being the hash-keys of (test-secret-store-table store)
-              collect name)
-        #'string<
-        :key #'princ-to-string))
+  (%sorted-hash-keys (test-secret-store-table store)))
 
 (defmethod secret-get ((store secret-store) name &optional default)
   (funcall (secret-store-get-fn store) name default))
 
 (defmethod secret-get ((store test-secret-store) name &optional default)
-  (multiple-value-bind (value present) (gethash name (test-secret-store-table store))
-    (if present
-        (values value t)
-        (values default nil))))
+  (let ((table (test-secret-store-table store)))
+    (multiple-value-bind (value present) (gethash name table)
+      (if present
+          (values value t)
+          (values default nil)))))
 
 (defmethod secret-get ((store recording-secret-store) name &optional default)
-  (multiple-value-bind (value present)
-      (secret-get (recording-secret-store-delegate store) name default)
-    ;; Record only the name and a redacted marker: never the secret value or the
-    ;; (possibly secret) default, so the history stays safe to inspect.
-    (%record-call (%recording-secret-calls store)
-      :operation :get
-      :arguments (list name)
-      :result :redacted)
-    (values value present)))
+  (let ((delegate (recording-secret-store-delegate store)))
+    (multiple-value-bind (value present)
+        (secret-get delegate name default)
+      ;; Record only the name and a redacted marker: never the secret value or the
+      ;; (possibly secret) default, so the history stays safe to inspect.
+      (%record-call (%recording-secret-calls store)
+        :operation :get
+        :arguments (list name)
+        :result :redacted)
+      (values value present))))
 
 (defmethod secret-names ((store recording-secret-store))
   ;; Secret NAMES are configuration keys, not the secret values, so they are safe
   ;; to record verbatim (unlike SECRET-GET's redacted result).
-  (let ((result (secret-names (recording-secret-store-delegate store))))
+  (let* ((delegate (recording-secret-store-delegate store))
+         (result (secret-names delegate)))
     (%record-call (%recording-secret-calls store)
       :operation :names
       :arguments '()

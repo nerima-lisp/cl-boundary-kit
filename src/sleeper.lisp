@@ -41,22 +41,8 @@ in tests never introduces a real delay unless you pass a blocking delegate."
   (require-instance delegate 'sleeper "DELEGATE")
   (make-instance 'recording-sleeper :sleep-fn nil :delegate delegate))
 
-(defun recording-sleeper-calls (sleeper)
-  "Return the recorded sleeper calls in call order."
-  (unless (typep sleeper 'recording-sleeper)
-    (error "Unsupported sleeper type: ~S" sleeper))
-  (%snapshot-recorded-calls (%recording-sleeper-calls sleeper)))
-
-(defun reset-recording-sleeper-calls (sleeper)
-  "Clear SLEEPER's recorded call history and return SLEEPER.
-
-A recording sleeper otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep sleeper 'recording-sleeper)
-    (error "Unsupported sleeper type: ~S" sleeper))
-  (setf (%recording-sleeper-calls sleeper) nil)
-  sleeper)
+(define-recording-call-log recording-sleeper-calls reset-recording-sleeper-calls
+    (sleeper recording-sleeper %recording-sleeper-calls) "sleeper")
 
 (defmethod sleeper-sleep ((sleeper sleeper) seconds)
   (%validate-sleep-seconds seconds)

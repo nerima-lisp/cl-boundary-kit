@@ -88,3 +88,15 @@
     (call-if-allowed (make-test-rate-limiter) :bad))
   (signals error
     (call-if-allowed (make-test-rate-limiter) (lambda () :ok) :bad)))
+
+(it "test-rate-limiter-available-stays-within-zero-and-capacity"
+  (let ((limiter (make-test-rate-limiter :capacity 3 :refill-rate 0)))
+    (expect (= 3 (rate-limiter-available limiter)) :to-be-truthy)
+    (rate-limiter-allow-p limiter)
+    (expect (= 2 (rate-limiter-available limiter)) :to-be-truthy)
+    (rate-limiter-allow-p limiter)
+    (expect (= 1 (rate-limiter-available limiter)) :to-be-truthy)
+    (rate-limiter-allow-p limiter)
+    (expect (= 0 (rate-limiter-available limiter)) :to-be-truthy)
+    (expect (null (rate-limiter-allow-p limiter)) :to-be-truthy)
+    (expect (= 0 (rate-limiter-available limiter)) :to-be-truthy)))

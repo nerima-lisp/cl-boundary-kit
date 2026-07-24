@@ -96,3 +96,17 @@
 (it "reset-recording-boundary-calls-rejects-non-boundary-values"
   (signals error
     (reset-recording-boundary-calls :not-a-boundary)))
+
+(it "recording-boundary-defensively-copies-vector-arguments-in-its-history"
+  ;; Exercises the vector arm of %COPY-BOUNDARY-VALUE: a recorded vector
+  ;; argument is deep-copied, so mutating the original afterward cannot alter
+  ;; the stored history.
+  (let* ((argument (vector 1 2 3))
+         (boundary (make-recording-boundary
+                    :handler (lambda (operation &rest args)
+                               (declare (ignore operation args))
+                               :ok))))
+    (recording-boundary-invoke boundary :store argument)
+    (setf (aref argument 0) 99)
+    (let ((recorded-argument (first (getf (first (recording-boundary-calls boundary)) :arguments))))
+      (expect (equalp recorded-argument (vector 1 2 3)) :to-be-truthy))))

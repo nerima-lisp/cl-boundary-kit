@@ -21,11 +21,15 @@
     ((null initial) '())
     ((every #'consp initial)
      (mapcar (lambda (binding) (cons (car binding) (cdr binding))) initial))
-    ((evenp (length initial))
-     (loop for (key value) on initial by #'cddr
-           collect (cons key value)))
     (t
-     (error "INITIAL must be an alist or plist: ~S" initial))))
+     (let ((pairs '())
+           (rest initial))
+       (loop while rest do
+         (unless (consp (cdr rest))
+           (error "INITIAL must be an alist or plist: ~S" initial))
+         (push (cons (first rest) (second rest)) pairs)
+         (setf rest (cddr rest)))
+       (nreverse pairs)))))
 
 (defun make-kv-store (&key get-fn put-fn delete-fn keys-fn)
   "Create a key/value store boundary from the supplied collaborator functions.
@@ -67,22 +71,8 @@ DELEGATE defaults to an empty `make-test-kv-store`."
                  :get-fn nil :put-fn nil :delete-fn nil :keys-fn nil
                  :delegate delegate))
 
-(defun recording-kv-calls (store)
-  "Return the recorded key/value store calls in call order."
-  (unless (typep store 'recording-kv-store)
-    (error "Unsupported key/value store type: ~S" store))
-  (%snapshot-recorded-calls (%recording-kv-calls store)))
-
-(defun reset-recording-kv-calls (store)
-  "Clear STORE's recorded call history and return STORE.
-
-A recording key/value store otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep store 'recording-kv-store)
-    (error "Unsupported key/value store type: ~S" store))
-  (setf (%recording-kv-calls store) nil)
-  store)
+(define-recording-call-log recording-kv-calls reset-recording-kv-calls
+    (store recording-kv-store %recording-kv-calls) "key/value store")
 
 (defmethod kv-update ((store kv-store) key function &optional default)
   ;; Derived from the protocol so it works for the native, test, and recording
@@ -127,36 +117,38 @@ able to reclaim it by discarding the object."
   (funcall (kv-store-keys-fn store)))
 
 (defmethod kv-get ((store test-kv-store) key &optional default)
-  (multiple-value-bind (value present) (gethash key (test-kv-store-table store))
-    (if present
-        (values value t)
-        (values default nil))))
+  (let ((table (test-kv-store-table store)))
+    (multiple-value-bind (value present) (gethash key table)
+      (if present
+          (values value t)
+          (values default nil)))))
 
 (defmethod kv-put ((store test-kv-store) key value)
-  (setf (gethash key (test-kv-store-table store)) value)
+  (let ((table (test-kv-store-table store)))
+    (setf (gethash key table) value))
   value)
 
 (defmethod kv-delete ((store test-kv-store) key)
   ;; REMHASH already returns whether the key was present.
-  (remhash key (test-kv-store-table store)))
+  (let ((table (test-kv-store-table store)))
+    (remhash key table)))
 
 (defmethod kv-keys ((store test-kv-store))
-  (sort (loop for key being the hash-keys of (test-kv-store-table store)
-              collect key)
-        #'string<
-        :key #'princ-to-string))
+  (%sorted-hash-keys (test-kv-store-table store)))
 
 (defmethod kv-get ((store recording-kv-store) key &optional default)
-  (multiple-value-bind (value present)
-      (kv-get (recording-kv-store-delegate store) key default)
-    (%record-call (%recording-kv-calls store)
-      :operation :get
-      :arguments (list key default)
-      :result value)
-    (values value present)))
+  (let ((delegate (recording-kv-store-delegate store)))
+    (multiple-value-bind (value present)
+        (kv-get delegate key default)
+      (%record-call (%recording-kv-calls store)
+        :operation :get
+        :arguments (list key default)
+        :result value)
+      (values value present))))
 
 (defmethod kv-put ((store recording-kv-store) key value)
-  (let ((result (kv-put (recording-kv-store-delegate store) key value)))
+  (let* ((delegate (recording-kv-store-delegate store))
+         (result (kv-put delegate key value)))
     (%record-call (%recording-kv-calls store)
       :operation :put
       :arguments (list key value)
@@ -164,7 +156,8 @@ able to reclaim it by discarding the object."
     result))
 
 (defmethod kv-delete ((store recording-kv-store) key)
-  (let ((result (kv-delete (recording-kv-store-delegate store) key)))
+  (let* ((delegate (recording-kv-store-delegate store))
+         (result (kv-delete delegate key)))
     (%record-call (%recording-kv-calls store)
       :operation :delete
       :arguments (list key)
@@ -172,7 +165,8 @@ able to reclaim it by discarding the object."
     result))
 
 (defmethod kv-keys ((store recording-kv-store))
-  (let ((result (kv-keys (recording-kv-store-delegate store))))
+  (let* ((delegate (recording-kv-store-delegate store))
+         (result (kv-keys delegate)))
     (%record-call (%recording-kv-calls store)
       :operation :keys
       :arguments '()

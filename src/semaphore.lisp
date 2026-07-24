@@ -52,22 +52,8 @@ defaults to a single-permit `make-test-semaphore`."
                  :acquire-fn nil :release-fn nil :available-fn nil
                  :delegate delegate))
 
-(defun recording-semaphore-calls (semaphore)
-  "Return the recorded semaphore calls in call order."
-  (unless (typep semaphore 'recording-semaphore)
-    (error "Unsupported semaphore type: ~S" semaphore))
-  (%snapshot-recorded-calls (%recording-semaphore-calls semaphore)))
-
-(defun reset-recording-semaphore-calls (semaphore)
-  "Clear SEMAPHORE's recorded call history and return SEMAPHORE.
-
-A recording semaphore otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep semaphore 'recording-semaphore)
-    (error "Unsupported semaphore type: ~S" semaphore))
-  (setf (%recording-semaphore-calls semaphore) nil)
-  semaphore)
+(define-recording-call-log recording-semaphore-calls reset-recording-semaphore-calls
+    (semaphore recording-semaphore %recording-semaphore-calls) "semaphore")
 
 (defun call-with-semaphore (semaphore thunk)
   "Acquire a permit from SEMAPHORE, call THUNK, and release the permit even if THUNK
@@ -93,10 +79,11 @@ records the acquire and release."
   (funcall (semaphore-available-fn semaphore)))
 
 (defmethod semaphore-acquire ((semaphore test-semaphore))
-  (unless (plusp (%test-semaphore-permits semaphore))
-    (error "Test semaphore has no permits available; an acquire would block"))
-  (decf (%test-semaphore-permits semaphore))
-  t)
+  (let ((permits (%test-semaphore-permits semaphore)))
+    (unless (plusp permits)
+      (error "Test semaphore has no permits available; an acquire would block"))
+    (decf (%test-semaphore-permits semaphore))
+    t))
 
 (defmethod semaphore-release ((semaphore test-semaphore))
   (incf (%test-semaphore-permits semaphore))
@@ -106,19 +93,22 @@ records the acquire and release."
   (%test-semaphore-permits semaphore))
 
 (defmethod semaphore-acquire ((semaphore recording-semaphore))
-  (let ((result (semaphore-acquire (recording-semaphore-delegate semaphore))))
+  (let* ((delegate (recording-semaphore-delegate semaphore))
+         (result (semaphore-acquire delegate)))
     (%record-call (%recording-semaphore-calls semaphore)
       :operation :acquire :arguments '() :result result)
     result))
 
 (defmethod semaphore-release ((semaphore recording-semaphore))
-  (let ((result (semaphore-release (recording-semaphore-delegate semaphore))))
+  (let* ((delegate (recording-semaphore-delegate semaphore))
+         (result (semaphore-release delegate)))
     (%record-call (%recording-semaphore-calls semaphore)
       :operation :release :arguments '() :result result)
     result))
 
 (defmethod semaphore-available ((semaphore recording-semaphore))
-  (let ((result (semaphore-available (recording-semaphore-delegate semaphore))))
+  (let* ((delegate (recording-semaphore-delegate semaphore))
+         (result (semaphore-available delegate)))
     (%record-call (%recording-semaphore-calls semaphore)
       :operation :available :arguments '() :result result)
     result))

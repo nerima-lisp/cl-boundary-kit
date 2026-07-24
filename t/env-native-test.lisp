@@ -33,3 +33,20 @@
     (make-environment :set-fn :bad))
   (signals error
     (make-environment :list-fn :bad)))
+
+(it "native-environment-list-and-get-read-the-real-process-environment"
+  ;; Exercises the native reader path (%native-environment-list, the CPS entry
+  ;; splitter, and %native-environment-get) rather than a test double.
+  (let ((environment (make-environment)))
+    (expect (listp (environment-list environment)) :to-be-truthy)
+    ;; PATH is present in essentially every process environment.
+    (expect (stringp (environment-get environment "PATH")) :to-be-truthy)))
+
+(it "split-environment-entry-cps-handles-entries-with-and-without-a-separator"
+  ;; The else arm (no #\=) maps the whole entry to a NAME with an empty value.
+  (cl-boundary-kit::%split-environment-entry-cps
+   "NAME=value"
+   (lambda (binding) (expect (equal binding (cons "NAME" "value")) :to-be-truthy)))
+  (cl-boundary-kit::%split-environment-entry-cps
+   "BARE"
+   (lambda (binding) (expect (equal binding (cons "BARE" "")) :to-be-truthy))))

@@ -50,22 +50,8 @@ to DELEGATE, which defaults to an empty `make-test-args`."
   (require-instance delegate 'args "DELEGATE")
   (make-instance 'recording-args :arguments '() :delegate delegate))
 
-(defun recording-args-calls (args)
-  "Return the recorded command-line argument calls in call order."
-  (unless (typep args 'recording-args)
-    (error "Unsupported command-line arguments type: ~S" args))
-  (%snapshot-recorded-calls (%recording-args-calls args)))
-
-(defun reset-recording-args-calls (args)
-  "Clear ARGS's recorded call history and return ARGS.
-
-A recording arguments boundary otherwise retains every call for the object's
-whole lifetime; call this periodically to bound memory growth instead of only
-being able to reclaim it by discarding the object."
-  (unless (typep args 'recording-args)
-    (error "Unsupported command-line arguments type: ~S" args))
-  (setf (%recording-args-calls args) nil)
-  args)
+(define-recording-call-log recording-args-calls reset-recording-args-calls
+    (args recording-args %recording-args-calls) "command-line arguments")
 
 (defun args-rest (args start)
   "Return ARGS's command-line arguments from zero-based START onward, as a fresh

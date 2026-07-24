@@ -77,9 +77,6 @@
       :result result)
     result))
 
-(defun %recording-filesystem-p (filesystem)
-  (eq (%filesystem-type filesystem) +recording-filesystem-type+))
-
 (defun %recording-or-test-filesystem-p (filesystem)
   (let ((type (%filesystem-type filesystem)))
     (or (eq type +test-filesystem-type+)
@@ -103,23 +100,9 @@
        (%with-recording-filesystem-call (filesystem ,operation ,arguments)
          ,direct-form))))
 
-(defun recording-filesystem-calls (filesystem)
-  "Return the recorded filesystem calls in call order."
-  (let ((filesystem (%require-filesystem filesystem)))
-    (if (%recording-or-test-filesystem-p filesystem)
-        (%snapshot-recorded-calls (car (%filesystem-calls-box filesystem)))
-        (error "Unsupported filesystem type: ~S" (%filesystem-type filesystem)))))
+(define-predicate-guarded-call-log recording-filesystem-calls reset-recording-filesystem-calls
+    (filesystem (%require-filesystem filesystem)
+     %recording-or-test-filesystem-p (car (%filesystem-calls-box filesystem))
+     (%filesystem-type filesystem))
+    "filesystem")
 
-(defun reset-recording-filesystem-calls (filesystem)
-  "Clear FILESYSTEM's recorded call history and return FILESYSTEM.
-
-Recording/test filesystems otherwise retain every call for the object's
-whole lifetime; call this periodically (e.g. between test cases sharing one
-long-lived filesystem, or in a long-running process) to bound memory growth
-instead of only being able to reclaim it by discarding the object."
-  (let ((filesystem (%require-filesystem filesystem)))
-    (if (%recording-or-test-filesystem-p filesystem)
-        (progn
-          (setf (car (%filesystem-calls-box filesystem)) nil)
-          filesystem)
-        (error "Unsupported filesystem type: ~S" (%filesystem-type filesystem)))))

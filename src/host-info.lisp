@@ -84,22 +84,8 @@ which defaults to a `make-test-host-info`."
                  :hostname-fn nil :username-fn nil :pid-fn nil
                  :delegate delegate))
 
-(defun recording-host-info-calls (host-info)
-  "Return the recorded host-info calls in call order."
-  (unless (typep host-info 'recording-host-info)
-    (error "Unsupported host-info type: ~S" host-info))
-  (%snapshot-recorded-calls (%recording-host-info-calls host-info)))
-
-(defun reset-recording-host-info-calls (host-info)
-  "Clear HOST-INFO's recorded call history and return it.
-
-A recording host-info otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep host-info 'recording-host-info)
-    (error "Unsupported host-info type: ~S" host-info))
-  (setf (%recording-host-info-calls host-info) nil)
-  host-info)
+(define-recording-call-log recording-host-info-calls reset-recording-host-info-calls
+    (host-info recording-host-info %recording-host-info-calls) "host-info")
 
 (defmethod host-info-hostname ((host-info host-info))
   (funcall (host-info-hostname-fn host-info)))

@@ -103,22 +103,8 @@ coerced to a pathname) and signals when the queue is exhausted."
   (require-instance delegate 'temp-path-source "DELEGATE")
   (make-instance 'recording-temp-path-source :next-fn nil :delegate delegate))
 
-(defun recording-temp-path-source-calls (source)
-  "Return the recorded temp-path-source calls in call order."
-  (unless (typep source 'recording-temp-path-source)
-    (error "Unsupported temp path source type: ~S" source))
-  (%snapshot-recorded-calls (%recording-temp-path-source-calls source)))
-
-(defun reset-recording-temp-path-source-calls (source)
-  "Clear SOURCE's recorded call history and return SOURCE.
-
-A recording temp-path source otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep source 'recording-temp-path-source)
-    (error "Unsupported temp path source type: ~S" source))
-  (setf (%recording-temp-path-source-calls source) nil)
-  source)
+(define-recording-call-log recording-temp-path-source-calls reset-recording-temp-path-source-calls
+    (source recording-temp-path-source %recording-temp-path-source-calls) "temp path source")
 
 (defmethod temp-path-next ((source temp-path-source))
   (funcall (temp-path-source-next-fn source)))

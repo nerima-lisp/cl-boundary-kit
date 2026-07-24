@@ -90,22 +90,8 @@ queue is exhausted."
   (require-instance delegate 'uuid-source "DELEGATE")
   (make-instance 'recording-uuid-source :generate-fn nil :delegate delegate))
 
-(defun recording-uuid-source-calls (source)
-  "Return the recorded UUID-source calls in call order."
-  (unless (typep source 'recording-uuid-source)
-    (error "Unsupported UUID source type: ~S" source))
-  (%snapshot-recorded-calls (%recording-uuid-source-calls source)))
-
-(defun reset-recording-uuid-source-calls (source)
-  "Clear SOURCE's recorded call history and return SOURCE.
-
-A recording UUID source otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep source 'recording-uuid-source)
-    (error "Unsupported UUID source type: ~S" source))
-  (setf (%recording-uuid-source-calls source) nil)
-  source)
+(define-recording-call-log recording-uuid-source-calls reset-recording-uuid-source-calls
+    (source recording-uuid-source %recording-uuid-source-calls) "UUID source")
 
 (defmethod uuid-generate ((source uuid-source))
   (funcall (uuid-source-generate-fn source)))

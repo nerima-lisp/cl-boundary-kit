@@ -62,3 +62,7 @@
 (it "reset-recording-host-info-calls-signals-for-unsupported-host-info-types"
   (signals error
     (reset-recording-host-info-calls (make-test-host-info))))
+
+(it "make-test-host-info-rejects-a-non-string-username"
+  (signals-error-message-contains "User name must be a string"
+    (make-test-host-info :username 42)))

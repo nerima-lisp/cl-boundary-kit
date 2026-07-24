@@ -91,3 +91,7 @@
 (it "call-with-environment-variable-rejects-a-non-function-thunk"
   (signals error
     (call-with-environment-variable (make-test-environment) "X" "y" :bad)))
+
+(it "make-environment-rejects-an-odd-length-option-list"
+  (signals-error-message-contains "Option list ended after"
+    (make-environment :get-fn)))

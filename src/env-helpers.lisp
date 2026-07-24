@@ -46,7 +46,7 @@
                  :delegate delegate))
 
 (defun %sorted-environment-entries (entries)
-  (sort (copy-list entries) #'string< :key #'car))
+  (sort entries #'string< :key #'car))
 
 (defun %split-environment-entry-cps (entry kont)
   (let ((separator (position #\= entry)))
@@ -73,7 +73,7 @@
 (defun %native-environment-list ()
   (let ((entries nil))
     (dolist (entry (%native-environment-entries)
-             (%sorted-environment-entries (nreverse entries)))
+             (%sorted-environment-entries entries))
       (%split-environment-entry-cps
        entry
        (lambda (binding)
@@ -142,3 +142,8 @@
 
 (defun %recording-environment-p (environment)
   (eq (environment-kind environment) :recording))
+
+(defun %recording-or-test-environment-p (environment)
+  "True for the two environment kinds that keep a recorded call history."
+  (or (%test-environment-p environment)
+      (%recording-environment-p environment)))

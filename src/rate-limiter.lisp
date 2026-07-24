@@ -66,32 +66,21 @@ defaults to a single-token `make-test-rate-limiter`."
                  :allow-fn nil :available-fn nil
                  :delegate delegate))
 
-(defun recording-rate-limiter-calls (limiter)
-  "Return the recorded rate limiter calls in call order."
-  (unless (typep limiter 'recording-rate-limiter)
-    (error "Unsupported rate limiter type: ~S" limiter))
-  (%snapshot-recorded-calls (%recording-rate-limiter-calls limiter)))
-
-(defun reset-recording-rate-limiter-calls (limiter)
-  "Clear LIMITER's recorded call history and return LIMITER.
-
-A recording rate limiter otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep limiter 'recording-rate-limiter)
-    (error "Unsupported rate limiter type: ~S" limiter))
-  (setf (%recording-rate-limiter-calls limiter) nil)
-  limiter)
+(define-recording-call-log recording-rate-limiter-calls reset-recording-rate-limiter-calls
+    (limiter recording-rate-limiter %recording-rate-limiter-calls) "rate limiter")
 
 (defun %refill-test-rate-limiter (limiter)
   (let* ((now (funcall (test-rate-limiter-now-fn limiter)))
-         (elapsed (- now (%test-rate-limiter-last-time limiter))))
+         (last-time (%test-rate-limiter-last-time limiter))
+         (elapsed (- now last-time)))
     (when (> elapsed 0)
-      (setf (%test-rate-limiter-tokens limiter)
-            (min (test-rate-limiter-capacity limiter)
-                 (+ (%test-rate-limiter-tokens limiter)
-                    (* elapsed (test-rate-limiter-refill-rate limiter)))))
-      (setf (%test-rate-limiter-last-time limiter) now))))
+      (let* ((capacity (test-rate-limiter-capacity limiter))
+             (refill-rate (test-rate-limiter-refill-rate limiter))
+             (tokens (%test-rate-limiter-tokens limiter))
+             (refilled (+ tokens (* elapsed refill-rate))))
+        (setf (%test-rate-limiter-tokens limiter)
+              (if (> refilled capacity) capacity refilled))
+        (setf (%test-rate-limiter-last-time limiter) now)))))
 
 (defun call-if-allowed (rate-limiter thunk &optional throttled-thunk)
   "If RATE-LIMITER permits, call THUNK and return its value; otherwise call
@@ -115,9 +104,10 @@ rate-limited-execution counterpart of the `call-with-*` helpers."
 
 (defmethod rate-limiter-allow-p ((limiter test-rate-limiter))
   (%refill-test-rate-limiter limiter)
-  (if (>= (%test-rate-limiter-tokens limiter) 1)
+  (let ((tokens (%test-rate-limiter-tokens limiter)))
+    (if (>= tokens 1)
       (progn (decf (%test-rate-limiter-tokens limiter)) t)
-      nil))
+      nil)))
 
 (defmethod rate-limiter-available ((limiter test-rate-limiter))
   (%refill-test-rate-limiter limiter)

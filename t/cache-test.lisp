@@ -158,3 +158,14 @@
     (cache-clear cache)
     (expect (equal (recording-cache-calls cache)
                    (list (boundary-call-plist :clear '() :result t))) :to-be-truthy)))
+
+(it "test-cache-presence-tracks-the-ttl-expiry-boundary"
+  (let* ((now 0)
+         (cache (make-test-cache :now-fn (lambda () now))))
+    (cache-put cache "k" "v" :ttl 10)
+    (setf now 9)
+    (multiple-value-bind (value present) (cache-get cache "k" :gone)
+      (expect (and present (string= "v" value)) :to-be-truthy))
+    (setf now 10)
+    (multiple-value-bind (value present) (cache-get cache "k" :gone)
+      (expect (and (not present) (eq :gone value)) :to-be-truthy))))

@@ -72,3 +72,11 @@
 (it "reset-recording-dns-calls-signals-for-unsupported-resolver-types"
   (signals error
     (reset-recording-dns-calls (make-test-dns-resolver))))
+
+(it "make-test-dns-resolver-rejects-non-list-addresses"
+  (signals-error-message-contains "DNS addresses for"
+    (make-test-dns-resolver :hosts '(("a.test" . "not-a-list")))))
+
+(it "make-test-dns-resolver-rejects-a-non-string-address"
+  (signals-error-message-contains "DNS address for"
+    (make-test-dns-resolver :hosts '(("a.test" . (42))))))
