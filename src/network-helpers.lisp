@@ -4,6 +4,16 @@
 
 (declaim (ftype (function (t t &key (:timeout t)) t) network-boundary-request))
 
+(defparameter *network-sensitive-field-names*
+  (let ((table (make-hash-table :test 'equalp)))
+    (dolist (name '("authorization" "proxy-authorization"
+                    "cookie" "set-cookie"
+                    "api-key" "apikey" "x-api-key"
+                    "token" "access-token" "refresh-token"
+                    "password" "secret" "client-secret"
+                    "body" "content" "payload") table)
+      (setf (gethash name table) t))))
+
 (defun %validate-test-network-responses (responses)
   (unless (listp responses)
     (error "Test network boundary responses must be a list: ~S" responses))
@@ -20,28 +30,29 @@
                 (symbol (symbol-name key))
                 (string key)
                 (t nil))))
-    (and name
-         (member name
-                 '("authorization" "proxy-authorization"
-                   "cookie" "set-cookie"
-                   "api-key" "apikey" "x-api-key"
-                   "token" "access-token" "refresh-token"
-                   "password" "secret" "client-secret"
-                   "body" "content" "payload")
-                 :test #'string-equal))))
+    (and name (gethash name *network-sensitive-field-names*))))
 
 (defun %network-plist-p (value)
-  (and (%proper-list-p value)
-       (evenp (length value))
-       (loop for (key nil) on value by #'cddr
-             always (or (symbolp key) (stringp key)))))
+  (loop for tail = value then (cddr tail)
+        do (cond
+             ((null tail) (return t))
+             ((or (not (consp tail))
+                  (not (consp (cdr tail))))
+              (return nil))
+             ((let ((key (car tail)))
+                (not (or (symbolp key) (stringp key))))
+              (return nil)))))
 
 (defun %network-alist-p (value)
-  (and (%proper-list-p value)
-       (loop for entry in value
-             always (and (consp entry)
-                         (or (symbolp (car entry))
-                             (stringp (car entry)))))))
+  (loop for tail = value then (cdr tail)
+        do (cond
+             ((null tail) (return t))
+             ((not (consp tail)) (return nil))
+             ((let ((entry (car tail)))
+                (not (and (consp entry)
+                          (or (symbolp (car entry))
+                              (stringp (car entry))))))
+              (return nil)))))
 
 (defun %redact-network-plist (value)
   (loop for (key item) on value by #'cddr

@@ -2,6 +2,8 @@
 
 (in-package #:cl-boundary-kit)
 
+(declaim (optimize (speed 3) (safety 1) (debug 0)))
+
 (defstruct (boundary-context
             (:constructor %make-boundary-context (handlers)))
   handlers)
@@ -85,9 +87,12 @@ boundary."
 
 CONTEXT is left unchanged. Removing a key that is absent is a no-op."
   (require-instance context 'boundary-context "CONTEXT")
-  (let ((handlers (make-hash-table :test 'eq)))
+  (let ((handlers (make-hash-table :test 'eq))
+        (removed-keys (make-hash-table :test 'eq)))
+    (dolist (key keys)
+      (setf (gethash key removed-keys) t))
     (maphash (lambda (key value)
-               (unless (member key keys :test #'eq)
+               (unless (gethash key removed-keys)
                  (setf (gethash key handlers) value)))
              (boundary-context-handlers context))
     (%make-boundary-context handlers)))

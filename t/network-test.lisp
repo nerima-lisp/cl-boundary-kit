@@ -171,6 +171,23 @@
         (expect (equal calls
                    (recording-network-calls network)) :to-be-truthy)))))
 
+(it "recording-network-boundary-redacts-through-proper-list-and-dotted-pair-values"
+  ;; Exercises the non-plist/non-alist arms of %REDACT-NETWORK-VALUE: a proper
+  ;; list of scalars is redacted element-wise, and a dotted pair is rebuilt car
+  ;; and cdr. Neither field is sensitive, so both shapes pass through intact --
+  ;; the point is that redaction traverses them without corrupting structure.
+  (with-network-boundary (network make-recording-network-boundary
+                                  :delegate (make-network-boundary
+                                             :request-fn (lambda (request &key timeout)
+                                                           (declare (ignore request timeout))
+                                                           '(:status 200 :cursor (10 . 20)))))
+    (network-boundary-request network '(:method :get :tags ("a" "b" "c") :cursor (1 . 2)) :timeout 3)
+    (with-network-calls (calls
+                         (:request '(:method :get :tags ("a" "b" "c") :cursor (1 . 2))
+                                   :timeout 3
+                                   :result '(:status 200 :cursor (10 . 20))))
+      (expect (equal calls (recording-network-calls network)) :to-be-truthy))))
+
 (it "recording-network-boundary-allows-explicit-full-fidelity-history"
   (with-network-boundary (network make-recording-network-boundary
                                   :delegate (make-network-boundary
@@ -237,13 +254,20 @@
   (signals error
     (make-recording-network-boundary :delegate :bad)))
 
-(it "recording-network-calls-signals-for-unsupported-boundary-types"
-  (signals-error-message-contains "Unsupported network boundary type"
-      (recording-network-calls
-       (make-network-boundary
-        :request-fn (lambda (request &key timeout)
-                      (declare (ignore request timeout))
-                      '(:status 204))))))
+;; Both readers reject a plain (non-recording, non-test) network boundary the
+;; same way, so one it-each table drives the pair through the domain matcher
+;; instead of two near-identical it blocks.
+(it-each ((recording-network-calls)
+          (reset-recording-network-calls))
+    "~A signals for unsupported network boundary types"
+    (operation)
+  (expect (lambda ()
+            (funcall operation
+                     (make-network-boundary
+                      :request-fn (lambda (request &key timeout)
+                                    (declare (ignore request timeout))
+                                    '(:status 204)))))
+          :to-signal-message-containing "Unsupported network boundary type"))
 
 (it "reset-recording-network-calls-clears-history-and-returns-the-boundary"
   (let ((network (make-test-network-boundary :responses (list "ok" "ok2"))))
@@ -253,14 +277,6 @@
     (expect (null (recording-network-calls network)) :to-be-truthy)
     (network-boundary-request network '(:method :get))
     (expect (= (length (recording-network-calls network)) 1) :to-be-truthy)))
-
-(it "reset-recording-network-calls-signals-for-unsupported-boundary-types"
-  (signals-error-message-contains "Unsupported network boundary type"
-      (reset-recording-network-calls
-       (make-network-boundary
-        :request-fn (lambda (request &key timeout)
-                      (declare (ignore request timeout))
-                      '(:status 204))))))
 
 ;;; Regression: %RECORD-NETWORK-CALL built its call record by hand instead of
 ;;; going through the shared %RECORD-CALL macro, so it never got the
