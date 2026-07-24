@@ -5,14 +5,32 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     cl-weave = {
-      url = "github:takeokunn/cl-weave/v0.8.0";
+      url = "github:nerima-lisp/cl-weave/v0.10.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cl-prolog = {
-      url = "github:takeokunn/cl-prolog/v0.6.0";
+      url = "github:nerima-lisp/cl-prolog/v0.7.0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.cl-weave.follows = "cl-weave";
+    };
+
+    # cl-log-kit and cl-process-kit have no tagged release yet, so these pin
+    # the exact commit cl-boundary-kit was verified against rather than an
+    # unstable branch ref.
+    cl-log-kit = {
+      url = "github:nerima-lisp/cl-log-kit/df77fb27b62f29ed9ac80541bad75f2a4b01a22c";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    cl-process-kit = {
+      url = "github:nerima-lisp/cl-process-kit/6a98893ab1da700f9e4faf83c5dc6e2851719190";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    cl-json-kit = {
+      url = "github:nerima-lisp/cl-json-kit/v0.2.0";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
@@ -22,6 +40,9 @@
       nixpkgs,
       cl-weave,
       cl-prolog,
+      cl-log-kit,
+      cl-process-kit,
+      cl-json-kit,
       ...
     }:
     let
@@ -30,7 +51,7 @@
         "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
-      sourceRegistry = "${cl-weave}//:${cl-prolog}//:${self}//";
+      sourceRegistry = "${cl-weave}//:${cl-prolog}//:${cl-log-kit}//:${cl-process-kit}//:${cl-json-kit}//:${self}//";
     in
     {
       packages = forAllSystems (

@@ -7,10 +7,10 @@
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
-  :homepage "https://github.com/takeokunn/cl-boundary-kit"
-  :bug-tracker "https://github.com/takeokunn/cl-boundary-kit/issues"
-  :source-control (:git "https://github.com/takeokunn/cl-boundary-kit")
-  :depends-on (:asdf)
+  :homepage "https://github.com/nerima-lisp/cl-boundary-kit"
+  :bug-tracker "https://github.com/nerima-lisp/cl-boundary-kit/issues"
+  :source-control (:git "https://github.com/nerima-lisp/cl-boundary-kit")
+  :depends-on (:asdf :cl-log-kit)
   :pathname "src"
   :serial t
   :components
@@ -23,7 +23,9 @@
    (:file "filesystem-delete")
    (:file "filesystem-move")
    (:file "filesystem-directory-ops")
-   (:file "filesystem-fakes-helpers")
+   (:file "filesystem-fakes-entries")
+   (:file "filesystem-fakes-normalize" :depends-on ("filesystem-fakes-entries"))
+   (:file "filesystem-fakes-helpers" :depends-on ("filesystem-fakes-normalize"))
    (:file "filesystem-fakes" :depends-on ("filesystem-fakes-helpers"))
    (:file "filesystem-read")
    (:file "filesystem-directory")
@@ -44,6 +46,7 @@
    (:file "host-info")
    (:file "sleeper")
    (:file "console")
+   (:file "console-methods" :depends-on ("console"))
    (:file "system")
    (:file "kv")
    (:file "lock")
@@ -57,7 +60,10 @@
    (:file "scheduler")
    (:file "process")
    (:file "process-helpers" :depends-on ("process"))
-   (:file "process-exec-helpers" :depends-on ("process-helpers"))
+   (:file "process-exec-capture" :depends-on ("process-helpers"))
+   (:file "process-exec-lifecycle" :depends-on ("process-helpers"))
+   (:file "process-exec-helpers"
+    :depends-on ("process-exec-capture" "process-exec-lifecycle"))
    (:file "process-boundary-constructor")
    (:file "process-test-boundary")
    (:file "process-recording-boundary")
@@ -70,12 +76,51 @@
    (:file "network-recording-boundary")
    (:file "network-request")
    (:file "logging")
+   (:file "logging-kit-adapter")
    (:file "metrics")
    (:file "publisher")
    (:file "subscriber")
    (:file "notifier")
    (:file "testing-helpers")
-   (:file "testing" :depends-on ("testing-helpers"))))
+   (:file "testing-queries" :depends-on ("testing-helpers"))
+   (:file "testing" :depends-on ("testing-queries"))
+   (:file "testing-events")))
+
+;; A separate system, not a CL-BOUNDARY-KIT component: CL-PROCESS-KIT itself
+;; depends on CL-BOUNDARY-KIT (it builds on this system's boundary
+;; abstractions for its own injectable clock/sleeper hooks), so folding
+;; CL-PROCESS-KIT into CL-BOUNDARY-KIT's own :DEPENDS-ON would create an
+;; ASDF circular dependency. Load this system explicitly to get
+;; PROCESS-KIT-RUN-FN.
+(asdf:defsystem "cl-boundary-kit/process-kit"
+  :description "cl-process-kit-backed :run-fn for cl-boundary-kit process boundaries"
+  :version "0.4.0"
+  :author "takeokunn <bararararatty@gmail.com>"
+  :maintainer "takeokunn <bararararatty@gmail.com>"
+  :license "MIT"
+  :homepage "https://github.com/nerima-lisp/cl-boundary-kit"
+  :bug-tracker "https://github.com/nerima-lisp/cl-boundary-kit/issues"
+  :source-control (:git "https://github.com/nerima-lisp/cl-boundary-kit")
+  :depends-on (:cl-boundary-kit :cl-process-kit)
+  :pathname "src"
+  :components ((:file "process-kit-adapter")))
+
+;; A separate, optional system: the core is deliberately dependency-light, so
+;; JSON serialization of recorded call histories lives here rather than folding
+;; CL-JSON-KIT into the core :DEPENDS-ON. Load this system to get
+;; RECORDING-CALLS-TO-JSON.
+(asdf:defsystem "cl-boundary-kit/json"
+  :description "cl-json-kit-backed JSON serialization of cl-boundary-kit recorded call histories"
+  :version "0.4.0"
+  :author "takeokunn <bararararatty@gmail.com>"
+  :maintainer "takeokunn <bararararatty@gmail.com>"
+  :license "MIT"
+  :homepage "https://github.com/nerima-lisp/cl-boundary-kit"
+  :bug-tracker "https://github.com/nerima-lisp/cl-boundary-kit/issues"
+  :source-control (:git "https://github.com/nerima-lisp/cl-boundary-kit")
+  :depends-on (:cl-boundary-kit :cl-json-kit)
+  :pathname "src"
+  :components ((:file "json-adapter")))
 
 (asdf:defsystem "cl-boundary-kit/test"
   :description "Test system for cl-boundary-kit"
@@ -84,14 +129,16 @@
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
-  :homepage "https://github.com/takeokunn/cl-boundary-kit"
-  :bug-tracker "https://github.com/takeokunn/cl-boundary-kit/issues"
-  :source-control (:git "https://github.com/takeokunn/cl-boundary-kit")
-  :depends-on (:cl-boundary-kit :cl-prolog :cl-prolog/weave :cl-weave)
+  :homepage "https://github.com/nerima-lisp/cl-boundary-kit"
+  :bug-tracker "https://github.com/nerima-lisp/cl-boundary-kit/issues"
+  :source-control (:git "https://github.com/nerima-lisp/cl-boundary-kit")
+  :depends-on (:cl-boundary-kit "cl-boundary-kit/process-kit" "cl-boundary-kit/json"
+               :cl-prolog :cl-prolog/weave :cl-weave)
   :pathname "t"
   :serial t
   :components
   ((:file "package")
+   (:file "matchers")
    (:file "prolog-boundary-invariants")
    (:file "filesystem-test")
    (:file "env-test")
@@ -117,8 +164,11 @@
    (:file "rate-limiter-test")
    (:file "scheduler-test")
    (:file "process-test")
+   (:file "process-kit-adapter-test")
+   (:file "json-adapter-test")
    (:file "network-test")
    (:file "logging-test")
+   (:file "logging-kit-adapter-test")
    (:file "metrics-test")
    (:file "publisher-test")
    (:file "subscriber-test")
@@ -141,5 +191,6 @@
    (:file "api-executable-docs-readme-test")
    (:file "api-executable-docs-contributing-test")
    (:file "api-executable-docs-cookbook-test")
+   (:file "coverage-completion-test")
    (:file "examples-test")
    (:file "examples-runtime-test")))

@@ -41,7 +41,7 @@ issue for a security report.
 
 - **GitHub private vulnerability reporting (preferred).** Open a report from the
   repository's **Security → Report a vulnerability** tab, or directly at
-  <https://github.com/takeokunn/cl-boundary-kit/security/advisories/new>.
+  <https://github.com/nerima-lisp/cl-boundary-kit/security/advisories/new>.
 - **Email.** If you cannot use GitHub's private reporting, email the maintainer
   at <bararararatty@gmail.com>.
 
