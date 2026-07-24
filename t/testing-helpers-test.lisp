@@ -284,3 +284,30 @@
        (list (cl-boundary-kit:boundary-call-plist :get (list "HOME") :result "/tmp")
              (cl-boundary-kit:boundary-call-plist :set (list "HOME" :value "/srv") :result t))
        :exact-length nil))))
+
+;;; Error branches of the sequence assertion and event-constraint validation.
+
+(it "assert-recorded-call-sequence-rejects-non-list-expected-calls"
+  (signals-error-message-contains "expected EXPECTED-CALLS to be a list"
+    (assert-recorded-call-sequence '() 42)))
+
+(it "assert-recorded-call-sequence-rejects-a-non-plist-expectation"
+  (signals-error-message-contains "Recorded call expectation must be a plist"
+    (assert-recorded-call-sequence '() (list 42))))
+
+(it "assert-recorded-call-sequence-reports-a-length-mismatch"
+  (signals-error-message-contains "Expected recorded call sequence length"
+    (assert-recorded-call-sequence '() (list (list :operation :ping)))))
+
+(it "assert-recorded-call-sequence-reports-calls-ending-early-when-length-is-not-exact"
+  (signals-error-message-contains "but calls ended after"
+    (assert-recorded-call-sequence '() (list (list :operation :ping)) :exact-length nil)))
+
+(it "assert-recorded-call-sequence-reports-a-mismatch-entry"
+  (signals-error-message-contains "Recorded call mismatch at index"
+    (assert-recorded-call-sequence (list (list :operation :pong))
+                                   (list (list :operation :ping)))))
+
+(it "count-events-rejects-odd-length-constraints"
+  (signals-error-message-contains "Event constraints must be a plist"
+    (count-events (list (list :topic :a)) :lonely-key)))

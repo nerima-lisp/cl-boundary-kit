@@ -90,22 +90,8 @@ on real terminal input unless you pass a delegate backed by a live stream."
                  :error-stream nil
                  :delegate delegate))
 
-(defun recording-console-calls (console)
-  "Return the recorded console calls in call order."
-  (unless (typep console 'recording-console)
-    (error "Unsupported console type: ~S" console))
-  (%snapshot-recorded-calls (%recording-console-calls console)))
-
-(defun reset-recording-console-calls (console)
-  "Clear CONSOLE's recorded call history and return CONSOLE.
-
-A recording console otherwise retains every call for the object's whole
-lifetime; call this periodically to bound memory growth instead of only being
-able to reclaim it by discarding the object."
-  (unless (typep console 'recording-console)
-    (error "Unsupported console type: ~S" console))
-  (setf (%recording-console-calls console) nil)
-  console)
+(define-recording-call-log recording-console-calls reset-recording-console-calls
+    (console recording-console %recording-console-calls) "console")
 
 (defun console-format (console control-string &rest args)
   "Write to CONSOLE the string produced by `format`ting CONTROL-STRING with ARGS,
@@ -131,77 +117,3 @@ A convenience over `console-write` followed by `console-read-line`, so it works
 with any console and a recording console records the write and the read."
   (console-write console prompt)
   (console-read-line console))
-
-(defmethod console-read-line ((console console))
-  (read-line (console-input-stream console) nil nil))
-
-(defmethod console-write-line ((console console) line)
-  (%validate-console-line line)
-  (write-line line (console-output-stream console))
-  line)
-
-(defmethod console-write ((console console) text)
-  (%validate-console-line text)
-  (write-string text (console-output-stream console))
-  text)
-
-(defmethod console-write-error ((console console) line)
-  (%validate-console-line line)
-  (write-line line (console-error-stream console))
-  line)
-
-(defmethod console-read-line ((console test-console))
-  (let ((lines (%test-console-input-lines console)))
-    (when lines
-      (setf (%test-console-input-lines console) (rest lines))
-      (first lines))))
-
-(defmethod console-write-line ((console test-console) line)
-  (%validate-console-line line)
-  (push line (%test-console-output console))
-  line)
-
-(defmethod console-write ((console test-console) text)
-  (%validate-console-line text)
-  (push text (%test-console-output console))
-  text)
-
-(defmethod console-write-error ((console test-console) line)
-  (%validate-console-line line)
-  (push line (%test-console-errors console))
-  line)
-
-(defmethod console-read-line ((console recording-console))
-  (let ((result (console-read-line (recording-console-delegate console))))
-    (%record-call (%recording-console-calls console)
-      :operation :read-line
-      :arguments '()
-      :result result)
-    result))
-
-(defmethod console-write-line ((console recording-console) line)
-  (%validate-console-line line)
-  (let ((result (console-write-line (recording-console-delegate console) line)))
-    (%record-call (%recording-console-calls console)
-      :operation :write-line
-      :arguments (list line)
-      :result result)
-    result))
-
-(defmethod console-write ((console recording-console) text)
-  (%validate-console-line text)
-  (let ((result (console-write (recording-console-delegate console) text)))
-    (%record-call (%recording-console-calls console)
-      :operation :write
-      :arguments (list text)
-      :result result)
-    result))
-
-(defmethod console-write-error ((console recording-console) line)
-  (%validate-console-line line)
-  (let ((result (console-write-error (recording-console-delegate console) line)))
-    (%record-call (%recording-console-calls console)
-      :operation :write-error
-      :arguments (list line)
-      :result result)
-    result))

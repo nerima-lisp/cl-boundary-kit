@@ -623,3 +623,21 @@
             (list #P"log.txt" :content "x"
                   :if-exists :append :if-does-not-exist :create :external-format nil)
             :result t)))))
+
+(it "filesystem-store-file-rejects-an-odd-length-option-list"
+  (let ((filesystem (make-test-filesystem)))
+    (signals-error-message-contains "Option list ended after"
+      (filesystem-store-file filesystem "/tmp/f.txt" "data" :if-exists))))
+
+(it "filesystem-store-file-rejects-unknown-write-options"
+  (let ((filesystem (make-test-filesystem)))
+    (signals-error-message-contains "Unknown filesystem write options"
+      (filesystem-store-file filesystem "/tmp/f.txt" "data" :bogus 1))))
+
+(it "recording-filesystem-calls-rejects-a-non-filesystem-argument"
+  (signals-error-message-contains "must be a filesystem"
+    (recording-filesystem-calls 42)))
+
+(it "filesystem-store-file-lines-rejects-non-list-lines"
+  (signals-error-message-contains "lines must be a list of strings"
+    (filesystem-store-file-lines (make-test-filesystem) "/tmp/x.txt" 42)))

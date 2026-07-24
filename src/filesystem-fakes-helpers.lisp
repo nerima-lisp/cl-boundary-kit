@@ -2,58 +2,6 @@
 
 (in-package #:cl-boundary-kit)
 
-(defstruct (%filesystem-entry (:constructor %make-filesystem-entry (path-name content))
-                              (:conc-name %filesystem-entry-))
-  path-name
-  content)
-
-(defun %copy-test-file-content (content)
-  (if (stringp content)
-      (copy-seq content)
-      content))
-
-(defun %split-test-file-binding-cps (binding continuation)
-  (cond
-    ((consp binding)
-     (funcall continuation (car binding) (cdr binding)))
-    (t
-     (error "INITIAL-FILES entry must be a cons: ~S" binding))))
-
-(defun %collect-test-files-bindings-cps (source-cps continuation)
-  (let ((bindings '()))
-    (funcall source-cps
-             (lambda (path content)
-               (push (cons path content) bindings)))
-    (funcall continuation (nreverse bindings))))
-
-(defun %normalize-test-files-alist-cps (initial-files continuation)
-  (%collect-test-files-bindings-cps
-   (lambda (sink)
-     (dolist (binding initial-files)
-       (%split-test-file-binding-cps
-        binding
-        (lambda (path content)
-          (funcall sink path content)))))
-   continuation))
-
-(defun %normalize-test-files-plist-cps (initial-files continuation)
-  (%collect-test-files-bindings-cps
-   (lambda (sink)
-     (loop for (path content) on initial-files by #'cddr
-           do (funcall sink path content)))
-   continuation))
-
-(defun %normalize-test-files-cps (initial-files continuation)
-  (cond
-    ((null initial-files)
-     (funcall continuation '()))
-    ((every #'consp initial-files)
-     (%normalize-test-files-alist-cps initial-files continuation))
-    ((evenp (length initial-files))
-     (%normalize-test-files-plist-cps initial-files continuation))
-    (t
-     (error "INITIAL-FILES must be an alist or plist: ~S" initial-files))))
-
 (defun %test-write-mode (entry path if-exists if-does-not-exist)
   (cond
     (entry (or if-exists :supersede))
@@ -92,7 +40,11 @@
   ;; a test-filesystem delegate can call this raw effect directly (as
   ;; MAKE-RECORDING-FILESYSTEM already copies it verbatim) without
   ;; re-entering the delegate's own recording path and double-recording.
-  `(defun ,name (files)
+  ;; Every builder takes the same three collaborators so %INSTANTIATE-TEST-
+  ;; FILESYSTEM can wire them up uniformly; IGNORABLE lets each one close over
+  ;; only the subset it needs without an unused-variable warning.
+  `(defun ,name (files directories directory-counts)
+     (declare (ignorable files directories directory-counts))
      (lambda ,lambda-list
        ,@body)))
 
@@ -109,6 +61,7 @@
   (declare (ignore external-format))
   (%set-filesystem-entry-in
    files
+   directory-counts
    path
    (%resolve-test-write-content
     (%filesystem-entry-for-path files path)
@@ -135,7 +88,9 @@
     (path)
   ;; REMHASH returns whether the entry was present, matching the delete
   ;; contract shared with kv-delete and cache-evict.
-  (remhash path files))
+  (when (remhash path files)
+    (%adjust-test-directory-counts directory-counts path -1)
+    t))
 
 (define-test-filesystem-operation-fn %make-test-filesystem-copy-fn
     (source destination)
@@ -144,7 +99,7 @@
   (let ((entry (%filesystem-entry-for-path files source)))
     (unless entry
       (error "Test filesystem cannot copy missing file ~S" source))
-    (%set-filesystem-entry-in files destination (%filesystem-entry-content entry))
+    (%set-filesystem-entry-in files directory-counts destination (%filesystem-entry-content entry))
     destination))
 
 (define-test-filesystem-operation-fn %make-test-filesystem-rename-fn
@@ -154,97 +109,54 @@
   (let ((entry (%filesystem-entry-for-path files source)))
     (unless entry
       (error "Test filesystem cannot rename missing file ~S" source))
-    (%set-filesystem-entry-in files destination (%filesystem-entry-content entry))
+    (%adjust-test-directory-counts directory-counts source -1)
+    (%set-filesystem-entry-in files directory-counts destination (%filesystem-entry-content entry))
     (remhash source files)
     destination))
 
-(defun %seed-test-filesystem-files (files initial-files)
+(defun %seed-test-filesystem-files (files directory-counts initial-files)
   (%normalize-test-files-cps
    initial-files
    (lambda (bindings)
      (dolist (binding bindings)
-       (%set-filesystem-entry-in files (car binding) (cdr binding))))))
+       (%set-filesystem-entry-in files directory-counts (car binding) (cdr binding))))))
 
-(defun %test-directory-has-files-p (files directory)
-  (let ((prefix (%directory-path-prefix directory)))
-    (block scan
-      (maphash (lambda (path entry)
-                 (declare (ignore path))
-                 (let ((path-name (%filesystem-entry-path-name entry)))
-                   (when (and (<= (length prefix) (length path-name))
-                              (string= prefix path-name :end2 (length prefix)))
-                     (return-from scan t))))
-               files)
-      nil)))
+(define-test-filesystem-operation-fn %make-test-filesystem-make-directory-fn
+    (path)
+  (let ((directory (%directory-path-prefix path)))
+    (setf (gethash directory directories) t)
+    (pathname directory)))
 
-(defun %make-test-filesystem-make-directory-fn (files directories)
-  (declare (ignore files))
-  (lambda (path)
-    (let ((directory (%directory-path-prefix path)))
-      (setf (gethash directory directories) t)
-      (pathname directory))))
+(define-test-filesystem-operation-fn %make-test-filesystem-directory-exists-p-fn
+    (path)
+  (let ((directory (%directory-path-prefix path)))
+    (or (not (null (gethash directory directories)))
+        (%test-directory-has-files-p directory-counts path))))
 
-(defun %make-test-filesystem-directory-exists-p-fn (files directories)
-  (lambda (path)
-    (let ((directory (%directory-path-prefix path)))
-      (or (not (null (gethash directory directories)))
-          (%test-directory-has-files-p files path)))))
+(define-test-filesystem-operation-fn %make-test-filesystem-delete-directory-fn
+    (path)
+  (let ((directory (%directory-path-prefix path)))
+    (cond
+      ((%test-directory-has-files-p directory-counts path)
+       (error "Test filesystem cannot delete non-empty directory ~S" path))
+      ((gethash directory directories)
+       (remhash directory directories)
+       t)
+      (t nil))))
 
-(defun %make-test-filesystem-delete-directory-fn (files directories)
-  (lambda (path)
-    (let ((directory (%directory-path-prefix path)))
-      (cond
-        ((%test-directory-has-files-p files path)
-         (error "Test filesystem cannot delete non-empty directory ~S" path))
-        ((gethash directory directories)
-         (remhash directory directories)
-         t)
-        (t nil)))))
-
-(defun %instantiate-test-filesystem (files directories call-box)
+(defun %instantiate-test-filesystem (files directories directory-counts call-box)
   (%make-filesystem-data
    +test-filesystem-type+
    :files files
    :calls call-box
-   :read-file-fn (%make-test-filesystem-read-fn files)
-   :write-file-fn (%make-test-filesystem-write-fn files)
-   :probe-file-fn (%make-test-filesystem-probe-fn files)
-   :list-directory-fn (%make-test-filesystem-list-directory-fn files)
-   :path-exists-p-fn (%make-test-filesystem-path-exists-p-fn files)
-   :delete-file-fn (%make-test-filesystem-delete-fn files)
-   :copy-file-fn (%make-test-filesystem-copy-fn files)
-   :rename-file-fn (%make-test-filesystem-rename-fn files)
-   :make-directory-fn (%make-test-filesystem-make-directory-fn files directories)
-   :directory-exists-p-fn (%make-test-filesystem-directory-exists-p-fn files directories)
-   :delete-directory-fn (%make-test-filesystem-delete-directory-fn files directories)))
-
-(defun %filesystem-entry-for-path (files path)
-  (gethash path files))
-
-(defun %set-filesystem-entry-in (files path content)
-  (setf (gethash path files)
-        (%make-filesystem-entry (namestring (pathname path))
-                                (%copy-test-file-content content)))
-  content)
-
-(defun %directory-path-prefix (directory)
-  (let* ((directory-name (namestring (pathname directory))))
-    (if (or (zerop (length directory-name))
-            (char= (char directory-name (1- (length directory-name))) #\/))
-        directory-name
-        (concatenate 'string directory-name "/"))))
-
-(defun %sorted-test-directory-entries-in (files directory)
-  ;; Compute each matching entry's namestring once, here, and carry it
-  ;; alongside PATH for the sort key -- SORT's :KEY function can otherwise
-  ;; re-run the same PATHNAME/NAMESTRING conversion per comparison rather
-  ;; than once per entry.
-  (let ((prefix (%directory-path-prefix directory))
-        (entries nil))
-    (maphash (lambda (path entry)
-               (let ((path-name (%filesystem-entry-path-name entry)))
-                 (when (and (<= (length prefix) (length path-name))
-                            (string= prefix path-name :end2 (length prefix)))
-                   (push (cons path path-name) entries))))
-             files)
-    (mapcar #'car (sort entries #'string< :key #'cdr))))
+   :read-file-fn (%make-test-filesystem-read-fn files directories directory-counts)
+   :write-file-fn (%make-test-filesystem-write-fn files directories directory-counts)
+   :probe-file-fn (%make-test-filesystem-probe-fn files directories directory-counts)
+   :list-directory-fn (%make-test-filesystem-list-directory-fn files directories directory-counts)
+   :path-exists-p-fn (%make-test-filesystem-path-exists-p-fn files directories directory-counts)
+   :delete-file-fn (%make-test-filesystem-delete-fn files directories directory-counts)
+   :copy-file-fn (%make-test-filesystem-copy-fn files directories directory-counts)
+   :rename-file-fn (%make-test-filesystem-rename-fn files directories directory-counts)
+   :make-directory-fn (%make-test-filesystem-make-directory-fn files directories directory-counts)
+   :directory-exists-p-fn (%make-test-filesystem-directory-exists-p-fn files directories directory-counts)
+   :delete-directory-fn (%make-test-filesystem-delete-directory-fn files directories directory-counts)))

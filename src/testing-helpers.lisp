@@ -10,21 +10,21 @@
        (or (not result-supplied-p) (equal (getf call :result) result))))
 
 (defun %recorded-call-expectation (operation arguments arguments-supplied-p result result-supplied-p)
-  (append (list :operation operation)
-          (when arguments-supplied-p
-            (list :arguments arguments))
-          (when result-supplied-p
-            (list :result result))))
+  (list* :operation operation
+         (when arguments-supplied-p
+           (list :arguments arguments))
+         (when result-supplied-p
+           (list :result result))))
 
 (defun %matching-recorded-calls (calls operation arguments arguments-supplied-p result result-supplied-p)
-  (remove-if-not (lambda (call)
-                   (%recorded-call-matches-p call
-                                             operation
-                                             arguments
-                                             arguments-supplied-p
-                                             result
-                                             result-supplied-p))
-                 calls))
+  (loop for call in calls
+        when (%recorded-call-matches-p call
+                                       operation
+                                       arguments
+                                       arguments-supplied-p
+                                       result
+                                       result-supplied-p)
+        collect call))
 
 (defun %recorded-call-sequence-entry-matches-p (call expectation)
   (%recorded-call-matches-p call

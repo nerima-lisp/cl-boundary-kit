@@ -132,3 +132,7 @@
 (it "reset-recording-console-calls-signals-for-unsupported-console-types"
   (signals error
     (reset-recording-console-calls (make-test-console))))
+
+(it "make-test-console-rejects-non-list-input-lines"
+  (signals-error-message-contains "Test console input lines must be a list"
+    (make-test-console :input-lines 42)))

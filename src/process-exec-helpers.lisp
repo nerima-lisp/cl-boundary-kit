@@ -1,82 +1,19 @@
 (in-package #:cl-boundary-kit)
 
-(defun %slurp-stream (stream)
-  ;; Copy the stream verbatim.  Reconstructing it line-by-line dropped the
-  ;; trailing newline (most shell tools emit one) and would normalize any
-  ;; other separators, silently altering captured output.  Block reads keep
-  ;; the copy O(n) with far fewer stream operations than char-at-a-time.
-  (when stream
-    (let ((out (make-string-output-stream))
-          (chunk (make-string 4096)))
-      (loop for n = (read-sequence chunk stream)
-            while (plusp n)
-            do (write-string chunk out :end n))
-      (get-output-stream-string out))))
-
-(defun %start-capturing-thread (process accessor destination)
-  ;; Draining stdout/stderr must happen concurrently with waiting for the
-  ;; process, not after: a child that writes more than one OS pipe buffer
-  ;; combined across both streams blocks on write() until someone reads, so
-  ;; waiting for exit before reading deadlocks forever on large output.
-  (when (%capture-destination-p destination)
-    (let ((stream (funcall accessor process)))
-      (sb-thread:make-thread (lambda () (%slurp-stream stream))))))
-
-(defun %join-capturing-thread (thread)
-  (when thread
-    (sb-thread:join-thread thread)))
-
-(defparameter *%process-kill-grace-seconds* 2
-  "Seconds to wait after SIGTERM before escalating to SIGKILL on timeout.")
-
-(defun %deadline-seconds (timeout)
-  (when timeout
-    (+ (get-internal-real-time)
-       (round (* timeout internal-time-units-per-second)))))
-
-(defun %process-alive-p (process)
-  (sb-ext:process-alive-p process))
-
-(defun %kill-process-with-escalation (process)
-  ;; A child that traps or ignores SIGTERM would otherwise hang this call
-  ;; (and the timeout contract) forever; SIGKILL cannot be caught or ignored.
-  (sb-ext:process-kill process 15)
-  (let ((grace-deadline (+ (get-internal-real-time)
-                           (round (* *%process-kill-grace-seconds*
-                                     internal-time-units-per-second)))))
-    (loop
-      (when (not (%process-alive-p process))
-        (return))
-      (when (>= (get-internal-real-time) grace-deadline)
-        (sb-ext:process-kill process 9)
-        (sb-ext:process-wait process)
-        (return))
-      (sleep 0.01))))
-
-(defun %wait-for-process-with-deadline (process deadline)
-  (loop
-    when (null deadline) do
-      (sb-ext:process-wait process)
-      (return nil)
-    when (not (%process-alive-p process)) do
-      (return nil)
-    when (>= (get-internal-real-time) deadline) do
-      (%kill-process-with-escalation process)
-      (return t)
-    do (sleep 0.01)))
-
-(defun %wait-for-process-with-timeout (process timeout)
-  (%wait-for-process-with-deadline process (%deadline-seconds timeout)))
-
 (defun %make-native-process-result (program stdout stderr exit-code &optional timed-out)
   ;; :TIMED-OUT is added only when the deadline fired, so a normal run keeps
   ;; its historical plist shape while a killed process is no longer
   ;; indistinguishable from one that merely exited with a NIL code.
-  (append (list :command program
-                :stdout stdout
-                :stderr stderr
-                :exit-code exit-code)
-          (when timed-out (list :timed-out t))))
+  (if timed-out
+      (list* :command program
+             :stdout stdout
+             :stderr stderr
+             :exit-code exit-code
+             (list :timed-out t))
+      (list :command program
+            :stdout stdout
+            :stderr stderr
+            :exit-code exit-code)))
 
 (defun %process-environment-entry-string (entry)
   ;; Accept this library's own (STRING . STRING) alist shape -- the same
@@ -109,16 +46,17 @@ resolve to absolute paths unless callers explicitly opt in to PATH lookup.")
   ;; is empirically indistinguishable from "omitted" inside SBCL itself and
   ;; still inherits the parent environment, defeating an explicit empty
   ;; environment the exact same way the bug this fixes did.
-  (append (when input
-            (list :input input))
-          (when directory
-            (list :directory directory))
-          (when environment-supplied-p
-            (list :environment (%normalize-process-environment environment)))
-          (list :output (%process-output-option output)
-                :error (%process-output-option error-output)
-                :search *native-process-search-path-p*
-                :wait nil)))
+  (let ((options (list :output (%process-output-option output)
+                       :error (%process-output-option error-output)
+                       :search *native-process-search-path-p*
+                       :wait nil)))
+    (when environment-supplied-p
+      (setf options (list* :environment (%normalize-process-environment environment) options)))
+    (when directory
+      (setf options (list* :directory directory options)))
+    (when input
+      (setf options (list* :input input options)))
+    options))
 
 (defun %run-native-process/cps (program input directory environment environment-supplied-p
                                 output error-output timeout continuation)
@@ -149,9 +87,7 @@ resolve to absolute paths unless callers explicitly opt in to PATH lookup.")
             ;; lifetime instead of returning promptly -- and leave the
             ;; child running as an untracked orphan in the meantime.
             (unless both-threads-started-p
-              (when (%process-alive-p process)
-                (sb-ext:process-kill process 9)
-                (sb-ext:process-wait process))
+              (%force-kill-and-reap process)
               (%join-capturing-thread stdout-thread)
               (%join-capturing-thread stderr-thread)))
           (let ((timed-out (%wait-for-process-with-timeout process timeout)))
@@ -164,11 +100,9 @@ resolve to absolute paths unless callers explicitly opt in to PATH lookup.")
       ;; An early exit above (e.g. a capture thread failing to start) skips
       ;; %WAIT-FOR-PROCESS-WITH-TIMEOUT entirely, so the child would
       ;; otherwise be left running as an untracked orphan: closing its
-      ;; streams does not kill or reap it. Force it down first whenever it
-      ;; is still alive, on every exit path, not only the timeout path.
-      (when (%process-alive-p process)
-        (sb-ext:process-kill process 9)
-        (sb-ext:process-wait process))
+      ;; streams does not kill or reap it. Force it down first, on every exit
+      ;; path, not only the timeout path.
+      (%force-kill-and-reap process)
       (sb-ext:process-close process))))
 
 (defun %real-process-run (command &key arguments input directory

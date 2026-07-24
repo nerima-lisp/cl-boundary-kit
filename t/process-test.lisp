@@ -472,3 +472,49 @@
 (it "process-result-check-signals-with-diagnostics-on-failure"
   (signals-error-message-contains "boom"
     (process-result-check (list :command '("cmd") :stdout "" :stderr "boom" :exit-code 2))))
+
+;;; Unit coverage for the native process-runner helpers whose branches the
+;;; boundary-level tests do not otherwise reach: environment-entry
+;;; normalization (string, symbol-keyed cons, and rejection) and the
+;;; capture-destination predicate.
+
+(it "process-environment-entry-string-normalizes-every-accepted-shape"
+  (expect (cl-boundary-kit::%process-environment-entry-string "NAME=value")
+          :to-equal "NAME=value")
+  (expect (cl-boundary-kit::%process-environment-entry-string '("NAME" . "value"))
+          :to-equal "NAME=value")
+  (expect (cl-boundary-kit::%process-environment-entry-string '(:name . "value"))
+          :to-equal "NAME=value"))
+
+(it "process-environment-entry-string-rejects-an-unsupported-entry"
+  (signals-error-message-contains "Invalid process environment entry"
+    (cl-boundary-kit::%process-environment-entry-string 42)))
+
+(it "capture-destination-p-detects-string-and-nil-capture-requests"
+  (expect (cl-boundary-kit::%capture-destination-p nil) :to-be-truthy)
+  (expect (cl-boundary-kit::%capture-destination-p :string) :to-be-truthy)
+  (expect (cl-boundary-kit::%capture-destination-p *standard-output*) :to-be nil)
+  ;; %process-output-option maps both capture requests to :STREAM and passes
+  ;; an explicit stream through unchanged.
+  (expect (cl-boundary-kit::%process-output-option :string) :to-be :stream)
+  (expect (cl-boundary-kit::%process-output-option :inherit) :to-be :inherit))
+
+;;; Covers the :DIRECTORY and :INPUT arms of %NATIVE-PROCESS-OPTIONS. Uses the
+;;; running SBCL as the subprocess so no external command is needed under the
+;;; Nix sandbox; it just exits 0 after receiving an (empty) input stream and a
+;;; working directory.
+(it "native-process-run-accepts-a-working-directory-and-input-stream"
+  (let* ((process (make-process-boundary))
+         (runtime (namestring sb-ext:*runtime-pathname*)))
+    (with-input-from-string (input "")
+      (let ((result (process-boundary-run
+                     process runtime
+                     :arguments (list "--non-interactive" "--no-sysinit" "--no-userinit"
+                                      "--eval" "(sb-ext:quit)")
+                     :input input
+                     :directory (uiop:temporary-directory))))
+        (expect (eql 0 (getf result :exit-code)) :to-be-truthy)))))
+
+(it "process-boundary-run-rejects-a-non-process-boundary"
+  (signals-error-message-contains "must be a process boundary"
+    (process-boundary-run (list :boundary-type :not-a-process) "cmd")))
