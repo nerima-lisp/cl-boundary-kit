@@ -19,12 +19,12 @@
     # the exact commit cl-boundary-kit was verified against rather than an
     # unstable branch ref.
     cl-log-kit = {
-      url = "github:nerima-lisp/cl-log-kit/df77fb27b62f29ed9ac80541bad75f2a4b01a22c";
+      url = "github:nerima-lisp/cl-log-kit/314f34fa94c996fc8d216598c07dae30155dc9e7";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cl-process-kit = {
-      url = "github:nerima-lisp/cl-process-kit/6a98893ab1da700f9e4faf83c5dc6e2851719190";
+      url = "github:nerima-lisp/cl-process-kit/6b090020390d01f3987448560f9bd7b700014a2b";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
