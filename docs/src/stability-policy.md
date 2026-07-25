@@ -13,7 +13,7 @@ The public contract is intentionally narrow:
   are also part of the executable documentation contract when their guidance
   is backed by repository-level tests.
   - Breaking behavioral changes must be reflected in `README.md`,
-    `COMPATIBILITY.md`, `CHANGELOG.md`, and the executable documentation tests
+    [Compatibility](compatibility.md), `CHANGELOG.md`, and the executable documentation tests
     in `t/api-test.lisp`, `t/api-doc-claims-test.lisp`,
     `t/api-doc-links-test.lisp`, `t/api-doc-links-documents-test.lisp`,
     `t/api-executable-docs-test.lisp`, and `t/examples-test.lisp`.

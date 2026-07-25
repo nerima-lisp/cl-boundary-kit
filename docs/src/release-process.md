@@ -12,7 +12,7 @@ documentation and evidence exercise, not just a version bump.
    change, explicitly call out deprecations or removals, include migration
    guidance when a supported replacement exists, and remove any stale
    `Unreleased` placeholders.
-3. Reconcile `ROADMAP.md` with the release scope so shipped items are removed,
+3. Reconcile [Roadmap](roadmap.md) with the release scope so shipped items are removed,
    narrowed, or rewritten as future work instead of being left as if they were
    still merely planned.
 4. Update `README.md`, the relevant [Guide](composition.md) pages, [Cookbook](cookbook.md),
@@ -24,7 +24,7 @@ documentation and evidence exercise, not just a version bump.
    `t/api-doc-claims-test.lisp`, `t/api-doc-links-test.lisp`,
    `t/api-doc-links-documents-test.lisp`, `t/api-executable-docs-test.lisp`,
    and `t/examples-test.lisp` cover the new or changed behavior.
-7. For security-relevant fixes, make sure `SECURITY.md` reporting and disclosure
+7. For security-relevant fixes, make sure [Security](security.md) reporting and disclosure
    expectations still match the release notes and do not force sensitive details
    into public issue history.
 8. Cut the release only after the repository state, roadmap, and release notes
@@ -73,6 +73,6 @@ Compatibility statements should be tied to what the repository actually proves:
 If a claim is not backed by that evidence, it should stay out of release notes.
 
 `CHANGELOG.md` is for shipped history and concrete unreleased public changes.
-`ROADMAP.md` is for deferred direction and non-commitment planning. Releases
+[Roadmap](roadmap.md) is for deferred direction and non-commitment planning. Releases
 should keep shipped facts from deferred intent and preserve those distinct
 roles.

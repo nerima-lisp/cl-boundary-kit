@@ -9,19 +9,19 @@
   (:cases (readme-document-search-shared-cases))
   (readme-links-the-governance-documents-cookbook
    :file "docs/src/repository-layout.md"
-   :contains ("COOKBOOK.md"))
+   :contains ("cookbook.md"))
   (readme-links-the-governance-documents-faq
    :file "docs/src/repository-layout.md"
-   :contains ("FAQ.md"))
+   :contains ("faq.md"))
   (readme-links-the-governance-documents-architecture
    :file "docs/src/repository-layout.md"
-   :contains ("ARCHITECTURE.md"))
+   :contains ("architecture.md"))
   (readme-links-the-governance-documents-governance
    :file "docs/src/repository-layout.md"
-   :contains ("GOVERNANCE.md"))
+   :contains ("governance.md"))
   (readme-links-the-governance-documents-code-of-conduct
    :file "docs/src/repository-layout.md"
-   :contains ("CODE_OF_CONDUCT.md"))
+   :contains ("code-of-conduct.md"))
   (readme-links-the-governance-documents-support
    :file "docs/src/repository-layout.md"
-   :contains ("SUPPORT.md")))
+   :contains ("support.md")))

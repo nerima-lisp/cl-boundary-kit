@@ -18,7 +18,7 @@
 (it "public-subsystems-have-dedicated-regression-suites"
   (let* ((docs-readme (repository-file-string "docs/src/README.md"))
          (testing-doc (repository-file-string "docs/src/testing.md"))
-         (contributing (repository-file-string "CONTRIBUTING.md"))
+         (contributing (repository-file-string "docs/src/contributing.md"))
          (asd (repository-file-string "cl-boundary-kit.asd"))
          (package (string-upcase (repository-file-string "src/package.lisp")))
          (suites (public-subsystem-regression-suites)))
@@ -55,8 +55,8 @@
          (release-series (supported-release-series release-version))
          (changelog (repository-file-string "CHANGELOG.md"))
          (stability-policy (repository-file-string "docs/src/stability-policy.md"))
-         (security (repository-file-string "SECURITY.md"))
-         (release (repository-file-string "RELEASE.md")))
+         (security (repository-file-string "docs/src/security.md"))
+         (release (repository-file-string "docs/src/release-process.md")))
     (expect (not (null release-version)) :to-be-truthy)
     (expect (every (lambda (version) (string= release-version version)) versions) :to-be-truthy)
     (assert-contains-all changelog
@@ -67,7 +67,7 @@
     (assert-contains-all release (list (format nil "`~A` should keep" release-series)))))
 
 (it "compatibility-verification-scope-stays-backed-by-executable-contracts"
-  (let* ((compatibility (repository-file-string "COMPATIBILITY.md"))
+  (let* ((compatibility (repository-file-string "docs/src/compatibility.md"))
          (api-tests (api-test-suite-string))
          (example-tests (repository-file-string "t/examples-runtime-test.lisp"))
          (example-helpers (repository-file-string "t/examples-test-helpers.lisp"))
@@ -87,7 +87,7 @@
                            "successful completion"
                            "exit status 0"
                            "checked-in `examples/*.lisp` files against a fresh"
-                           "Treats the exported symbol list documented across the `docs/src` Guide pages"))
+                           "Treats the exported symbol list documented across the [Guide](composition.md)"))
     (assert-contains-all (single-document-fenced-code-block
                           "docs/src/testing.md" "# Running the Test Suite" nil "sh")
                          '("nix run .#test"))
@@ -107,8 +107,8 @@
     (assert-contains-all example-tests '("documented-examples-have-output-checks"))))
 
 (it "release-evidence-and-compatibility-scope-stay-aligned"
-  (let* ((release (repository-file-string "RELEASE.md"))
-         (compatibility (repository-file-string "COMPATIBILITY.md"))
+  (let* ((release (repository-file-string "docs/src/release-process.md"))
+         (compatibility (repository-file-string "docs/src/compatibility.md"))
          (api-tests (api-test-suite-string))
          (example-helpers (repository-file-string "t/examples-test-helpers.lisp")))
     (assert-contains-all release

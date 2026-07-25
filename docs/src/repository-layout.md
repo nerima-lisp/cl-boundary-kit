@@ -1,5 +1,12 @@
 # Repository Layout
 
+The repository root holds only the files that GitHub, ASDF, and the release
+tooling read directly. Every other document lives under `docs/src/` and is
+published as part of this site, so there is exactly one copy of each to keep
+current.
+
+## Root
+
 - `src/` core library implementation
 - `t/` test runner and subsystem tests
 - `examples/` REPL-friendly usage snippets
@@ -8,16 +15,25 @@
 - `flake.nix` pinned Nix build, test, report, and coverage entrypoints
 - `nix/` CI runner and coverage threshold tooling
 - `docs/` MkDocs (Material) source for this documentation site
-- `COOKBOOK.md` pattern-oriented usage guide for supported flows
-- `FAQ.md` user-facing decision points and contract clarifications
-- `ARCHITECTURE.md` layering model and design constraints
-- `COMPATIBILITY.md` current verification scope and non-claims
-- `CONTRIBUTING.md` change workflow and test expectations
-- `GOVERNANCE.md` maintainer decision model and contract surface
-- `CODE_OF_CONDUCT.md` contributor behavior and reporting expectations
-- `SUPPORT.md` request routing and maintenance boundary
-- `RELEASE.md` maintainer release checklist and evidence requirements
+- `README.md` landing page and quick start
 - `CHANGELOG.md` release history and pending unreleased changes
-- `ROADMAP.md` deferred work and non-goals
-- `SECURITY.md` security reporting guidance
 - `LICENSE` MIT license terms
+
+## Documentation
+
+Community health documents (contributing, conduct, governance, support, and
+security reporting) are also served org-wide from
+[nerima-lisp/.github](https://github.com/nerima-lisp/.github); the pages here
+record the parts specific to this repository.
+
+- [`cookbook.md`](cookbook.md) pattern-oriented usage guide for supported flows
+- [`faq.md`](faq.md) user-facing decision points and contract clarifications
+- [`architecture.md`](architecture.md) layering model and design constraints
+- [`compatibility.md`](compatibility.md) current verification scope and non-claims
+- [`contributing.md`](contributing.md) change workflow and test expectations
+- [`governance.md`](governance.md) maintainer decision model and contract surface
+- [`code-of-conduct.md`](code-of-conduct.md) contributor behavior and reporting expectations
+- [`support.md`](support.md) request routing and maintenance boundary
+- [`release-process.md`](release-process.md) maintainer release checklist and evidence requirements
+- [`roadmap.md`](roadmap.md) deferred work and non-goals
+- [`security.md`](security.md) security reporting guidance

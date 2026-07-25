@@ -8,43 +8,43 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *document-search-shared-cases*
     '((code-of-conduct-exists-and-documents-reporting
-       :file "CODE_OF_CONDUCT.md"
+       :file "docs/src/code-of-conduct.md"
        :exists t
        :contains ("# Code of Conduct"
                   "## Reporting"
-                  "SECURITY.md"
-                  "SUPPORT.md"
+                  "security.md"
+                  "support.md"
                   "normal usage question"
                   "vulnerability"))
       (support-document-exists-and-defines-routing
-       :file "SUPPORT.md"
+       :file "docs/src/support.md"
        :exists t
        :contains ("# Support"
                   "## What To Use"
-                  "SECURITY.md"
-                  "CODE_OF_CONDUCT.md"
+                  "security.md"
+                  "code-of-conduct.md"
                   "README.md"
-                  "COMPATIBILITY.md"
-                  "CHANGELOG.md"
-                  "GOVERNANCE.md"
-                  "COOKBOOK.md"
-                  "FAQ.md"
+                  "compatibility.md"
+                  "changelog.md"
+                  "governance.md"
+                  "cookbook.md"
+                  "faq.md"
                   "harassment"
                   "deprecated, removed, or changed in a breaking way"
                   "migration guidance"))
       (governance-document-exists-and-defines-contract-surface
-       :file "GOVERNANCE.md"
+       :file "docs/src/governance.md"
        :exists t
        :contains ("# Governance"
                   "## Maintainer Role"
                   "## Decision Process"
                   "README.md"
-                  "COMPATIBILITY.md"
+                  "compatibility.md"
                   "examples/*.lisp"
                   "checked-in examples"
-                  "CHANGELOG.md"))
+                  "changelog.md"))
       (architecture-document-exists-and-defines-layering
-       :file "ARCHITECTURE.md"
+       :file "docs/src/architecture.md"
        :exists t
        :contains ("# Architecture"
                   "## Layering Model"
@@ -57,9 +57,9 @@
                   "t/api-doc-links-test.lisp"
                   "t/api-executable-docs-test.lisp"
                   "README.md"
-                  "GOVERNANCE.md"))
+                  "governance.md"))
       (cookbook-document-exists-and-defines-supported-patterns
-       :file "COOKBOOK.md"
+       :file "docs/src/cookbook.md"
        :exists t
        :contains ("# Cookbook"
                   "## Compose Boundaries At The Application Edge"
@@ -71,7 +71,7 @@
                   "assert-recorded-call-sequence"
                   "unsupported-boundary-operation"))
       (faq-document-exists-and-defines-decision-points
-       :file "FAQ.md"
+       :file "docs/src/faq.md"
        :exists t
        :contains ("# FAQ"
                   "## When Should I Use This Library?"
@@ -80,45 +80,45 @@
                   "## Why Do Unsupported Operations Signal Instead Of Falling Back?"
                   "## What If Behavior Differs Across Lisp Implementations Or Platforms?"
                   "## How Will Deprecations Or Breaking Changes Be Communicated?"
-                  "COOKBOOK.md"
-                  "COMPATIBILITY.md"
-                  "CHANGELOG.md"
-                  "SUPPORT.md"
-                  "CONTRIBUTING.md"
-                  "GOVERNANCE.md"
-                  "SECURITY.md"))
+                  "cookbook.md"
+                  "compatibility.md"
+                  "changelog.md"
+                  "support.md"
+                  "contributing.md"
+                  "governance.md"
+                  "security.md"))
       (faq-documents-the-stable-public-surface-contract
-       :file "FAQ.md"
+       :file "docs/src/faq.md"
        :contains ("## What Counts As The Stable Public Surface?"
                   "contract is defined by:"
-                  "exported symbols documented across the docs/src Guide pages"
+                  "exported symbols documented across the [Guide](composition.md) pages"
                   "checked-in examples and cookbook snippets"
-                  "COMPATIBILITY.md"
-                  "CONTRIBUTING.md"
-                  "GOVERNANCE.md"
+                  "compatibility.md"
+                  "contributing.md"
+                  "governance.md"
                   "executable verification"
                   "not treat it as a compatibility promise"))
       (release-document-exists-and-defines-evidence-based-checklist
-       :file "RELEASE.md"
+       :file "docs/src/release-process.md"
        :exists t
        :contains ("# Release Process"
                   "## Release Checklist"
                   "CHANGELOG.md"
-                  "ROADMAP.md"
+                  "roadmap.md"
                   "README.md"
-                  "COOKBOOK.md"
-                  "COMPATIBILITY.md"
+                  "cookbook.md"
+                  "compatibility.md"
                   "`sbcl --script run-tests.lisp`"
                   "t/api-test.lisp"
                   "t/api-doc-claims-test.lisp"
                   "t/api-doc-links-test.lisp"
                   "t/api-executable-docs-test.lisp"
                   "t/examples-test.lisp"
-                  "SECURITY.md"
+                  "security.md"
                   "deprecations or removals"
                   "migration guidance"))
       (compatibility-document-exists-and-defines-verification-scope
-       :file "COMPATIBILITY.md"
+       :file "docs/src/compatibility.md"
        :exists t
        :contains ("# Compatibility"
                   "## Verification Scope"
@@ -128,11 +128,11 @@
                   "documented REPL runner"
                   "stable verification path"
                   "Other Common Lisp implementations may work"
-                  "SUPPORT.md"
-                  "SECURITY.md"
+                  "support.md"
+                  "security.md"
                   "## Change Policy"))
       (security-policy-documents-supported-versions-and-reporting-process
-       :file "SECURITY.md"
+       :file "docs/src/security.md"
        :exists t
        ;; The supported-version row itself is deliberately not asserted here:
        ;; RELEASE-VERSION-DOCUMENTS-STAY-CONSISTENT-ACROSS-ASD-AND-POLICY-DOCS
@@ -149,17 +149,17 @@
        :contains ("MIT License"
                   "Permission is hereby granted, free of charge"))
       (roadmap-documents-verification-driven-adoption-constraints
-       :file "ROADMAP.md"
+       :file "docs/src/roadmap.md"
        :exists t
        :contains ("## Status Semantics"
                   "directional, not release commitments"
-                  "CHANGELOG.md"
+                  "changelog.md"
                   "documented REPL test-runner contract"
                   "executable verification"
-                  "`COOKBOOK.md`"
+                  "cookbook.md"
                   "implementation compatibility claims only after they are exercised"))
       (roadmap-changelog-and-release-documents-separate-facts-from-direction
-       :file "ROADMAP.md"
+       :file "docs/src/roadmap.md"
        :contains ("directional, not release commitments"
                   "Public changes that are already shipped or concretely queued for the next"))))
 
@@ -169,7 +169,7 @@
        :exists t
        :contains ("# Changelog"
                   "## Unreleased"
-                  "ROADMAP.md"
+                  "docs/src/roadmap.md"
                   "This section tracks intentional public changes that may ship in the next"
                   "Long-term ideas, non-committed exploration, and deferred work belong"
                   "Deprecations, removals, and intentionally breaking behavior changes"
@@ -182,7 +182,11 @@
                   "`:exact-length nil`"
                   "`:result nil`"
                   "`boundary-call-plist`"
-                  "`README.md`"
+                  "README.md"
+                  ;; Matches the shipped 0.2.0 entry. Released CHANGELOG
+                  ;; sections are history and keep the file names that were
+                  ;; current when they shipped, so this needle stays
+                  ;; upper-case even though the file now lives in docs/src.
                   "`COOKBOOK.md`")
        :absent ("No unreleased changes yet."))))
 
@@ -194,32 +198,32 @@
   (defparameter *readme-document-search-shared-cases*
     '((readme-repository-layout-documents-the-changelog
        :file "docs/src/repository-layout.md"
-       :contains ("`COMPATIBILITY.md`"
-                  "`CHANGELOG.md`"
+       :contains ("compatibility.md"
+                  "CHANGELOG.md"
                   "release history"))
       (readme-repository-layout-documents-the-canonical-test-entrypoint-and-license
        :file "docs/src/repository-layout.md"
        :contains ("`run-tests.lisp`"
                   "canonical checkout test runner"
-                  "`COOKBOOK.md`"
+                  "cookbook.md"
                   "pattern-oriented usage guide"
-                  "`FAQ.md`"
+                  "faq.md"
                   "user-facing decision points"
-                  "`ARCHITECTURE.md`"
+                  "architecture.md"
                   "layering model and design constraints"
-                  "`CODE_OF_CONDUCT.md`"
+                  "code-of-conduct.md"
                   "contributor behavior and reporting expectations"
-                  "`SUPPORT.md`"
+                  "support.md"
                   "request routing and maintenance boundary"
-                  "`RELEASE.md`"
+                  "release-process.md"
                   "maintainer release checklist"
                   "`LICENSE`"
                   "MIT license terms"))
       (readme-links-the-governance-documents
        :file "docs/src/repository-layout.md"
-       :contains ("CONTRIBUTING.md"))
+       :contains ("contributing.md"))
       (readme-contributing-and-governance-sections-document-contract-maintenance
-       :file "CONTRIBUTING.md"
+       :file "docs/src/contributing.md"
        :contains ("supported public contract"
                   "executable tests"
                   "relevant examples"
@@ -228,13 +232,13 @@
                   "migration guidance"))
       (readme-links-the-release-process-document
        :file "docs/src/contributing.md"
-       :contains ("RELEASE.md"
+       :contains ("release-process.md"
                   "executable verification"))
       (readme-compatibility-section-links-the-compatibility-document
        :haystack (concatenate 'string
                               (repository-file-string "docs/src/contributing.md")
                               (repository-file-string "docs/src/compatibility.md"))
-       :contains ("COMPATIBILITY.md"
+       :contains ("compatibility.md"
                   "executable verification"
                   "unverified implementation or platform"))))
 

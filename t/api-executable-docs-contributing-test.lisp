@@ -10,7 +10,7 @@
 (it "contributing-local-setup-install-snippet-matches-readme-installation-snippet"
   (expect (string=
        (single-document-fenced-code-block "docs/src/installation.md" "# Installation" "## Nix" "lisp")
-       (nth-document-fenced-code-block "CONTRIBUTING.md"
+       (nth-document-fenced-code-block "docs/src/contributing.md"
                                        "## Local Setup"
                                        "## Change Guidelines"
                                        "lisp"
@@ -19,7 +19,7 @@
 (it "contributing-local-setup-repl-snippet-matches-readme-testing-snippet"
   (expect (string=
        (single-document-fenced-code-block "docs/src/testing.md" "# Running the Test Suite" nil "lisp")
-       (nth-document-fenced-code-block "CONTRIBUTING.md"
+       (nth-document-fenced-code-block "docs/src/contributing.md"
                                        "## Local Setup"
                                        "## Change Guidelines"
                                        "lisp"
@@ -27,39 +27,39 @@
 
 (define-document-search-tests
   (contributing-local-setup-documents-documented-test-runner-expectation
-   :file "CONTRIBUTING.md"
+   :file "docs/src/contributing.md"
    :contains ("documented REPL runner"
               "`(asdf:load-system :cl-boundary-kit/test)`"
               "`(cl-boundary-kit/test:run-tests)`"
               "`0 failures`"
               "stable verification path"))
   (contributing-documents-the-code-of-conduct
-   :file "CONTRIBUTING.md"
-   :contains ("CODE_OF_CONDUCT.md"
+   :file "docs/src/contributing.md"
+   :contains ("code-of-conduct.md"
               "## Communication Expectations"))
   (contributing-documents-governance-expectations
-   :file "CONTRIBUTING.md"
-   :contains ("GOVERNANCE.md"
+   :file "docs/src/contributing.md"
+   :contains ("governance.md"
               "decision criteria"))
   (contributing-documents-architecture-expectations
-   :file "CONTRIBUTING.md"
-   :contains ("ARCHITECTURE.md"
+   :file "docs/src/contributing.md"
+   :contains ("architecture.md"
               "layering model"))
   (contributing-documents-support-routing
-   :file "CONTRIBUTING.md"
-   :contains ("SUPPORT.md"
+   :file "docs/src/contributing.md"
+   :contains ("support.md"
               "security"))
   (contributing-documents-faq-and-release-expectations
-   :file "CONTRIBUTING.md"
-   :contains ("FAQ.md"
-              "RELEASE.md"))
+   :file "docs/src/contributing.md"
+   :contains ("faq.md"
+              "release-process.md"))
   (contributing-documents-documentation-contract-maintenance
-   :file "CONTRIBUTING.md"
+   :file "docs/src/contributing.md"
    :contains ("CHANGELOG.md"
               "deprecated, removed, or changed in a breaking way"
               "migration guidance"
-              "COMPATIBILITY.md"
-              "COOKBOOK.md"
+              "compatibility.md"
+              "cookbook.md"
               "supported usage pattern changes"
               "verification scope"
               "release evidence"

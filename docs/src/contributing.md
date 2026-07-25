@@ -84,13 +84,13 @@ before submitting a change.
   deprecated, removed, or changed in a breaking way.
 - When a supported replacement exists, include concrete migration guidance in
   `CHANGELOG.md` instead of only naming the deprecation or removal.
-- Update `COMPATIBILITY.md` and `RELEASE.md` when a change alters supported
+- Update [Compatibility](compatibility.md) and [Release Process](release-process.md) when a change alters supported
   verification scope or release evidence.
-- Update `COOKBOOK.md` when a supported usage pattern changes or a new pattern
+- Update [Cookbook](cookbook.md) when a supported usage pattern changes or a new pattern
   becomes part of the public contract.
-- Update `FAQ.md` when a change alters user-facing boundary selection guidance or
+- Update [FAQ](faq.md) when a change alters user-facing boundary selection guidance or
   compatibility expectations.
-- Update `ARCHITECTURE.md` when subsystem responsibilities or layering constraints change.
+- Update [Architecture](architecture.md) when subsystem responsibilities or layering constraints change.
 
 ## Test Expectations
 

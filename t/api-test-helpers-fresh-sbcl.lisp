@@ -48,7 +48,7 @@
   (append
    (documentation-fresh-sbcl-installation-lines)
    (string-lines
-    (single-document-fenced-code-block "COOKBOOK.md"
+    (single-document-fenced-code-block "docs/src/cookbook.md"
                                        start-section
                                        end-section
                                        "lisp"))))
@@ -69,7 +69,7 @@
   (documentation-fresh-sbcl-contributing-installation-lines
    (string-lines
     (replace-substring
-     (nth-document-fenced-code-block "CONTRIBUTING.md"
+     (nth-document-fenced-code-block "docs/src/contributing.md"
                                      "## Local Setup"
                                      "## Change Guidelines"
                                      "lisp"

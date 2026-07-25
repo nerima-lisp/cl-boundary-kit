@@ -13,11 +13,6 @@ rate limiting, scheduling, and publish/subscribe messaging). It is not an
 application framework, not a CLI framework, and not a generic utility grab
 bag.
 
-Full documentation, including the complete API guide, cookbook, and every
-governance and policy document, is published at
-<https://nerima-lisp.github.io/cl-boundary-kit/>. The source for that site
-lives in [docs/src/](docs/src/README.md).
-
 ## Quick Start
 
 ```lisp
@@ -51,6 +46,14 @@ does not require Quicklisp:
 nix run .#test
 ```
 
+## Documentation
+
+Full documentation — the API guide, cookbook, architecture notes, and every
+policy document — is published at
+<https://nerima-lisp.github.io/cl-boundary-kit/>. The source for that site
+lives in [docs/src/](docs/src/README.md); apart from this file, the changelog,
+and the license, every document in this repository lives there.
+
 ## Development
 
 ```sh
@@ -65,9 +68,9 @@ run-tests.lisp` execution without Nix.
 
 ## Contributing
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md) for the supported workflow,
-validation expectations, and public-surface rules. Project governance,
-maintenance, and release policies are available in the
+Start with [Contributing](https://nerima-lisp.github.io/cl-boundary-kit/contributing/)
+for the supported workflow, validation expectations, and public-surface rules.
+Project governance, maintenance, and release policies are available in the
 [documentation](https://nerima-lisp.github.io/cl-boundary-kit/).
 
 ## Support
@@ -77,8 +80,9 @@ for the canonical support boundaries, and
 [private GitHub security advisories](https://github.com/nerima-lisp/cl-boundary-kit/security/advisories/new)
 for vulnerability reporting. Do not put exploit details in a public issue.
 
-Community conduct is defined in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and
-release history is published through
+Community conduct is defined in the
+[Code of Conduct](https://nerima-lisp.github.io/cl-boundary-kit/code-of-conduct/),
+and release history is published through
 [GitHub Releases](https://github.com/nerima-lisp/cl-boundary-kit/releases).
 
 ## License
