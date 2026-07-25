@@ -5,31 +5,28 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     cl-weave = {
-      url = "github:nerima-lisp/cl-weave/v0.10.0";
+      url = "github:nerima-lisp/cl-weave/v0.11.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cl-prolog = {
-      url = "github:nerima-lisp/cl-prolog/v0.7.0";
+      url = "github:nerima-lisp/cl-prolog/v0.8.0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.cl-weave.follows = "cl-weave";
     };
 
-    # cl-log-kit and cl-process-kit have no tagged release yet, so these pin
-    # the exact commit cl-boundary-kit was verified against rather than an
-    # unstable branch ref.
     cl-log-kit = {
-      url = "github:nerima-lisp/cl-log-kit/314f34fa94c996fc8d216598c07dae30155dc9e7";
+      url = "github:nerima-lisp/cl-log-kit/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cl-process-kit = {
-      url = "github:nerima-lisp/cl-process-kit/6b090020390d01f3987448560f9bd7b700014a2b";
+      url = "github:nerima-lisp/cl-process-kit/v0.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cl-json-kit = {
-      url = "github:nerima-lisp/cl-json-kit/v0.2.0";
+      url = "github:nerima-lisp/cl-json-kit/v0.3.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

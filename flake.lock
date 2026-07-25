@@ -29,19 +29,20 @@
         "cl-weave": "cl-weave",
         "nixpkgs": [
           "nixpkgs"
-        ]
+        ],
+        "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1784883913,
-        "narHash": "sha256-D4r0+DBaVlHlsDdqXXSKpmy+a3/Fv6olaJ+9vE1YUJI=",
+        "lastModified": 1784951832,
+        "narHash": "sha256-22NDaazfq1GWfmWdi20dwpkBnzd0hRlIPSX+wqRZnwc=",
         "owner": "nerima-lisp",
         "repo": "cl-json-kit",
-        "rev": "425a6b852b4911387a6c31f575cc1236c8839807",
+        "rev": "a666449395bd72950fd9438e464a0d1390d43232",
         "type": "github"
       },
       "original": {
         "owner": "nerima-lisp",
-        "ref": "v0.2.0",
+        "ref": "v0.3.0",
         "repo": "cl-json-kit",
         "type": "github"
       }
@@ -111,8 +112,8 @@
       },
       "original": {
         "owner": "nerima-lisp",
+        "ref": "v1.1.0",
         "repo": "cl-log-kit",
-        "rev": "314f34fa94c996fc8d216598c07dae30155dc9e7",
         "type": "github"
       }
     },
@@ -184,8 +185,8 @@
       },
       "original": {
         "owner": "nerima-lisp",
+        "ref": "v0.1.0",
         "repo": "cl-process-kit",
-        "rev": "6b090020390d01f3987448560f9bd7b700014a2b",
         "type": "github"
       }
     },
@@ -252,16 +253,16 @@
         "paredit-cli": "paredit-cli_7"
       },
       "locked": {
-        "lastModified": 1784884724,
-        "narHash": "sha256-kzvL7CNBj4YA1Oj8oP8gPLo4t52uMlRrM0xxWlvjtxo=",
+        "lastModified": 1784953575,
+        "narHash": "sha256-S7SPfYAtSZpAf2vCbEH7GcatfxT7DZV/aSn2OXFVF3Y=",
         "owner": "nerima-lisp",
         "repo": "cl-prolog",
-        "rev": "ed657d736a99d1543297dbe91f303129c5e3aaef",
+        "rev": "b3275ad2697ebcdcd97f1f9f586426d750d3ddb7",
         "type": "github"
       },
       "original": {
         "owner": "nerima-lisp",
-        "ref": "v0.7.0",
+        "ref": "v0.8.0",
         "repo": "cl-prolog",
         "type": "github"
       }
@@ -314,16 +315,16 @@
         "paredit-cli": "paredit-cli_8"
       },
       "locked": {
-        "lastModified": 1784866842,
-        "narHash": "sha256-uFdqahTn9aTgFYnV8tkY5CLI53EGxSZGXjW6Ky1NgXY=",
+        "lastModified": 1784952361,
+        "narHash": "sha256-SdLeK85XeO5Y0aD7Gx35wX522zB44ee88xCMlWmeO1U=",
         "owner": "nerima-lisp",
         "repo": "cl-weave",
-        "rev": "7ddc1a283878878a58ec90ab6d4742be86868ba8",
+        "rev": "fc41b5319501ab5230ad1c0aeda49f493f5cf42a",
         "type": "github"
       },
       "original": {
         "owner": "nerima-lisp",
-        "ref": "v0.10.0",
+        "ref": "v0.11.0",
         "repo": "cl-weave",
         "type": "github"
       }
@@ -586,7 +587,7 @@
           "nixpkgs"
         ],
         "rust-overlay": "rust-overlay_2",
-        "treefmt-nix": "treefmt-nix_2"
+        "treefmt-nix": "treefmt-nix_3"
       },
       "locked": {
         "lastModified": 1784862675,
@@ -611,7 +612,7 @@
           "nixpkgs"
         ],
         "rust-overlay": "rust-overlay_3",
-        "treefmt-nix": "treefmt-nix_3"
+        "treefmt-nix": "treefmt-nix_4"
       },
       "locked": {
         "lastModified": 1783796150,
@@ -636,7 +637,7 @@
           "nixpkgs"
         ],
         "rust-overlay": "rust-overlay_4",
-        "treefmt-nix": "treefmt-nix_4"
+        "treefmt-nix": "treefmt-nix_5"
       },
       "locked": {
         "lastModified": 1783796150,
@@ -660,7 +661,7 @@
           "nixpkgs"
         ],
         "rust-overlay": "rust-overlay_5",
-        "treefmt-nix": "treefmt-nix_5"
+        "treefmt-nix": "treefmt-nix_6"
       },
       "locked": {
         "lastModified": 1784862675,
@@ -684,7 +685,7 @@
           "nixpkgs"
         ],
         "rust-overlay": "rust-overlay_6",
-        "treefmt-nix": "treefmt-nix_6"
+        "treefmt-nix": "treefmt-nix_7"
       },
       "locked": {
         "lastModified": 1783796150,
@@ -707,7 +708,7 @@
           "nixpkgs"
         ],
         "rust-overlay": "rust-overlay_7",
-        "treefmt-nix": "treefmt-nix_7"
+        "treefmt-nix": "treefmt-nix_8"
       },
       "locked": {
         "lastModified": 1784440580,
@@ -730,7 +731,7 @@
           "nixpkgs"
         ],
         "rust-overlay": "rust-overlay_8",
-        "treefmt-nix": "treefmt-nix_8"
+        "treefmt-nix": "treefmt-nix_9"
       },
       "locked": {
         "lastModified": 1783796150,
@@ -965,17 +966,16 @@
     "treefmt-nix_2": {
       "inputs": {
         "nixpkgs": [
-          "cl-log-kit",
-          "paredit-cli",
+          "cl-json-kit",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1780220602,
-        "narHash": "sha256-eynAfOmbmxJnkp7YewvCEbShNnnYJ9gLLqkzsYtBPeM=",
+        "lastModified": 1784369104,
+        "narHash": "sha256-47cxbcZODibHv3rELFQ9vZly0vUNkND/atn/U7HLeb0=",
         "owner": "numtide",
         "repo": "treefmt-nix",
-        "rev": "db947814a175b7ca6ded66e21383d938df01c227",
+        "rev": "df3c0640565d04a0261253cdd89fce78ec50168a",
         "type": "github"
       },
       "original": {
@@ -987,9 +987,7 @@
     "treefmt-nix_3": {
       "inputs": {
         "nixpkgs": [
-          "cl-process-kit",
-          "cl-boundary-kit",
-          "cl-prolog",
+          "cl-log-kit",
           "paredit-cli",
           "nixpkgs"
         ]
@@ -1013,7 +1011,7 @@
         "nixpkgs": [
           "cl-process-kit",
           "cl-boundary-kit",
-          "cl-weave",
+          "cl-prolog",
           "paredit-cli",
           "nixpkgs"
         ]
@@ -1036,7 +1034,8 @@
       "inputs": {
         "nixpkgs": [
           "cl-process-kit",
-          "cl-log-kit",
+          "cl-boundary-kit",
+          "cl-weave",
           "paredit-cli",
           "nixpkgs"
         ]
@@ -1059,7 +1058,7 @@
       "inputs": {
         "nixpkgs": [
           "cl-process-kit",
-          "cl-weave",
+          "cl-log-kit",
           "paredit-cli",
           "nixpkgs"
         ]
@@ -1081,7 +1080,8 @@
     "treefmt-nix_7": {
       "inputs": {
         "nixpkgs": [
-          "cl-prolog",
+          "cl-process-kit",
+          "cl-weave",
           "paredit-cli",
           "nixpkgs"
         ]
@@ -1101,6 +1101,28 @@
       }
     },
     "treefmt-nix_8": {
+      "inputs": {
+        "nixpkgs": [
+          "cl-prolog",
+          "paredit-cli",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780220602,
+        "narHash": "sha256-eynAfOmbmxJnkp7YewvCEbShNnnYJ9gLLqkzsYtBPeM=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "db947814a175b7ca6ded66e21383d938df01c227",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "treefmt-nix_9": {
       "inputs": {
         "nixpkgs": [
           "cl-weave",

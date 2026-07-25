@@ -32,6 +32,10 @@ diffs alone.
 - `flake.nix` now derives the package version from `cl-boundary-kit.asd`
   `:version` instead of hardcoding it, so the `cl-boundary-kit` and `docs`
   packages can no longer drift out of sync with the ASDF system definition.
+- `cl-weave`, `cl-prolog`, `cl-json-kit`, `cl-log-kit`, and `cl-process-kit`
+  are bumped to `v0.11.0`, `v0.8.0`, `v0.3.0`, `v1.1.0`, and `v0.1.0`
+  respectively; `cl-log-kit` and `cl-process-kit` now pin to their first
+  tagged releases instead of a verified commit.
 
 ## 0.5.0
 
