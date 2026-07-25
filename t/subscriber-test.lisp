@@ -72,11 +72,10 @@
   (expect (lambda () (funcall operation (make-test-subscriber)))
           :to-signal-message-containing "Unsupported subscriber type"))
 
-(it "reset-recording-subscriber-calls-clears-history-and-returns-the-subscriber"
-  (let ((subscriber (make-recording-subscriber
-                     :delegate (make-test-subscriber :messages (list "a")))))
-    (subscriber-poll subscriber)
-    (expect (= 1 (length (recording-subscriber-calls subscriber))) :to-be-truthy)
-    (expect (eq subscriber (reset-recording-subscriber-calls subscriber)) :to-be-truthy)
-    (expect (null (recording-subscriber-calls subscriber)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-subscriber-calls-clears-history-and-returns-the-subscriber"
+    (subscriber (make-recording-subscriber
+                 :delegate (make-test-subscriber :messages (list "a"))))
+    (recording-subscriber-calls reset-recording-subscriber-calls)
+  (subscriber-poll subscriber))
 

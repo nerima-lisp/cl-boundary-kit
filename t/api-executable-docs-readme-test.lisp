@@ -15,9 +15,10 @@
     :forbidden ("@@CASE-FAIL readme-testing-repl@@")))
 
 (it "readme-testing-section-repl-snippet-uses-documented-test-runner"
-  (let* ((snippet (first-readme-fenced-code-block "## Testing" "## Compatibility" "lisp"))
-         (readme (repository-file-string "README.md")))
+  (let* ((snippet (single-document-fenced-code-block
+                   "docs/src/testing.md" "# Running the Test Suite" nil "lisp"))
+         (testing-doc (repository-file-string "docs/src/testing.md")))
     (expect (not (null (search "(asdf:load-system :cl-boundary-kit/test)" snippet))) :to-be-truthy)
     (expect (not (null (search "(cl-boundary-kit/test:run-tests)" snippet))) :to-be-truthy)
-    (expect (not (null (search "successful completion with `0 failures`" readme))) :to-be-truthy)
-    (expect (not (null (search "documented REPL runner" readme))) :to-be-truthy)))
+    (expect (not (null (search "successful completion with `0 failures`" testing-doc))) :to-be-truthy)
+    (expect (not (null (search "documented REPL runner" testing-doc))) :to-be-truthy)))

@@ -43,10 +43,9 @@
   (expect (lambda () (funcall operation (make-test-sleeper)))
           :to-signal-message-containing "Unsupported sleeper type"))
 
-(it "reset-recording-sleeper-calls-clears-history-and-returns-the-sleeper"
-  (let ((sleeper (make-recording-sleeper)))
-    (sleeper-sleep sleeper 1)
-    (expect (= 1 (length (recording-sleeper-calls sleeper))) :to-be-truthy)
-    (expect (eq sleeper (reset-recording-sleeper-calls sleeper)) :to-be-truthy)
-    (expect (null (recording-sleeper-calls sleeper)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-sleeper-calls-clears-history-and-returns-the-sleeper"
+    (sleeper (make-recording-sleeper))
+    (recording-sleeper-calls reset-recording-sleeper-calls)
+  (sleeper-sleep sleeper 1))
 

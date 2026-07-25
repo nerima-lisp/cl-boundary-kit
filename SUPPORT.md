@@ -61,7 +61,7 @@ This project intentionally stays small. Support does not imply:
 ## Maintenance Boundary
 
 Questions and bug reports are evaluated against the explicit public contract in
-`README.md`, [`COMPATIBILITY.md`](COMPATIBILITY.md), the checked-in examples,
+the `docs/src` Guide pages, [`COMPATIBILITY.md`](COMPATIBILITY.md), the checked-in examples,
 the executable test suite, and the maintainer decision model in
 [`GOVERNANCE.md`](GOVERNANCE.md). Requests that conflict with the documented
 non-goals or would expand the abstraction surface without a clear boundary use

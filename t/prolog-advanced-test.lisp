@@ -1,6 +1,6 @@
 ;;;; t/prolog-advanced-test.lisp
 ;;;;
-;;;; Advanced cl-prolog 0.6.0 usage: bounded parsing of untrusted policy source,
+;;;; Advanced cl-prolog usage: bounded parsing of untrusted policy source,
 ;;;; ISO-conformant rejection of malformed goals, and terminating transitive
 ;;;; reasoning over a boundary delegation graph. Split from
 ;;;; prolog-boundary-invariants.lisp, which holds the trusted-Lisp-data policy
@@ -82,7 +82,7 @@ arrive from an external configuration file.")
 
 ;;; Advanced reasoning + performance: a boundary *delegation* graph and its
 ;;; transitive closure.  The closure rule is deliberately left-recursive; the
-;;; 0.6.0 engine detects the left recursion via strongly-connected components
+;;; engine detects the left recursion via strongly-connected components
 ;;; and terminates, where a naive resolution order would diverge.
 
 (defparameter *boundary-delegation*

@@ -13,6 +13,166 @@ called out explicitly here. When a supported replacement exists, include
 migration guidance so consumers can move without inferring policy from code
 diffs alone.
 
+Nothing is queued for the next release yet.
+
+## 1.0.0
+
+First stable release.
+
+No exported symbol, protocol, or documented behavior changes from `0.6.0`. What
+changes is the commitment attached to that surface: `1.x` now follows the
+semantic-versioning contract in [Stability Policy](stability-policy.md),
+so a documented export cannot be removed or given incompatible behavior without
+a `2.0.0` major release. The release also fixes several defects that made this
+repository's own verification weaker than it claimed to be.
+
+### Stability
+
+- The exported API documented across the `docs/src` Guide pages is now a stable
+  `1.x` contract: additive changes ship as minor releases, incompatible changes
+  require a major release, and anything scheduled for removal is deprecated
+  first in `CHANGELOG.md` with concrete migration guidance.
+- `SECURITY.md`, `RELEASE.md`, and `docs/src/stability-policy.md` moved from
+  `0.6.x`-series wording to that `1.0.x` commitment, and `ROADMAP.md` no longer
+  frames the project as pre-stable.
+
+### Fixed
+
+- `examples/*.lisp` could not run from a bare checkout at all, even though
+  `docs/src/examples.md` documents `sbcl --script examples/<name>.lisp` as the
+  way to run them. `examples/bootstrap.lisp` called
+  `(asdf:load-system :cl-log-kit)` without ever configuring a source registry,
+  so the command failed with `Component :CL-LOG-KIT not found` unless the caller
+  had already exported `CL_SOURCE_REGISTRY`. It now locates sibling dependency
+  checkouts the way `run-tests.lisp` does, and only for systems ASDF cannot
+  already resolve, so a caller that configured a registry pays nothing for the
+  search. The test suite hid the bug because it runs examples as subprocesses
+  that inherit the registry `run-tests.lisp` exports.
+- `examples/bootstrap.lisp` also loaded the ~70 `src/*.lisp` files by hand, in
+  interpreted mode, on every example run. That list had to be kept in lockstep
+  with `cl-boundary-kit.asd` by hand, and adding a source file without updating
+  it broke the examples silently. The bootstrap now loads the system through
+  ASDF, which keeps the component list in exactly one place and reuses the
+  compiled-fasl cache instead of re-reading the tree as source.
+- `run-tests.lisp` published every source-registry entry as a recursive `//`
+  tree, even though each entry is a checkout root whose `.asd` sits at the top
+  level. That registry is exported to the environment, so all ~40 example
+  subprocesses re-walked six checkouts (`.git` directories included) before
+  resolving a system that was immediately available. A fresh example process
+  went from ~7s to ~0.2s and `examples-run-in-fresh-sbcl-processes` from 219s to
+  6.8s, which also retires the flakiness of the 10s per-example timeout those
+  runs used to sit just under. `flake.nix`'s `sourceRegistry` got the same fix.
+- `run-tests.lisp` searched for every test dependency unconditionally, even when
+  ASDF could already resolve all of them. The search globs `*/<system>.asd`
+  under each of up to four parent directories, which is cheap beside a few
+  sibling checkouts and ruinous anywhere else: run from a Nix store path -- as
+  every flake check and app does -- the first parent is `/nix/store`, where a
+  single such glob took 210s against 116k entries and matched 107 copies of the
+  dependency, of which the search then picked an arbitrary one. Five
+  dependencies made that roughly 17 minutes of filesystem scanning before the
+  first test ran, close enough to CI's 30-minute cap to fail outright on a
+  machine with a large store, and it could silently bind the suite to the wrong
+  version of a dependency. Dependencies ASDF can already find are now skipped,
+  so callers that set `CL_SOURCE_REGISTRY` first pay nothing and cannot pick up
+  a stray copy, while a bare checkout still discovers its siblings.
+- `t/test-macros.lisp` was listed as a `cl-boundary-kit/test` component but was
+  never added to git. Nix copies only tracked files into the store, so all three
+  `nix flake check` derivations failed with `Couldn't load
+  .../t/test-macros.lisp: file does not exist`, while a local `sbcl --script
+  run-tests.lisp` passed by reading the working tree directly.
+- `nix build .#cl-boundary-kit` failed with `Component :CL-LOG-KIT not found`.
+  The `packages.cl-boundary-kit` derivation never passed `cl-log-kit` to
+  `buildASDFSystem`'s `lispLibs`; declaring it as a flake input only fed the
+  `CL_SOURCE_REGISTRY` that `checks` and `devShells` use.
+- `flake.lock` had drifted from `flake.nix`: the lock pinned `cl-prolog` v0.6.0
+  and `cl-weave` v0.10.0 while `flake.nix` declared v0.8.0 and v0.11.0, and the
+  declared `cl-log-kit` tag `v1.1.0` does not exist upstream at all. Inputs are
+  now pinned to released tags that do exist -- `cl-weave` v1.0.0, `cl-prolog`
+  v1.0.1, `cl-log-kit` v1.0.0, `cl-process-kit` v0.2.0, `cl-json-kit` v1.0.0 --
+  and the lock was regenerated to match. No source change was required.
+  `cl-prolog` is pinned at v1.0.1 rather than v1.0.0 because v1.0.0 carries a
+  defect this repository's builds surface: an unbound variable in the type_error
+  path of its Lisp-shape clause converter, which SBCL reports as a compile
+  warning in every cold `nix flake check` log here.
+
+### Documentation and build
+
+- `README.md` is now a lean landing page (badges, a short description, a
+  Quick Start snippet, and links out), matching `cl-weave`'s README structure.
+  The exhaustive, executable-verified API/example contract it used to carry
+  moved to the `docs/src` Guide pages (`docs/src/composition.md` and its
+  sibling topic pages), which the test suite (`t/api-test.lisp`,
+  `t/api-doc-claims-test.lisp`, `t/api-doc-links-test.lisp`,
+  `t/api-executable-docs-test.lisp`, `t/examples-test.lisp`) now checks
+  instead of `README.md` `## API Overview`/`## Examples`. `COMPATIBILITY.md`,
+  `ARCHITECTURE.md`, `GOVERNANCE.md`, `SUPPORT.md`, `FAQ.md`, `RELEASE.md`,
+  and `CONTRIBUTING.md` (and their `docs/src` mirrors) were updated to point
+  at the new location; no exported symbol or documented behavior changed.
+
+### Internal
+
+- `cache-get`, `kv-get`, and `secret-get` on a recording boundary each
+  hand-wrote the same `(values value present)` delegate-then-record shape;
+  a new `define-recording-delegate-present-method` macro alongside
+  `define-recording-delegate-method` (`src/recording-boundary.lisp`)
+  generates it. The matching `test-kv-store`/`test-secret-store` `gethash`
+  lookup was folded into a shared `%hash-table-get-present`
+  (`src/core-utilities.lisp`).
+- Removed the no-op `define-runtime-function` macro
+  (`(progn (defun ...) 'name)`, behaviorally identical to plain `defun`) and
+  its 7 call sites.
+- `%process-call-keywords` (`src/process-recording.lisp`) built two
+  near-duplicate plist literals instead of the conditional-splice idiom
+  `%native-process-options` already established; now shares that style.
+- `%wait-for-process-with-deadline` (`src/process-exec-lifecycle.lisp`)
+  folded an unconditional "no deadline" branch into a polling loop clause;
+  restructured as a top-level `if`.
+- Added `deftest-reset-recording-clears-history` (`t/test-macros.lisp`), a
+  shared `it`-case generator for the "one call recorded, reset clears it and
+  returns the object" contract every recording boundary's test file
+  asserted by hand; converted 19 of the 22 near-identical occurrences (3
+  with an extra post-reset re-trigger assertion were left as-is).
+- Adopted `cl-weave`'s `with-soft-assertions` in `t/context-test.lisp` and
+  `t/kv-test.lisp` for `it` blocks with several independent `expect` calls.
+- `flake.nix`: removed the unused `inputs@` capture in `outputs`, and
+  generalized the `.asd` `:version` reader into an `asdVersion` function so the
+  `cl-log-kit` derivation added for `lispLibs` derives its version from the same
+  single source of truth rather than hard-coding one.
+- Added `timeout-minutes: 10` to `.github/workflows/release.yml`'s job,
+  matching `ci.yml` and `docs.yml`'s existing job-level timeouts.
+- `%record-call` (`src/core-utilities.lisp`), the macro behind every recording
+  boundary's call log, built a fresh `call` list and then deep-copied that
+  whole freshly-consed spine again before storing it. Now copies only the
+  `:arguments`/`:result` value forms while building the list, halving the
+  consing on every recorded call (cache, kv, secret, subscriber, scheduler,
+  rate limiter, process, network, filesystem, environment) with no change to
+  recorded history.
+- `plist-remove-keys` (`src/core-utilities.lisp`), used by
+  `filesystem-store-file` on every write, allocated an `eq` hash-table to
+  test membership in a fixed 3-keyword list; replaced with a `member` scan,
+  which is faster and allocation-free at that size.
+- `define-plist-accessor` (`src/core-utilities.lisp`) now declaims its
+  generated reader `inline`, so the ~17 plist-getter wrappers it backs
+  (`%filesystem-*`, `%process-*`, `recorded-call-*`) avoid full call overhead
+  at their call sites instead of paying for a function call to run one
+  `getf`.
+- `define-emit-event-boundary-dispatch`'s (`src/core-utilities.lisp`)
+  `recording-<class>` method, and the hand-written analog in
+  `recording-logger`'s `%logger-emit-event` (`src/logging.lisp`), each
+  deep-copied an event a second time purely to hand it to the delegate --
+  redundant, since whichever `%<class>-emit-event`/`%logger-emit-event`
+  method receives it next (plain, test, or another recording level) always
+  makes its own defensive copy before storing or forwarding. Now passes the
+  event through uncopied at that hand-off point; backs `metrics`, `notifier`,
+  and `logger` recording boundaries, including nested ones.
+- `%define-recording-filesystem-operation` (`src/filesystem-classes.lisp`)
+  validated its `filesystem` argument via `%require-filesystem`, then called
+  `%with-recording-filesystem-call`, which validates it again the same way;
+  every `filesystem-read-file`/`-write-file`/`-probe-file`/`-delete-file`/
+  `-copy-file`/`-rename-file`/`-list-directory`/`-make-directory`/
+  `-directory-exists-p`/`-delete-directory` call paid for the check twice.
+  Dropped the outer, now-redundant validation.
+
 ## 0.6.0
 
 ### Changed (breaking)

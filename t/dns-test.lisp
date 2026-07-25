@@ -64,13 +64,12 @@
   (expect (lambda () (funcall operation (make-test-dns-resolver)))
           :to-signal-message-containing "Unsupported DNS resolver type"))
 
-(it "reset-recording-dns-calls-clears-history-and-returns-the-resolver"
-  (let ((resolver (make-recording-dns-resolver
-                   :delegate (make-test-dns-resolver :hosts '(("a.test" . ("10.0.0.1")))))))
-    (dns-resolve resolver "a.test")
-    (expect (= 1 (length (recording-dns-calls resolver))) :to-be-truthy)
-    (expect (eq resolver (reset-recording-dns-calls resolver)) :to-be-truthy)
-    (expect (null (recording-dns-calls resolver)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-dns-calls-clears-history-and-returns-the-resolver"
+    (resolver (make-recording-dns-resolver
+               :delegate (make-test-dns-resolver :hosts '(("a.test" . ("10.0.0.1"))))))
+    (recording-dns-calls reset-recording-dns-calls)
+  (dns-resolve resolver "a.test"))
 
 (it "make-test-dns-resolver-rejects-non-list-addresses"
   (signals-error-message-contains "DNS addresses for"

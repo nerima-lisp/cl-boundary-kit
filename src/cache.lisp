@@ -115,14 +115,8 @@ to an empty `make-test-cache`."
   (clrhash (test-cache-table cache))
   cache)
 
-(defmethod cache-get ((cache recording-cache) key &optional default)
-  (multiple-value-bind (value present)
-      (cache-get (recording-cache-delegate cache) key default)
-    (%record-call (%recording-cache-calls cache)
-      :operation :get
-      :arguments (list key default)
-      :result value)
-    (values value present)))
+(define-recording-delegate-present-method cache-get (cache recording-cache recording-cache-delegate %recording-cache-calls)
+    ((key &optional default) (key default)) :get (list key default))
 
 (define-recording-delegate-method cache-put (cache recording-cache recording-cache-delegate %recording-cache-calls)
     ((key value &key ttl) (key value :ttl ttl)) :put (list key value ttl)

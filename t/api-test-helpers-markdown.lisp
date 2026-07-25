@@ -56,10 +56,22 @@
         (when item
           (push item items))))))
 
+(defparameter *docs-guide-pages*
+  '("docs/src/composition.md"
+    "docs/src/filesystem-and-environment.md"
+    "docs/src/time-and-randomness.md"
+    "docs/src/process-network-and-dns.md"
+    "docs/src/observability.md"
+    "docs/src/state-and-storage.md"
+    "docs/src/concurrency-control.md"
+    "docs/src/messaging.md"
+    "docs/src/system-and-host.md"
+    "docs/src/testing-helpers.md"))
+
 (defun readme-api-overview-symbol-names ()
-  (let* ((readme (repository-file-string "README.md"))
-         (section (markdown-section readme "## API Overview" "## Examples")))
-    (markdown-code-items section)))
+  (mapcan (lambda (page)
+            (markdown-code-items (repository-file-string page)))
+          *docs-guide-pages*))
 
 (defun markdown-fenced-code-blocks (section language)
   (let ((fence (concatenate 'string "```" language))
@@ -85,20 +97,20 @@
     (nreverse blocks)))
 
 (defun markdown-example-paths (section)
+  ;; Extracts from the link TEXT ([`examples/x.lisp`](...)), not the href, so
+  ;; this works whether the href is a checkout-relative path (README.md) or an
+  ;; absolute GitHub blob URL (the published docs site's examples.md).
   (let ((items '()))
     (dolist (line (split-lines section) (nreverse items))
       (let* ((trimmed (trimmed-markdown-line line))
-             (open (search "](" trimmed))
-             (close (and open (position #\) trimmed :start (+ open 2)))))
+             (open (search "[`" trimmed))
+             (close (and open (search "`]" trimmed :start2 (+ open 2)))))
         (when (and open close)
           (let ((path (subseq trimmed (+ open 2) close)))
             (when (and (>= (length path) (length "examples/a.lisp"))
                        (string= "examples/" path :end2 (length "examples/"))
                        (string= ".lisp" path :start2 (- (length path) (length ".lisp"))))
               (push path items))))))))
-
-(defun readme-fenced-code-blocks (start-heading end-heading language)
-  (fenced-code-blocks-from-file "README.md" start-heading end-heading language))
 
 (defun document-fenced-code-blocks (pathname start-heading end-heading language)
   (fenced-code-blocks-from-file pathname start-heading end-heading language))

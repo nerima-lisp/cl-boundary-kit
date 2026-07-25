@@ -9,7 +9,7 @@
   '(:if-exists :if-does-not-exist :external-format)
   "The keyword options FILESYSTEM-STORE-FILE accepts; any other key is rejected.")
 
-(define-runtime-function filesystem-store-file (filesystem path content &rest options)
+(defun filesystem-store-file (filesystem path content &rest options)
   "Write CONTENT to PATH through FILESYSTEM and return a truthy success value."
   (unless (evenp (length options))
     (error "Option list ended after ~S." (car (last options))))

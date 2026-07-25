@@ -135,12 +135,11 @@
   (expect (lambda () (funcall operation (make-random-source :state (make-random-state t))))
           :to-signal-message-containing "Unsupported random source type"))
 
-(it "reset-recording-random-source-calls-clears-history-and-returns-the-source"
-  (let ((source (make-recording-random-source :delegate (make-test-random-source :values '(1 2)))))
-    (random-source-random source 10)
-    (expect (= (length (recording-random-source-calls source)) 1) :to-be-truthy)
-    (expect (eq (reset-recording-random-source-calls source) source) :to-be-truthy)
-    (expect (null (recording-random-source-calls source)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-random-source-calls-clears-history-and-returns-the-source"
+    (source (make-recording-random-source :delegate (make-test-random-source :values '(1 2))))
+    (recording-random-source-calls reset-recording-random-source-calls)
+  (random-source-random source 10))
 
 (it "random-source-element-picks-an-element-by-the-drawn-index"
   (let ((source (make-test-random-source :values '(0 2))))

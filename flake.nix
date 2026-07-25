@@ -5,34 +5,34 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     cl-weave = {
-      url = "github:nerima-lisp/cl-weave/v0.11.0";
+      url = "github:nerima-lisp/cl-weave/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cl-prolog = {
-      url = "github:nerima-lisp/cl-prolog/v0.8.0";
+      url = "github:nerima-lisp/cl-prolog/v1.0.1";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.cl-weave.follows = "cl-weave";
     };
 
     cl-log-kit = {
-      url = "github:nerima-lisp/cl-log-kit/v1.1.0";
+      url = "github:nerima-lisp/cl-log-kit/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cl-process-kit = {
-      url = "github:nerima-lisp/cl-process-kit/v0.1.0";
+      url = "github:nerima-lisp/cl-process-kit/v0.2.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cl-json-kit = {
-      url = "github:nerima-lisp/cl-json-kit/v0.3.0";
+      url = "github:nerima-lisp/cl-json-kit/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
   outputs =
-    inputs@{
+    {
       self,
       nixpkgs,
       cl-weave,
@@ -48,21 +48,30 @@
         "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
-      sourceRegistry = "${cl-weave}//:${cl-prolog}//:${cl-log-kit}//:${cl-process-kit}//:${cl-json-kit}//:${self}//";
+      # Each entry is a checkout root whose .asd sits at the top level, so these
+      # are deliberately non-recursive: a `//' entry makes every SBCL process
+      # that inherits CL_SOURCE_REGISTRY re-walk all six trees in full before
+      # resolving a system it would have found immediately. The checks start one
+      # process per examples/*.lisp file, so that scan is paid ~40 times per run.
+      # run-tests.lisp builds its own registry the same way.
+      sourceRegistry = "${cl-weave}:${cl-prolog}:${cl-log-kit}:${cl-process-kit}:${cl-json-kit}:${self}";
 
-      # Single source of truth for the package version: the `:version` form in
-      # cl-boundary-kit.asd. A release only ever edits the .asd file and every
-      # Nix package (default + docs) follows automatically. Nix regexes are
-      # whole-string anchored and `.` never spans newlines, so the version is
-      # extracted line-by-line rather than with one multi-line match.
-      version =
+      # Single source of truth for a package version: the `:version` form in its
+      # .asd. A release only ever edits the .asd file and every Nix package
+      # (default + docs) follows automatically. Nix regexes are whole-string
+      # anchored and `.` never spans newlines, so the version is extracted
+      # line-by-line rather than with one multi-line match.
+      asdVersion =
+        asd:
         let
-          lines = nixpkgs.lib.splitString "\n" (builtins.readFile ./cl-boundary-kit.asd);
+          lines = nixpkgs.lib.splitString "\n" (builtins.readFile asd);
           versionLine = builtins.head (
             builtins.filter (line: builtins.match "[[:space:]]*:version \"[^\"]*\"" line != null) lines
           );
         in
         builtins.head (builtins.match "[[:space:]]*:version \"([^\"]*)\"" versionLine);
+
+      version = asdVersion ./cl-boundary-kit.asd;
 
       mkDocs =
         pkgs:
@@ -98,6 +107,17 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          # cl-boundary-kit.asd declares :depends-on (:asdf :cl-log-kit), so the
+          # dependency has to reach buildASDFSystem through lispLibs. Declaring
+          # cl-log-kit as a flake input is not enough on its own: that only feeds
+          # the CL_SOURCE_REGISTRY used by checks/devShells, and without this the
+          # package build fails with `Component :CL-LOG-KIT not found`.
+          clLogKit = pkgs.sbcl.buildASDFSystem {
+            pname = "cl-log-kit";
+            version = asdVersion "${cl-log-kit}/cl-log-kit.asd";
+            src = cl-log-kit;
+            systems = [ "cl-log-kit" ];
+          };
         in
         rec {
           cl-boundary-kit = pkgs.sbcl.buildASDFSystem {
@@ -105,6 +125,7 @@
             inherit version;
             src = self;
             systems = [ "cl-boundary-kit" ];
+            lispLibs = [ clLogKit ];
           };
           docs = mkDocs pkgs;
           default = cl-boundary-kit;

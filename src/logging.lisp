@@ -85,9 +85,13 @@ being able to reclaim it by discarding the object."
   ;; recursing into its %LOGGER-EMIT-EVENT method would push the event onto
   ;; the delegate's own history too -- double-recording, not cascading.
   (push (%copy-boundary-event event) (%logger-events logger))
+  ;; No copy for the delegate call: whichever %LOGGER-EMIT-EVENT method
+  ;; handles EVENT next always makes its own defensive copy before storing or
+  ;; forwarding it further, so a copy made here just to hand off would be
+  ;; discarded unused.
   (let ((delegate (recording-logger-delegate logger)))
     (unless (typep delegate 'test-logger)
-      (%logger-emit-event delegate (%copy-boundary-event event))))
+      (%logger-emit-event delegate event)))
   event)
 
 (defmethod logger-log ((logger logger) level message &rest fields)

@@ -18,7 +18,7 @@ verification in this repository.
   discoverable by ASDF
 - Does not claim compatibility for hosts outside the emitted flake systems;
   direct SBCL execution is the fallback there
-- Regression-checks the README installation, quick-start, and test commands
+- Regression-checks the docs/src installation, quick-start, and test commands
   against a fresh SBCL process, exercising the checkout install flow end to end
 - Regression-checks the documented REPL runner as the stable verification path:
   `asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL process
@@ -28,9 +28,9 @@ verification in this repository.
   SBCL process via direct `sbcl --script examples/<name>.lisp` execution
 - Regression-checks cookbook snippets and documentation contracts alongside
   the checked-in examples and README flows
-- Treats the exported symbol list in `README.md` `## API Overview` and the file
-  index in `README.md` `## Examples` as regression-checked documentation
-  contracts
+- Treats the exported symbol list documented across the `docs/src` Guide pages
+  and the file index in `docs/src/examples.md` as regression-checked
+  documentation contracts
 - Produces `report.json` for machine-readable test results and coverage data,
   summary, and HTML files from the corresponding Ubuntu/Linux Nix checks
 

@@ -19,8 +19,9 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *readme-snippet-contracts*
     '((:prefix "README-QUICK-START"
-     :start-heading "## Quick Start"
-     :end-heading "## Core Concepts"
+     :file "docs/src/quick-start.md"
+     :start-heading "# Quick Start"
+     :end-heading nil
      :expected-results
      ((1000 1005)
       (:RESULT
@@ -44,8 +45,9 @@
           :IF-DOES-NOT-EXIST :CREATE
           :EXTERNAL-FORMAT :UTF-8))))))
     (:prefix "README-TESTING-HELPER"
-     :start-heading "### Testing Helper"
-     :end-heading "### Boundary Context"
+     :file "docs/src/core-concepts.md"
+     :start-heading "## Testing Helper"
+     :end-heading "## Boundary Context"
      :expected-results
      ((:OPERATION :WRITE-FILE
        :ARGUMENTS (#P"example.txt"
@@ -78,13 +80,14 @@
        ,@(loop for contract in resolved-contracts
              append
              (let* ((prefix (getf contract :prefix))
+                    (file (getf contract :file))
                     (start-heading (getf contract :start-heading))
                     (end-heading (getf contract :end-heading))
                     (expected-results (getf contract :expected-results)))
                (cons
                 `(it ,(readme-snippet-test-symbol prefix "COUNT-MATCHES")
                    (expect (= ,(length expected-results)
-                          (length (readme-snippet-blocks ,start-heading ,end-heading))) :to-be-truthy))
+                          (length (readme-snippet-blocks ,file ,start-heading ,end-heading))) :to-be-truthy))
                 (loop for expected in expected-results
                       for index from 0
                       collect
@@ -95,10 +98,11 @@
                                     (eval-readme-snippet
                                      (nth ,index
                                           (readme-snippet-blocks
+                                           ,file
                                            ,start-heading
                                            ,end-heading)))) :to-be-truthy)))))))))
 
 (define-readme-snippet-contract-tests *readme-snippet-contracts*)
 
-(defun readme-snippet-blocks (start-heading end-heading)
-  (readme-fenced-code-blocks start-heading end-heading "lisp"))
+(defun readme-snippet-blocks (file start-heading end-heading)
+  (document-fenced-code-blocks file start-heading end-heading "lisp"))

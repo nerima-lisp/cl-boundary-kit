@@ -67,12 +67,11 @@
   (expect (lambda () (funcall operation (make-test-rate-limiter)))
           :to-signal-message-containing "Unsupported rate limiter type"))
 
-(it "reset-recording-rate-limiter-calls-clears-history-and-returns-the-limiter"
-  (let ((limiter (make-recording-rate-limiter)))
-    (rate-limiter-allow-p limiter)
-    (expect (= 1 (length (recording-rate-limiter-calls limiter))) :to-be-truthy)
-    (expect (eq limiter (reset-recording-rate-limiter-calls limiter)) :to-be-truthy)
-    (expect (null (recording-rate-limiter-calls limiter)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-rate-limiter-calls-clears-history-and-returns-the-limiter"
+    (limiter (make-recording-rate-limiter))
+    (recording-rate-limiter-calls reset-recording-rate-limiter-calls)
+  (rate-limiter-allow-p limiter))
 
 (it "call-if-allowed-runs-the-thunk-only-while-quota-remains"
   (let ((limiter (make-test-rate-limiter :capacity 1)))

@@ -42,16 +42,18 @@
       (sleep 0.01))))
 
 (defun %wait-for-process-with-deadline (process deadline)
-  (loop
-    when (null deadline) do
-      (sb-ext:process-wait process)
-      (return nil)
-    when (not (%process-alive-p process)) do
-      (return nil)
-    when (>= (get-internal-real-time) deadline) do
-      (%kill-process-with-escalation process)
-      (return t)
-    do (sleep 0.01)))
+  ;; DEADLINE never changes across iterations, so whether one exists at all is
+  ;; an up-front branch, not another polling-loop clause alongside liveness
+  ;; and expiry checks.
+  (if (null deadline)
+      (progn (sb-ext:process-wait process) nil)
+      (loop
+        when (not (%process-alive-p process)) do
+          (return nil)
+        when (>= (get-internal-real-time) deadline) do
+          (%kill-process-with-escalation process)
+          (return t)
+        do (sleep 0.01))))
 
 (defun %wait-for-process-with-timeout (process timeout)
   (%wait-for-process-with-deadline process (%deadline-seconds timeout)))

@@ -69,10 +69,9 @@
   (expect (lambda () (funcall operation (make-test-args)))
           :to-signal-message-containing "Unsupported command-line arguments type"))
 
-(it "reset-recording-args-calls-clears-history-and-returns-the-args"
-  (let ((args (make-recording-args :delegate (make-test-args :arguments (list "a")))))
-    (args-list args)
-    (expect (= 1 (length (recording-args-calls args))) :to-be-truthy)
-    (expect (eq args (reset-recording-args-calls args)) :to-be-truthy)
-    (expect (null (recording-args-calls args)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-args-calls-clears-history-and-returns-the-args"
+    (args (make-recording-args :delegate (make-test-args :arguments (list "a"))))
+    (recording-args-calls reset-recording-args-calls)
+  (args-list args))
 

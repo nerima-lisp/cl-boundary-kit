@@ -9,7 +9,7 @@
 
 (it "contributing-local-setup-install-snippet-matches-readme-installation-snippet"
   (expect (string=
-       (first-readme-fenced-code-block "## Installation" "## Quick Start" "lisp")
+       (single-document-fenced-code-block "docs/src/installation.md" "# Installation" "## Nix" "lisp")
        (nth-document-fenced-code-block "CONTRIBUTING.md"
                                        "## Local Setup"
                                        "## Change Guidelines"
@@ -18,7 +18,7 @@
 
 (it "contributing-local-setup-repl-snippet-matches-readme-testing-snippet"
   (expect (string=
-       (first-readme-fenced-code-block "## Testing" "## Compatibility" "lisp")
+       (single-document-fenced-code-block "docs/src/testing.md" "# Running the Test Suite" nil "lisp")
        (nth-document-fenced-code-block "CONTRIBUTING.md"
                                        "## Local Setup"
                                        "## Change Guidelines"

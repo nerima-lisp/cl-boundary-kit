@@ -3,6 +3,11 @@
 `cl-boundary-kit` is intentionally small. Changes should keep the API explicit
 and the dependency surface minimal.
 
+Changes to the supported public contract should update the executable tests,
+relevant examples, and `README.md` in the same change. Deprecations or
+intentionally breaking changes should also update `CHANGELOG.md` with
+migration guidance when a supported replacement exists.
+
 ## Workflow
 
 1. Make a focused change.
@@ -72,8 +77,8 @@ before submitting a change.
 - Prefer small protocol additions over broad abstractions.
 - Keep recording/fake variants simple and inspectable.
 - Do not add a new exported symbol unless it is part of the stable public API.
-- Update `README.md` `## API Overview` when the public API changes.
-- Update `README.md` `## Examples` when example files are added, removed, or renamed.
+- Update the relevant `docs/src` Guide page when the public API changes.
+- Update `docs/src/examples.md` when example files are added, removed, or renamed.
 - Update examples when a public API changes.
 - Update `CHANGELOG.md` in the same change when behavior is intentionally
   deprecated, removed, or changed in a breaking way.
@@ -91,9 +96,9 @@ before submitting a change.
 
 Every exported subsystem should have at least one regression test. Prefer
 tests that demonstrate observable behavior over tests that only inspect
-implementation details. The test suite also checks that `README.md`
-documents the current exported API surface and the checked-in example files,
-and that compatibility, release, cookbook, and other policy documents stay
+implementation details. The test suite also checks that the `docs/src` Guide
+pages document the current exported API surface and the checked-in example
+files, and that compatibility, release, cookbook, and other policy documents stay
 aligned with executable verification, so documentation drift should be fixed in
 the same change as the behavior. The checked-in `examples/*.lisp` files are
 also expected to run from a fresh SBCL process after loading the checkout

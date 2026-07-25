@@ -90,12 +90,11 @@
   (expect (lambda () (funcall operation (make-test-kv-store)))
           :to-signal-message-containing "Unsupported key/value store type"))
 
-(it "reset-recording-kv-calls-clears-history-and-returns-the-store"
-  (let ((store (make-recording-kv-store)))
-    (kv-put store "k" 1)
-    (expect (= 1 (length (recording-kv-calls store))) :to-be-truthy)
-    (expect (eq store (reset-recording-kv-calls store)) :to-be-truthy)
-    (expect (null (recording-kv-calls store)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-kv-calls-clears-history-and-returns-the-store"
+    (store (make-recording-kv-store))
+    (recording-kv-calls reset-recording-kv-calls)
+  (kv-put store "k" 1))
 
 (it "kv-update-reads-modifies-and-writes-a-value"
   (let ((store (make-test-kv-store :initial '(("n" . 1)))))
@@ -122,13 +121,14 @@
   (let ((store (make-test-kv-store :initial '(("a" . 1))))
         (calls 0))
     (flet ((compute () (incf calls) 99))
-      (expect (= 1 (kv-get-or-put store "a" #'compute)) :to-be-truthy)
-      (expect (= 0 calls) :to-be-truthy)
-      (expect (= 99 (kv-get-or-put store "b" #'compute)) :to-be-truthy)
-      (expect (= 99 (kv-get store "b")) :to-be-truthy)
-      ;; Second call for "b" is a hit, so compute does not run again.
-      (expect (= 99 (kv-get-or-put store "b" #'compute)) :to-be-truthy)
-      (expect (= 1 calls) :to-be-truthy))))
+      (with-soft-assertions
+        (expect (= 1 (kv-get-or-put store "a" #'compute)) :to-be-truthy)
+        (expect (= 0 calls) :to-be-truthy)
+        (expect (= 99 (kv-get-or-put store "b" #'compute)) :to-be-truthy)
+        (expect (= 99 (kv-get store "b")) :to-be-truthy)
+        ;; Second call for "b" is a hit, so compute does not run again.
+        (expect (= 99 (kv-get-or-put store "b" #'compute)) :to-be-truthy)
+        (expect (= 1 calls) :to-be-truthy)))))
 
 (it "kv-get-or-put-rejects-a-non-function-thunk"
   (signals error
@@ -136,12 +136,13 @@
 
 (it "kv-increment-counts-from-zero-and-honors-a-delta"
   (let ((store (make-test-kv-store)))
-    (expect (= 1 (kv-increment store "hits")) :to-be-truthy)
-    (expect (= 2 (kv-increment store "hits")) :to-be-truthy)
-    (expect (= 12 (kv-increment store "hits" 10)) :to-be-truthy)
-    (expect (= 12 (kv-get store "hits")) :to-be-truthy)
-    ;; A negative delta decrements.
-    (expect (= 11 (kv-increment store "hits" -1)) :to-be-truthy)))
+    (with-soft-assertions
+      (expect (= 1 (kv-increment store "hits")) :to-be-truthy)
+      (expect (= 2 (kv-increment store "hits")) :to-be-truthy)
+      (expect (= 12 (kv-increment store "hits" 10)) :to-be-truthy)
+      (expect (= 12 (kv-get store "hits")) :to-be-truthy)
+      ;; A negative delta decrements.
+      (expect (= 11 (kv-increment store "hits" -1)) :to-be-truthy))))
 
 (it "kv-increment-rejects-a-non-real-delta"
   (signals error

@@ -54,12 +54,11 @@
   (expect (lambda () (funcall operation (make-test-feature-flags)))
           :to-signal-message-containing "Unsupported feature flags type"))
 
-(it "reset-recording-feature-flag-calls-clears-history-and-returns-the-flags"
-  (let ((flags (make-recording-feature-flags)))
-    (feature-enabled-p flags :a)
-    (expect (= 1 (length (recording-feature-flag-calls flags))) :to-be-truthy)
-    (expect (eq flags (reset-recording-feature-flag-calls flags)) :to-be-truthy)
-    (expect (null (recording-feature-flag-calls flags)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-feature-flag-calls-clears-history-and-returns-the-flags"
+    (flags (make-recording-feature-flags))
+    (recording-feature-flag-calls reset-recording-feature-flag-calls)
+  (feature-enabled-p flags :a))
 
 (it "test-feature-flags-enumerates-enabled-flags-sorted"
   ;; Sorted by PRINC-TO-STRING under STRING<, so uppercased keyword names

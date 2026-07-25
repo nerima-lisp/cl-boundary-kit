@@ -72,10 +72,9 @@
     (expect (= (length (recording-environment-calls inner)) 0) :to-be-truthy)
     (expect (= (length (recording-environment-calls inner-delegate)) 0) :to-be-truthy)))
 
-(it "reset-recording-environment-calls-clears-history-and-returns-the-environment"
-  (let ((env (make-test-environment)))
-    (environment-set env "A" "1")
-    (expect (= (length (recording-environment-calls env)) 1) :to-be-truthy)
-    (expect (eq (reset-recording-environment-calls env) env) :to-be-truthy)
-    (expect (null (recording-environment-calls env)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-environment-calls-clears-history-and-returns-the-environment"
+    (env (make-test-environment))
+    (recording-environment-calls reset-recording-environment-calls)
+  (environment-set env "A" "1"))
 

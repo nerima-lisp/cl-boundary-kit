@@ -123,8 +123,9 @@ parameter names/keyword-pairs matching LAMBDA-LIST, for forwarding &optional
 and &key defaults correctly), records the call onto CALLS-ACCESSOR under
 OPERATION with ARGUMENTS-FORM, and returns the delegate's result.
 
-Only fits the single-return-value \"call then record\" shape; a method that
-returns multiple values (e.g. a present-p flag) is written by hand instead."
+Only fits the single-return-value \"call then record\" shape; see
+DEFINE-RECORDING-DELEGATE-PRESENT-METHOD for the two-value \"value, present-p\"
+shape instead."
   `(defmethod ,generic-name ((,instance-var ,recording-class) ,@lambda-list)
      ,@before
      (let ((result (,generic-name (,delegate-accessor ,instance-var) ,@call-args)))
@@ -133,3 +134,21 @@ returns multiple values (e.g. a present-p flag) is written by hand instead."
          :arguments ,arguments-form
          :result result)
        result)))
+
+(defmacro define-recording-delegate-present-method
+    (generic-name (instance-var recording-class delegate-accessor calls-accessor)
+     (lambda-list call-args) operation arguments-form &optional (result-form 'value))
+  "Like DEFINE-RECORDING-DELEGATE-METHOD, for a GENERIC-NAME that delegates and
+returns two values, (VALUES VALUE PRESENT-P), such as a lookup with a default.
+RESULT-FORM controls what gets recorded under :RESULT -- the fetched VALUE by
+default, or an explicit form (e.g. :REDACTED) when the value itself must not
+appear in call history."
+  `(defmethod ,generic-name ((,instance-var ,recording-class) ,@lambda-list)
+     (let ((delegate (,delegate-accessor ,instance-var)))
+       (multiple-value-bind (value present)
+           (,generic-name delegate ,@call-args)
+         (%record-call (,calls-accessor ,instance-var)
+           :operation ,operation
+           :arguments ,arguments-form
+           :result ,result-form)
+         (values value present)))))

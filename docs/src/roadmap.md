@@ -1,7 +1,9 @@
 # Roadmap
 
-The current codebase is intentionally narrow. The main goal is to keep the
-core API stable while improving usability and adoption quality.
+The codebase is intentionally narrow. As of `1.0.0` the exported API is a
+stable contract under the [Stability Policy](stability-policy.md), so the goal
+of subsequent `1.x` work is usability and adoption quality rather than surface
+growth.
 
 ## Status Semantics
 
@@ -14,7 +16,8 @@ core API stable while improving usability and adoption quality.
 
 ## Near-Term
 
-- Keep the exported API stable and intentional.
+- Keep the exported `1.x` API stable and intentional; a new export has to
+  earn its place against the non-goals below.
 - Preserve parity between examples, README snippets, and regression tests.
 - Keep the SBCL checkout flow and `run-tests.lisp` green, and keep the
   documented REPL test-runner contract green from a fresh process.

@@ -65,23 +65,12 @@ than the real secret value.")
   (funcall (secret-store-get-fn store) name default))
 
 (defmethod secret-get ((store test-secret-store) name &optional default)
-  (let ((table (test-secret-store-table store)))
-    (multiple-value-bind (value present) (gethash name table)
-      (if present
-          (values value t)
-          (values default nil)))))
+  (%hash-table-get-present (test-secret-store-table store) name default))
 
-(defmethod secret-get ((store recording-secret-store) name &optional default)
-  (let ((delegate (recording-secret-store-delegate store)))
-    (multiple-value-bind (value present)
-        (secret-get delegate name default)
-      ;; Record only the name and a redacted marker: never the secret value or the
-      ;; (possibly secret) default, so the history stays safe to inspect.
-      (%record-call (%recording-secret-calls store)
-        :operation :get
-        :arguments (list name)
-        :result :redacted)
-      (values value present))))
+;; Record only the name and a redacted marker: never the secret value or the
+;; (possibly secret) default, so the history stays safe to inspect.
+(define-recording-delegate-present-method secret-get (store recording-secret-store recording-secret-store-delegate %recording-secret-calls)
+    ((name &optional default) (name default)) :get (list name) :redacted)
 
 ;; Secret NAMES are configuration keys, not the secret values, so they are safe
 ;; to record verbatim (unlike SECRET-GET's redacted result).

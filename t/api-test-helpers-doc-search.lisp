@@ -91,7 +91,7 @@
        :file "FAQ.md"
        :contains ("## What Counts As The Stable Public Surface?"
                   "contract is defined by:"
-                  "exported symbols documented in `README.md`"
+                  "exported symbols documented across the docs/src Guide pages"
                   "checked-in examples and cookbook snippets"
                   "COMPATIBILITY.md"
                   "CONTRIBUTING.md"
@@ -134,8 +134,12 @@
       (security-policy-documents-supported-versions-and-reporting-process
        :file "SECURITY.md"
        :exists t
+       ;; The supported-version row itself is deliberately not asserted here:
+       ;; RELEASE-VERSION-DOCUMENTS-STAY-CONSISTENT-ACROSS-ASD-AND-POLICY-DOCS
+       ;; derives it from cl-boundary-kit.asd's :version, so repeating the
+       ;; literal would only add a copy that has to be hand-edited every
+       ;; release and can silently disagree with the derived check.
        :contains ("## Supported Versions"
-                  "| `0.6.x` | Yes |"
                   "private report"
                   "5 business days"
                   "## Disclosure Expectations"))
@@ -182,14 +186,19 @@
                   "`COOKBOOK.md`")
        :absent ("No unreleased changes yet."))))
 
+  ;; These cases used to check README.md's own summary prose linking out to
+  ;; each governance document. Now that README is a lean landing page without
+  ;; those per-topic sections, they check the docs/src page(s) that took over
+  ;; as the authoritative source for the same cross-reference, using an
+  ;; explicit :FILE (or a combined :HAYSTACK) instead of a README :SECTION.
   (defparameter *readme-document-search-shared-cases*
     '((readme-repository-layout-documents-the-changelog
-       :section ("## Repository Layout" "## Testing")
+       :file "docs/src/repository-layout.md"
        :contains ("`COMPATIBILITY.md`"
                   "`CHANGELOG.md`"
                   "release history"))
       (readme-repository-layout-documents-the-canonical-test-entrypoint-and-license
-       :section ("## Repository Layout" "## Testing")
+       :file "docs/src/repository-layout.md"
        :contains ("`run-tests.lisp`"
                   "canonical checkout test runner"
                   "`COOKBOOK.md`"
@@ -207,10 +216,10 @@
                   "`LICENSE`"
                   "MIT license terms"))
       (readme-links-the-governance-documents
-       :section ("## Contributing" "## Cookbook")
+       :file "docs/src/repository-layout.md"
        :contains ("CONTRIBUTING.md"))
       (readme-contributing-and-governance-sections-document-contract-maintenance
-       :section ("## Contributing" "## Cookbook")
+       :file "CONTRIBUTING.md"
        :contains ("supported public contract"
                   "executable tests"
                   "relevant examples"
@@ -218,38 +227,16 @@
                   "CHANGELOG.md"
                   "migration guidance"))
       (readme-links-the-release-process-document
-       :section ("## Release Process" "## License")
+       :file "docs/src/contributing.md"
        :contains ("RELEASE.md"
                   "executable verification"))
       (readme-compatibility-section-links-the-compatibility-document
-       :section ("## Compatibility" "## Stability Policy")
+       :haystack (concatenate 'string
+                              (repository-file-string "docs/src/contributing.md")
+                              (repository-file-string "docs/src/compatibility.md"))
        :contains ("COMPATIBILITY.md"
                   "executable verification"
-                  "unverified Common Lisp implementations or platforms"))
-      (readme-faq-and-support-sections-document-routing-expectations
-       :section ("## FAQ" "## Architecture")
-       :contains ("FAQ.md"
-                  "implementation/platform-specific behavior"
-                  "support or security"
-                  "SUPPORT.md"
-                  "private security route"
-                  "exact exported API"
-                  "minimal"
-                  "Common Lisp implementation/platform"))
-      (readme-security-section-routes-sensitive-reports-correctly
-       :section ("## Security" "## Roadmap")
-       :contains ("SECURITY.md"
-                  "private security route"
-                  "supported"
-                  "versions"
-                  "Do not post exploit details, secrets"
-                  "private report path"))
-      (readme-roadmap-section-separates-direction-from-release-facts
-       :section ("## Roadmap" "## Changelog")
-       :contains ("ROADMAP.md"
-                  "directional, non-committed work"
-                  "CHANGELOG.md"
-                  "should not be inferred from roadmap text"))))
+                  "unverified implementation or platform"))))
 
   (defmacro document-search-shared-cases ()
     `',*document-search-shared-cases*)
@@ -271,14 +258,6 @@
 
 (defmacro readme-document-search-shared-cases ()
   `',*readme-document-search-shared-cases*)
-
-(defmacro define-readme-document-search-tests (&environment env &rest cases)
-  `(define-document-search-tests
-     ,@(loop for case in (expand-document-search-test-cases cases env
-                                                            'DEFINE-README-DOCUMENT-SEARCH-TESTS)
-             collect
-             (destructuring-bind (test-name &rest options) case
-               `(,test-name :file "README.md" ,@options)))))
 
 (defmacro define-document-search-tests (&environment env &rest cases)
   `(progn
@@ -311,9 +290,6 @@
       (error "Expected exactly one ~A code block in ~A between ~S and ~S, got ~D"
              language pathname start-heading end-heading (length blocks)))
     (first blocks)))
-
-(defun first-readme-fenced-code-block (start-heading end-heading language)
-  (single-document-fenced-code-block "README.md" start-heading end-heading language))
 
 (defun nth-document-fenced-code-block (pathname start-heading end-heading language index)
   (let ((blocks (document-fenced-code-blocks pathname start-heading end-heading language)))

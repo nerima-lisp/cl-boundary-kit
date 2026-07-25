@@ -2,10 +2,15 @@
 
 (in-package #:cl-boundary-kit/test)
 
-(define-readme-document-search-tests
+;; Every case here used to be a :SECTION lookup within README.md. Now that
+;; README is a lean landing page, each checks the docs/src page(s) that took
+;; over as the authoritative source for that content (verified equal to the
+;; former README prose where the underlying subsystem docs did not already
+;; carry an equivalent, purpose-written sentence of their own).
+(define-document-search-tests
   (:cases (readme-document-search-shared-cases))
   (readme-api-overview-documents-composition-and-condition-contracts
-   :section ("## API Overview" "## Examples")
+   :file "docs/src/composition.md"
    :contains ("records the operation, arguments, and returned"
               "preserving explicit `nil` results"
               "without adding a partial call"
@@ -13,11 +18,13 @@
               "silently emulating behavior"
               "failed operation and its detail"))
   (readme-process-and-network-sections-document-explicit-nil-result-contracts
-   :section ("### Process" "### Logging")
+   :file "docs/src/process-network-and-dns.md"
    :contains ("explicit `nil` result"
               "responses from test queues or delegates"))
   (readme-filesystem-environment-and-logging-sections-document-stateful-test-double-contracts
-   :section ("### Filesystem" "### Testing Helpers")
+   :haystack (concatenate 'string
+                          (repository-file-string "docs/src/filesystem-and-environment.md")
+                          (repository-file-string "docs/src/observability.md"))
    :contains ("state-backed fake that accepts `:initial-files` as"
               "Missing reads and unsupported write-mode combinations signal explicitly"
               "recording filesystems require a `filesystem` delegate"
@@ -30,7 +37,9 @@
               "`recording-log-events`"
               "recording loggers require a `logger` delegate"))
   (readme-clock-random-and-testing-helper-sections-document-deterministic-testing-contracts
-   :section ("### Clock" "## Examples")
+   :haystack (concatenate 'string
+                          (repository-file-string "docs/src/time-and-randomness.md")
+                          (repository-file-string "docs/src/testing-helpers.md"))
    :contains ("`make-fake-clock` accepts an optional `:monotonic-start`"
               "`advance-fake-clock` accepts `:monotonic-delta`"
               "rejects non-function `:now-fn` and `:monotonic-fn` values"
@@ -49,8 +58,10 @@
               "Supplying `:result nil` asserts an explicit `nil` result"
               "`boundary-call-plist` builds the same plist shape used by the built-in"))
   (readme-stability-policy-documents-the-public-contract
-   :section ("## Stability Policy" "## Design Non-Goals")
-   :contains ("`## API Overview` define the supported library"
+   :haystack (concatenate 'string
+                          (repository-file-string "docs/src/stability-policy.md")
+                          (repository-file-string "docs/src/repository-layout.md"))
+   :contains ("exported symbols listed across the [Guide](composition.md) pages define"
               "`examples/*.lisp`"
               "`asdf:load-system :cl-boundary-kit/test`"
               "`cl-boundary-kit/test:run-tests`"
@@ -65,24 +76,10 @@
               "explicitly"
               "migration guidance"))
   (readme-contributing-and-governance-sections-document-contract-maintenance
-   :section ("## Contributing" "## Cookbook")
+   :file "CONTRIBUTING.md"
    :contains ("supported public contract"
               "executable tests"
               "relevant examples"
               "README.md"
               "CHANGELOG.md"
-              "migration guidance"))
-  (readme-contributing-and-governance-sections-document-contract-maintenance-governance
-   :section ("## Governance" "## Code of Conduct")
-   :contains ("checked-in documentation"
-              "examples"
-              "executable verification"
-              "roadmap intent alone"))
-  (readme-faq-and-support-sections-document-routing-expectations-support
-   :section ("## Support" "## Security")
-   :contains ("SUPPORT.md"
-              "private security route"
-              "exact exported API"
-              "minimal"
-              "Common Lisp implementation/platform"))
-  )
+              "migration guidance")))

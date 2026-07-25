@@ -88,11 +88,10 @@
   (expect (lambda () (funcall operation (make-uuid-source)))
           :to-signal-message-containing "Unsupported UUID source type"))
 
-(it "reset-recording-uuid-source-calls-clears-history-and-returns-the-source"
-  (let ((source (make-recording-uuid-source
-                 :delegate (make-test-uuid-source :values (list "a" "b")))))
-    (uuid-generate source)
-    (expect (= 1 (length (recording-uuid-source-calls source))) :to-be-truthy)
-    (expect (eq source (reset-recording-uuid-source-calls source)) :to-be-truthy)
-    (expect (null (recording-uuid-source-calls source)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-uuid-source-calls-clears-history-and-returns-the-source"
+    (source (make-recording-uuid-source
+             :delegate (make-test-uuid-source :values (list "a" "b"))))
+    (recording-uuid-source-calls reset-recording-uuid-source-calls)
+  (uuid-generate source))
 

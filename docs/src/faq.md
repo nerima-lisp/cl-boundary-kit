@@ -69,7 +69,7 @@ those guarantees.
 
 Start by checking [Compatibility](compatibility.md). Only the
 implementation and verification scope documented there should be treated as a
-compatibility claim for `0.6.x`.
+compatibility claim for `1.0.x`.
 
 If a behavior covered by that verified contract fails, report it through
 [Support](support.md) with:
@@ -92,13 +92,13 @@ Expect them to be called out in [Changelog](changelog.md). When a
 supported replacement exists, the changelog entry should include migration
 guidance instead of only naming the removal.
 
-For `0.6.x`, any intentionally breaking compatibility change should also update
+For `1.0.x`, any intentionally breaking compatibility change should also update
 [Compatibility](compatibility.md) so the documented verification scope and
 change policy stay aligned with the release notes.
 
 ## What Counts As The Stable Public Surface?
 
-For `0.6.x`, stability claims are intentionally narrow. The effective public
+For `1.0.x`, stability claims are intentionally narrow. The effective public
 contract is defined by:
 
 - exported symbols documented across the [Guide](composition.md) pages

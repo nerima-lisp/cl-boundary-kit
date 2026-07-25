@@ -81,11 +81,12 @@
          (progn ,@body))))
 
 (defmacro %define-recording-filesystem-operation (name lambda-list operation arguments direct-form &optional docstring)
+  ;; %WITH-RECORDING-FILESYSTEM-CALL already validates FILESYSTEM via
+  ;; %REQUIRE-FILESYSTEM itself, so no need to validate it again out here.
   `(defun ,name ,lambda-list
      ,@(when docstring (list docstring))
-     (let ((filesystem (%require-filesystem filesystem)))
-       (%with-recording-filesystem-call (filesystem ,operation ,arguments)
-         ,direct-form))))
+     (%with-recording-filesystem-call (filesystem ,operation ,arguments)
+       ,direct-form)))
 
 (define-predicate-guarded-call-log recording-filesystem-calls reset-recording-filesystem-calls
     (filesystem (%require-filesystem filesystem)

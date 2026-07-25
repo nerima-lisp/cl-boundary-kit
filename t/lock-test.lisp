@@ -64,12 +64,11 @@
   (expect (lambda () (funcall operation (make-test-lock)))
           :to-signal-message-containing "Unsupported lock type"))
 
-(it "reset-recording-lock-calls-clears-history-and-returns-the-lock"
-  (let ((lock (make-recording-lock)))
-    (lock-acquire lock)
-    (expect (= 1 (length (recording-lock-calls lock))) :to-be-truthy)
-    (expect (eq lock (reset-recording-lock-calls lock)) :to-be-truthy)
-    (expect (null (recording-lock-calls lock)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-lock-calls-clears-history-and-returns-the-lock"
+    (lock (make-recording-lock))
+    (recording-lock-calls reset-recording-lock-calls)
+  (lock-acquire lock))
 
 (it "call-with-lock-acquires-runs-and-releases"
   (let ((lock (make-recording-lock)))

@@ -125,12 +125,11 @@
   (expect (lambda () (funcall operation (make-test-console)))
           :to-signal-message-containing "Unsupported console type"))
 
-(it "reset-recording-console-calls-clears-history-and-returns-the-console"
-  (let ((console (make-recording-console)))
-    (console-write-line console "x")
-    (expect (= 1 (length (recording-console-calls console))) :to-be-truthy)
-    (expect (eq console (reset-recording-console-calls console)) :to-be-truthy)
-    (expect (null (recording-console-calls console)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-console-calls-clears-history-and-returns-the-console"
+    (console (make-recording-console))
+    (recording-console-calls reset-recording-console-calls)
+  (console-write-line console "x"))
 
 (it "make-test-console-rejects-non-list-input-lines"
   (signals-error-message-contains "Test console input lines must be a list"

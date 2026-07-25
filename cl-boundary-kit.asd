@@ -3,7 +3,7 @@
 (asdf:defsystem "cl-boundary-kit"
   :description "Explicit boundary abstractions for Common Lisp"
   :long-description "Protocol-first boundary abstractions, fakes, and recording test doubles for explicit filesystem, environment, clock, random, process, network, and logging effects."
-  :version "0.6.0"
+  :version "1.0.0"
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
@@ -94,7 +94,7 @@
 ;; PROCESS-KIT-RUN-FN.
 (asdf:defsystem "cl-boundary-kit/process-kit"
   :description "cl-process-kit-backed :run-fn for cl-boundary-kit process boundaries"
-  :version "0.6.0"
+  :version "1.0.0"
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
@@ -111,7 +111,7 @@
 ;; RECORDING-CALLS-TO-JSON.
 (asdf:defsystem "cl-boundary-kit/json"
   :description "cl-json-kit-backed JSON serialization of cl-boundary-kit recorded call histories"
-  :version "0.6.0"
+  :version "1.0.0"
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
@@ -125,7 +125,7 @@
 (asdf:defsystem "cl-boundary-kit/test"
   :description "Test system for cl-boundary-kit"
   :long-description "Regression tests for the cl-boundary-kit public API, documentation contracts, examples, and the documented checkout test runner."
-  :version "0.6.0"
+  :version "1.0.0"
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
@@ -139,6 +139,7 @@
   :components
   ((:file "package")
    (:file "matchers")
+   (:file "test-macros")
    (:file "prolog-boundary-invariants")
    (:file "prolog-advanced-test")
    (:file "filesystem-test")

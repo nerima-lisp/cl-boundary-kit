@@ -85,13 +85,12 @@
   (signals error
     (recording-boundary-invoke :not-a-boundary :ping)))
 
-(it "reset-recording-boundary-calls-clears-history-and-returns-the-boundary"
-  (let ((boundary (make-recording-boundary
-                   :handler (lambda (&rest args) (declare (ignore args)) :ok))))
-    (recording-boundary-invoke boundary :ping)
-    (expect (= (length (recording-boundary-calls boundary)) 1) :to-be-truthy)
-    (expect (eq (reset-recording-boundary-calls boundary) boundary) :to-be-truthy)
-    (expect (null (recording-boundary-calls boundary)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-boundary-calls-clears-history-and-returns-the-boundary"
+    (boundary (make-recording-boundary
+               :handler (lambda (&rest args) (declare (ignore args)) :ok)))
+    (recording-boundary-calls reset-recording-boundary-calls)
+  (recording-boundary-invoke boundary :ping))
 
 (it "reset-recording-boundary-calls-rejects-non-boundary-values"
   (signals error

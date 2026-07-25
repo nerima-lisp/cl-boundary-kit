@@ -96,10 +96,9 @@
   (signals error
     (test-scheduler-run-pending (make-recording-scheduler))))
 
-(it "reset-recording-scheduler-calls-clears-history-and-returns-the-scheduler"
-  (let ((scheduler (make-recording-scheduler)))
-    (scheduler-schedule scheduler 1 (lambda () :a))
-    (expect (= 1 (length (recording-scheduler-calls scheduler))) :to-be-truthy)
-    (expect (eq scheduler (reset-recording-scheduler-calls scheduler)) :to-be-truthy)
-    (expect (null (recording-scheduler-calls scheduler)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-scheduler-calls-clears-history-and-returns-the-scheduler"
+    (scheduler (make-recording-scheduler))
+    (recording-scheduler-calls reset-recording-scheduler-calls)
+  (scheduler-schedule scheduler 1 (lambda () :a)))
 

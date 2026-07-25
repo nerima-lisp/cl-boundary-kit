@@ -28,7 +28,21 @@
                                 :type nil
                                 :defaults (truename asd-file)))))
 
+(defun system-already-resolvable-p (system-name)
+  (and (asdf:find-system system-name nil) t))
+
 (defun local-asdf-directories (root)
+  "Return ROOT plus a directory for each test dependency ASDF cannot already find.
+
+Dependencies that already resolve are skipped rather than searched for. The
+search walks up to four parent directories and globs `*/<system>.asd' under
+each, which is cheap next to a handful of sibling checkouts and ruinous
+anywhere else: run from a Nix store path, the first parent is /nix/store, where
+one such glob takes minutes and matches every version of the dependency ever
+built on the machine -- of which FIND-FIRST-DEPENDENCY-DIRECTORY would then
+pick an arbitrary one. Every caller that runs from a store path (the flake's
+checks and apps) sets CL_SOURCE_REGISTRY first, so for them this now costs
+nothing and cannot bind a stray copy."
   (labels ((find-first-dependency-directory (directory system-name remaining-depth)
              (when (plusp remaining-depth)
                (let* ((parent (parent-directory directory))
@@ -38,13 +52,23 @@
     (remove-duplicates
      (cons root
            (loop for dependency in +local-test-dependencies+
-                 for dependency-directory = (find-first-dependency-directory root dependency 4)
-                 when dependency-directory
-                   collect dependency-directory))
+                 unless (system-already-resolvable-p dependency)
+                   append (let ((directory (find-first-dependency-directory root dependency 4)))
+                            (when directory (list directory)))))
      :test #'equal)))
 
 (defun source-registry-entry (directory)
-  (format nil "~A//" (namestring directory)))
+  "Return a non-recursive CL_SOURCE_REGISTRY entry for DIRECTORY.
+
+DIRECTORY always names the directory that directly contains a .asd file --
+LOCAL-ASDF-DIRECTORIES derives each one from the .asd file it found -- so a
+recursive `//' entry would only add work. It is not free: this registry is
+exported to the environment and therefore inherited by every SBCL subprocess
+the suite starts, including one per examples/*.lisp file, and each of those
+would re-walk every checkout in full (.git directories included) before
+finding a system that sits at the top level. Keeping the entries
+non-recursive takes a fresh example process from ~7s to ~0.2s."
+  (namestring directory))
 
 (defun configure-local-source-registry (directories)
   (let* ((local-registry (format nil "~{~A~^:~}"

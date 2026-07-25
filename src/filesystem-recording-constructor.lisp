@@ -2,7 +2,7 @@
 
 (in-package #:cl-boundary-kit)
 
-(define-runtime-function make-recording-filesystem (&key delegate)
+(defun make-recording-filesystem (&key delegate)
   "Create a filesystem boundary that records calls before returning DELEGATE results."
   (let ((delegate (%require-filesystem (or delegate (make-filesystem)) "DELEGATE")))
     (%make-filesystem-data

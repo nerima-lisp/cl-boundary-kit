@@ -99,12 +99,11 @@
   (expect (lambda () (funcall operation (make-test-cache)))
           :to-signal-message-containing "Unsupported cache type"))
 
-(it "reset-recording-cache-calls-clears-history-and-returns-the-cache"
-  (let ((cache (make-recording-cache)))
-    (cache-put cache "k" 1)
-    (expect (= 1 (length (recording-cache-calls cache))) :to-be-truthy)
-    (expect (eq cache (reset-recording-cache-calls cache)) :to-be-truthy)
-    (expect (null (recording-cache-calls cache)) :to-be-truthy)))
+(deftest-reset-recording-clears-history
+    "reset-recording-cache-calls-clears-history-and-returns-the-cache"
+    (cache (make-recording-cache))
+    (recording-cache-calls reset-recording-cache-calls)
+  (cache-put cache "k" 1))
 
 (it "cache-fetch-computes-and-stores-a-value-only-on-a-miss"
   (let* ((cache (make-test-cache))

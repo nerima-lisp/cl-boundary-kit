@@ -2,7 +2,7 @@
 
 (in-package #:cl-boundary-kit)
 
-(define-runtime-function make-filesystem (&key
+(defun make-filesystem (&key
                                           (read-file-fn #'%real-filesystem-read-file)
                                           (write-file-fn #'%real-filesystem-write-file)
                                           (probe-file-fn #'probe-file)

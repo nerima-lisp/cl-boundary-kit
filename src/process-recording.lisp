@@ -12,20 +12,13 @@
   ;; omitted :ENVIRONMENT (inherit) stays distinguishable downstream from an
   ;; explicit empty '() (give the child nothing) all the way to the native
   ;; sb-ext:run-program call -- both would otherwise look identical as NIL.
-  (if environment-supplied-p
-      (list :arguments arguments
-            :input input
-            :directory directory
-            :environment environment
-            :output output
-            :error-output error-output
-            :timeout timeout)
-      (list :arguments arguments
-            :input input
-            :directory directory
-            :output output
-            :error-output error-output
-            :timeout timeout)))
+  (list* :arguments arguments
+         :input input
+         :directory directory
+         :output output
+         :error-output error-output
+         :timeout timeout
+         (when environment-supplied-p (list :environment environment))))
 
 (defun %record-process-call
     (boundary command &key arguments input directory environment output error-output timeout result)

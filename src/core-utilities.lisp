@@ -51,9 +51,11 @@ is a non-nil symbol or a string, and returns PARAMETER unchanged."
 
 (defmacro define-plist-accessor (name parameter key &optional docstring)
   "Define NAME as a reader returning KEY's value from the PARAMETER plist argument."
-  `(defun ,name (,parameter)
-     ,@(when docstring (list docstring))
-     (getf ,parameter ,key)))
+  `(progn
+     (declaim (inline ,name))
+     (defun ,name (,parameter)
+       ,@(when docstring (list docstring))
+       (getf ,parameter ,key))))
 
 (defmacro define-recording-boundary-constructor
     (name recording-class base-class default-delegate-form docstring &rest extra-initargs)
@@ -66,19 +68,18 @@ DELEGATE. DOCSTRING becomes NAME's docstring."
      (require-instance delegate ',base-class "DELEGATE")
      (make-instance ',recording-class ,@extra-initargs :delegate delegate)))
 
-(defmacro define-runtime-function (name lambda-list &body body)
-  `(progn
-     (defun ,name ,lambda-list
-       ,@body)
-     ',name))
-
 (defmacro %record-call (storage &rest initargs)
-  ;; Copy before storing so a caller that destructively edits an
-  ;; :ARGUMENTS or :RESULT value it still holds a reference to (e.g. NREVERSE
-  ;; on a returned list, SETF GETF on a returned plist) cannot corrupt the
-  ;; boundary's own history.
-  `(let ((call (list ,@initargs)))
-     (push (%copy-boundary-value call) ,storage)
+  ;; Copy each value form before storing so a caller that destructively edits
+  ;; an :ARGUMENTS or :RESULT value it still holds a reference to (e.g.
+  ;; NREVERSE on a returned list, SETF GETF on a returned plist) cannot
+  ;; corrupt the boundary's own history. INITARGS keys are always literal
+  ;; keywords, so only the value forms need copying -- copying values while
+  ;; building CALL's spine, rather than deep-copying the already-fresh CALL
+  ;; list afterward, avoids re-consing that spine a second time.
+  `(let ((call (list ,@(loop for (key form) on initargs by #'cddr
+                              collect key
+                              collect `(%copy-boundary-value ,form)))))
+     (push call ,storage)
      call))
 
 (defun %copy-boundary-value (value)
@@ -119,13 +120,25 @@ cannot corrupt the boundary history."
         collect (%copy-boundary-event event) into snapshot
         finally (return (nreverse snapshot))))
 
+(defun %hash-table-get-present (table key default)
+  "Return (VALUES value t) when KEY is present in TABLE, else (VALUES DEFAULT nil)."
+  (multiple-value-bind (value present) (gethash key table)
+    (if present
+        (values value t)
+        (values default nil))))
+
 (defun %sorted-hash-keys (table)
+  ;; Compute each key's PRINC-TO-STRING once, here, and carry it alongside
+  ;; the key for the sort key -- SORT's :KEY function can otherwise re-run
+  ;; the same string conversion per comparison (O(n log n) calls) rather
+  ;; than once per entry. See %SORTED-TEST-DIRECTORY-ENTRIES-IN for the
+  ;; same fix applied to filesystem fake directory listings.
   (let ((keys '()))
     (maphash (lambda (key value)
                (declare (ignore value))
-               (push key keys))
+               (push (cons key (princ-to-string key)) keys))
              table)
-    (sort keys #'string< :key #'princ-to-string)))
+    (mapcar #'car (sort keys #'string< :key #'cdr))))
 
 (defun %emit-boundary-event (emit-fn event)
   "Call EMIT-FN with a defensive copy of EVENT and return EVENT."
@@ -177,15 +190,18 @@ the <CLASS>-EMIT-FN and RECORDING-<CLASS>-DELEGATE readers."
          event)
        (defmethod ,emit-event ((,class ,recording-class) event)
          (push (%copy-boundary-event event) (,events ,class))
-         (,emit-event (,delegate ,class) (%copy-boundary-event event))
+         ;; No copy for the delegate call: whichever ,EMIT-EVENT method
+         ;; handles EVENT next (plain/test/recording) always makes its own
+         ;; defensive copy before storing or forwarding it further, so a copy
+         ;; made here just to hand off would be discarded unused.
+         (,emit-event (,delegate ,class) event)
          event))))
 
 (defun plist-remove-keys (plist keys)
-  (let ((filtered '())
-        (removed-keys (make-hash-table :test 'eq)))
-    (dolist (key keys)
-      (setf (gethash key removed-keys) t))
+  ;; KEYS is always a short, fixed list of keywords at every call site here,
+  ;; so a linear MEMBER scan avoids allocating a hash-table per call.
+  (let ((filtered '()))
     (do-plist (key value plist :result (nreverse filtered))
-      (unless (gethash key removed-keys)
+      (unless (member key keys :test #'eq)
         (push key filtered)
         (push value filtered)))))

@@ -17,8 +17,10 @@ The repository is organized around a narrow layering model:
 
 1. `src/protocols.lisp` defines the generic functions that describe each boundary.
 2. `src/*.lisp` implementation files provide concrete constructors, fakes, and recording wrappers.
-3. `src/core.lisp` provides shared boundary composition and recording helpers.
-4. `src/testing.lisp` provides assertion helpers for inspecting recorded calls.
+3. `src/core.lisp`, `src/core-utilities.lisp`, and `src/recording-boundary.lisp`
+   provide shared boundary composition and recording helpers.
+4. `src/testing.lisp` and its `src/testing-*.lisp` companions provide assertion
+   and query helpers for inspecting recorded calls and events.
 5. `examples/*.lisp` and `t/*.lisp` act as executable design evidence for the supported usage flows.
 
 Application code is expected to depend on the protocol and constructor surface,
@@ -48,9 +50,21 @@ These principles matter more than adding new convenience wrappers.
   `src/scheduler.lisp`, `src/working-directory.lisp`, `src/dns.lisp`,
   `src/process*.lisp`, `src/network-*.lisp`, `src/logging.lisp`,
   `src/metrics.lisp`, `src/publisher.lisp`, `src/subscriber.lisp`, and
-  `src/notifier.lisp`) each implement a subsystem-specific boundary
-- `src/core.lisp` holds cross-cutting composition and generic recording utilities
-- `src/testing.lisp` exposes lightweight test assertions
+  `src/notifier.lisp`) each implement a subsystem-specific boundary; a
+  subsystem whose implementation file grows past a focused size splits into
+  that primary file plus a companion `-helpers`/`-methods` file (for example
+  `src/env-helpers.lisp`, `src/console-methods.lisp`)
+- `src/core.lisp` provides shared boundary-context composition;
+  `src/core-utilities.lisp` and `src/recording-boundary.lisp` hold the generic
+  call-recording utilities and delegate-method macros every subsystem
+  boundary builds on
+- `src/logging-kit-adapter.lisp`, `src/process-kit-adapter.lisp` (loaded via
+  the separate `cl-boundary-kit/process-kit` system), and `src/json-adapter.lisp`
+  (loaded via the separate `cl-boundary-kit/json` system) bridge to sibling
+  nerima-lisp libraries without pulling their dependencies into every consumer
+- `src/testing.lisp`, `src/testing-helpers.lisp`, `src/testing-queries.lisp`,
+  and `src/testing-events.lisp` expose lightweight test assertions and
+  recorded-call/event query helpers
 - `t/api-test.lisp`, `t/api-doc-claims-test.lisp`, `t/api-doc-links-test.lisp`,
   `t/api-doc-links-documents-test.lisp`, `t/api-executable-docs-test.lisp`, and
   `t/examples-test.lisp` protect documentation and example contracts
@@ -64,7 +78,7 @@ Architecture changes should be argued from:
 
 - a concrete boundary use case
 - an executable regression test
-- the public contract documents in [`README.md`](README.md),
+- the public contract documents in the [Guide](composition.md) pages,
   [`COMPATIBILITY.md`](compatibility.md), and [`GOVERNANCE.md`](governance.md)
 
 Broad framework concerns, hidden host fallbacks, and scope growth without a

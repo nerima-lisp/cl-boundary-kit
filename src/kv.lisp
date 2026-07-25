@@ -114,11 +114,7 @@ DELEGATE defaults to an empty `make-test-kv-store`."
   (funcall (kv-store-keys-fn store)))
 
 (defmethod kv-get ((store test-kv-store) key &optional default)
-  (let ((table (test-kv-store-table store)))
-    (multiple-value-bind (value present) (gethash key table)
-      (if present
-          (values value t)
-          (values default nil)))))
+  (%hash-table-get-present (test-kv-store-table store) key default))
 
 (defmethod kv-put ((store test-kv-store) key value)
   (let ((table (test-kv-store-table store)))
@@ -133,15 +129,8 @@ DELEGATE defaults to an empty `make-test-kv-store`."
 (defmethod kv-keys ((store test-kv-store))
   (%sorted-hash-keys (test-kv-store-table store)))
 
-(defmethod kv-get ((store recording-kv-store) key &optional default)
-  (let ((delegate (recording-kv-store-delegate store)))
-    (multiple-value-bind (value present)
-        (kv-get delegate key default)
-      (%record-call (%recording-kv-calls store)
-        :operation :get
-        :arguments (list key default)
-        :result value)
-      (values value present))))
+(define-recording-delegate-present-method kv-get (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
+    ((key &optional default) (key default)) :get (list key default))
 
 (define-recording-delegate-method kv-put (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
     ((key value) (key value)) :put (list key value))

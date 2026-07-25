@@ -59,10 +59,13 @@
   (documentation-fresh-sbcl-installation-and-quick-start-lines
    (append
     (documentation-fresh-sbcl-installation-lines)
-    (string-lines (nth 0 (readme-fenced-code-blocks "## Quick Start" "## Core Concepts" "lisp")))
-    (string-lines (nth 1 (readme-fenced-code-blocks "## Quick Start" "## Core Concepts" "lisp")))))
+    (string-lines (nth 0 (document-fenced-code-blocks
+                          "docs/src/quick-start.md" "# Quick Start" nil "lisp")))
+    (string-lines (nth 1 (document-fenced-code-blocks
+                          "docs/src/quick-start.md" "# Quick Start" nil "lisp")))))
   (documentation-fresh-sbcl-testing-repl-lines
-   (string-lines (first (readme-fenced-code-blocks "## Testing" "## Compatibility" "lisp"))))
+   (string-lines (first (document-fenced-code-blocks
+                         "docs/src/testing.md" "# Running the Test Suite" nil "lisp"))))
   (documentation-fresh-sbcl-contributing-installation-lines
    (string-lines
     (replace-substring

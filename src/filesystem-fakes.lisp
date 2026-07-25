@@ -2,7 +2,7 @@
 
 (in-package #:cl-boundary-kit)
 
-(define-runtime-function make-test-filesystem (&key initial-files)
+(defun make-test-filesystem (&key initial-files)
   "Create an in-memory filesystem seeded from INITIAL-FILES."
   (let ((files (make-hash-table :test #'equalp))
         (directories (make-hash-table :test #'equalp))
