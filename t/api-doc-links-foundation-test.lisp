@@ -59,9 +59,12 @@
          (release (repository-file-string "docs/src/release-process.md")))
     (expect (not (null release-version)) :to-be-truthy)
     (expect (every (lambda (version) (string= release-version version)) versions) :to-be-truthy)
+    ;; Keep a Changelog headings: `## [X.Y.Z] - YYYY-MM-DD`. release.yml
+    ;; extracts the release body by matching `^## \[<version>\]`, so the
+    ;; brackets are load-bearing, not cosmetic.
     (assert-contains-all changelog
-                         (list (format nil "## ~A" release-version)
-                               "## Unreleased"))
+                         (list (format nil "## [~A]" release-version)
+                               "## [Unreleased]"))
     (assert-contains-all stability-policy (list (format nil "`~A`" release-series)))
     (assert-contains-all security (list (format nil "| `~A` | Yes |" release-series)))
     (assert-contains-all release (list (format nil "`~A` should keep" release-series)))))

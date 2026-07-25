@@ -168,13 +168,14 @@
        :file "CHANGELOG.md"
        :exists t
        :contains ("# Changelog"
-                  "## Unreleased"
+                  "## [Unreleased]"
+                  "Keep a Changelog"
                   "docs/src/roadmap.md"
                   "This section tracks intentional public changes that may ship in the next"
                   "Long-term ideas, non-committed exploration, and deferred work belong"
                   "Deprecations, removals, and intentionally breaking behavior changes"
                   "migration guidance"
-                  "## 0.1.0"))
+                  "## [0.1.0] - "))
       (changelog-tracks-current-unreleased-public-testing-helper-work
        :file "CHANGELOG.md"
        :contains ("`assert-recorded-call-count`"

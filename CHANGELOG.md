@@ -1,8 +1,9 @@
 # Changelog
 
-This project follows a simple keep-a-changelog-style structure.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [Unreleased]
 
 This section tracks intentional public changes that may ship in the next
 release. Long-term ideas, non-committed exploration, and deferred work belong
@@ -15,8 +16,7 @@ diffs alone.
 
 Nothing is queued for the next release yet.
 
-## 1.0.0
-
+## [1.0.0] - 2026-07-26
 First stable release.
 
 No exported symbol, protocol, or documented behavior changes from `0.6.0`. What
@@ -173,8 +173,7 @@ repository's own verification weaker than it claimed to be.
   `-directory-exists-p`/`-delete-directory` call paid for the check twice.
   Dropped the outer, now-redundant validation.
 
-## 0.6.0
-
+## [0.6.0] - 2026-07-25
 ### Changed (breaking)
 
 - `process-boundary-run` and `process-kit-run-fn` no longer wait unboundedly
@@ -257,8 +256,7 @@ repository's own verification weaker than it claimed to be.
   `symbolp` branch's false arm; the existing `nil` case only ever exercised
   its true arm, since `nil` is itself a symbol.
 
-## 0.5.0
-
+## [0.5.0] - 2026-07-24
 ### Added
 
 - Optional adapters for three dependency-light sibling libraries, each in its
@@ -296,8 +294,7 @@ repository's own verification weaker than it claimed to be.
   share recording/event-dispatch macros instead of duplicating the same
   accessor pair per boundary.
 
-## 0.4.0
-
+## [0.4.0] - 2026-07-20
 This is a hardening release. It contains two intentionally breaking default
 changes; both preserve the old behavior when opted back in.
 
@@ -352,8 +349,7 @@ changes; both preserve the old behavior when opted back in.
 - The cl-prolog invariant tests resolve library specials and conditions
   dynamically so the suite degrades gracefully across cl-prolog versions.
 
-## 0.3.0
-
+## [0.3.0] - 2026-07-20
 ### Added
 
 - Added a UUID boundary (`make-uuid-source`, `make-sequential-uuid-source`,
@@ -511,8 +507,7 @@ changes; both preserve the old behavior when opted back in.
   composing the uuid, key/value, logging, metrics, and clock boundaries through a
   single boundary context, demonstrating multi-boundary composition end to end.
 
-## 0.2.0
-
+## [0.2.0] - 2026-07-20
 ### Added
 
 - Added `assert-recorded-call-count` for asserting the number of matching
@@ -562,8 +557,7 @@ changes; both preserve the old behavior when opted back in.
 - Added a public API contract test that requires exported runtime functions and
   types to retain non-empty Common Lisp `documentation` strings.
 
-## 0.1.0
-
+## [0.1.0] - 2026-07-19
 - Initial public release of `cl-boundary-kit`.
 - Added explicit boundary abstractions for filesystem, environment, clock,
   random, process, network, and logging interactions.
