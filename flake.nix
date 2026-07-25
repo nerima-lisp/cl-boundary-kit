@@ -33,7 +33,7 @@
     # cl-log-kit inputs are left alone: pointing them at this flake's own nodes
     # is what would turn the intentional back-reference into a real cycle.
     cl-process-kit = {
-      url = "github:nerima-lisp/cl-process-kit/v1.0.0";
+      url = "github:nerima-lisp/cl-process-kit/v1.0.1";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.cl-weave.follows = "cl-weave";
     };
