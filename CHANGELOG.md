@@ -13,6 +13,15 @@ called out explicitly here. When a supported replacement exists, include
 migration guidance so consumers can move without inferring policy from code
 diffs alone.
 
+### Changed (breaking)
+
+- `process-boundary-run` and `process-kit-run-fn` no longer wait unboundedly
+  when a caller omits `:timeout`. It now defaults to
+  `*default-process-timeout-seconds*` (60 seconds); a native child that runs
+  past the deadline is SIGTERM-then-SIGKILL escalated, the same guarantee an
+  explicit `:timeout` already provided.
+  Migration: pass an explicit `:timeout nil` to restore the old unbounded wait.
+
 ### Documentation and build
 
 - Added an MkDocs (Material) documentation site under `docs/`, publishable to

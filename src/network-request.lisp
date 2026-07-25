@@ -33,7 +33,13 @@
   (error "Unsupported network boundary type: ~S" network-boundary))
 
 (defun network-boundary-request (network-boundary request &key timeout)
-  "Execute REQUEST against NETWORK-BOUNDARY and return the response."
+  "Execute REQUEST against NETWORK-BOUNDARY and return the response.
+
+Unlike `process-boundary-run`, TIMEOUT has no default here: a real network
+boundary's I/O is entirely owned by its caller-supplied `request-fn` (this
+library performs no socket or HTTP call of its own to bound), so TIMEOUT is
+passed through as-is rather than defaulted and enforced. Bound it in the
+`request-fn` collaborator itself if the underlying transport supports it."
   (if (or (typep network-boundary 'test-network-boundary)
           (typep network-boundary 'recording-network-boundary))
       (let ((result (%network-boundary-request network-boundary request timeout)))

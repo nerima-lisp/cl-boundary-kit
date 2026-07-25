@@ -221,6 +221,7 @@
    #:process-result-success-p
    #:process-result-check
    #:*native-process-search-path-p*
+   #:*default-process-timeout-seconds*
    #:make-recording-process-boundary
    #:recording-process-calls
    #:reset-recording-process-calls

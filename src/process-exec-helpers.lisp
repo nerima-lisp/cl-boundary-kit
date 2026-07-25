@@ -35,6 +35,13 @@
 execvp. The default is NIL so relative or attacker-influenced program names must
 resolve to absolute paths unless callers explicitly opt in to PATH lookup.")
 
+(defparameter *default-process-timeout-seconds* 60
+  "Default TIMEOUT (seconds) for PROCESS-BOUNDARY-RUN and PROCESS-KIT-RUN-FN when
+a caller omits :TIMEOUT. A native child that runs past this deadline is
+SIGTERM-then-SIGKILL escalated, so a boundary-abstracted command execution is
+never left unbounded by default. Pass an explicit :TIMEOUT NIL to wait for a
+child indefinitely instead.")
+
 (defun %native-process-options (input directory environment environment-supplied-p output error-output)
   ;; ENVIRONMENT-SUPPLIED-P (not a truthiness check on ENVIRONMENT) decides
   ;; whether :ENVIRONMENT is passed at all: an explicit empty '() must still
@@ -58,6 +65,27 @@ resolve to absolute paths unless callers explicitly opt in to PATH lookup.")
       (setf options (list* :input input options)))
     options))
 
+(defun %start-both-capturing-threads-or-cleanup (process output error-output)
+  ;; If starting the stderr thread signals, the stdout thread (if already
+  ;; running) must still be joined here -- otherwise it is orphaned racing
+  ;; PROCESS-CLOSE (in the caller) against the stream it is still reading.
+  ;; The process is killed FIRST: a stdout-thread already blocked reading
+  ;; from its pipe only sees EOF once the child exits, so joining before
+  ;; killing would block for the child's entire natural remaining lifetime
+  ;; instead of returning promptly -- and leave the child running as an
+  ;; untracked orphan in the meantime.
+  (let (stdout-thread stderr-thread both-threads-started-p)
+    (unwind-protect
+        (progn
+          (setf stdout-thread (%start-capturing-thread process #'sb-ext:process-output output))
+          (setf stderr-thread (%start-capturing-thread process #'sb-ext:process-error error-output))
+          (setf both-threads-started-p t))
+      (unless both-threads-started-p
+        (%force-kill-and-reap process)
+        (%join-capturing-thread stdout-thread)
+        (%join-capturing-thread stderr-thread)))
+    (values stdout-thread stderr-thread)))
+
 (defun %run-native-process/cps (program input directory environment environment-supplied-p
                                 output error-output timeout continuation)
   (let ((process (apply #'sb-ext:run-program
@@ -70,26 +98,8 @@ resolve to absolute paths unless callers explicitly opt in to PATH lookup.")
                                                  output
                                                  error-output))))
     (unwind-protect
-        (let (stdout-thread stderr-thread both-threads-started-p)
-          (unwind-protect
-              (progn
-                (setf stdout-thread (%start-capturing-thread process #'sb-ext:process-output output))
-                (setf stderr-thread (%start-capturing-thread process #'sb-ext:process-error error-output))
-                (setf both-threads-started-p t))
-            ;; If starting the stderr thread signals, the stdout thread (if
-            ;; already running) must still be joined here -- otherwise it is
-            ;; orphaned racing PROCESS-CLOSE below against the stream it is
-            ;; still reading. Guarded by BOTH-THREADS-STARTED-P so the normal
-            ;; (non-error) path doesn't join twice. The process is killed
-            ;; FIRST: a stdout-thread already blocked reading from its pipe
-            ;; only sees EOF once the child exits, so joining before killing
-            ;; would block for the child's entire natural remaining
-            ;; lifetime instead of returning promptly -- and leave the
-            ;; child running as an untracked orphan in the meantime.
-            (unless both-threads-started-p
-              (%force-kill-and-reap process)
-              (%join-capturing-thread stdout-thread)
-              (%join-capturing-thread stderr-thread)))
+        (multiple-value-bind (stdout-thread stderr-thread)
+            (%start-both-capturing-threads-or-cleanup process output error-output)
           (let ((timed-out (%wait-for-process-with-timeout process timeout)))
             (let ((stdout (%join-capturing-thread stdout-thread))
                   (stderr (%join-capturing-thread stderr-thread))

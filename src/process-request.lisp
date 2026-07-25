@@ -62,8 +62,12 @@
 (defun process-boundary-run
     (process-boundary command &key arguments input directory
                               (environment nil environment-supplied-p)
-                              output error-output timeout)
-  "Run COMMAND through PROCESS-BOUNDARY and return the process result."
+                              output error-output (timeout *default-process-timeout-seconds*))
+  "Run COMMAND through PROCESS-BOUNDARY and return the process result.
+
+TIMEOUT defaults to *DEFAULT-PROCESS-TIMEOUT-SECONDS* so a native command
+execution is never left unbounded; pass an explicit :TIMEOUT NIL to wait for
+the child indefinitely instead."
   (%require-process-boundary process-boundary "PROCESS-BOUNDARY")
   (let* ((call-keywords (%process-call-keywords arguments
                                                 input

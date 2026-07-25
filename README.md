@@ -424,6 +424,7 @@ source records the underlying integer draws.
 - `process-result-success-p`
 - `process-result-check`
 - `*native-process-search-path-p*`
+- `*default-process-timeout-seconds*`
 - `make-recording-process-boundary`
 - `recording-process-calls`
 - `reset-recording-process-calls`
@@ -446,6 +447,10 @@ explicit empty `:environment '()` gives the child none of it; omitting
 `$PATH` for the program (like `execvp`). It is `nil` by default so native
 process calls require absolute program paths unless callers explicitly bind it
 to `t` for trusted convenience.
+`:timeout` defaults to `*default-process-timeout-seconds*` (60), so a native
+command execution is never left unbounded; a child that runs past the deadline
+is SIGTERM-then-SIGKILL escalated. Pass an explicit `:timeout nil` to wait for
+a child indefinitely instead.
 `make-test-process-boundary` is a queue-backed fake for deterministic tests:
 each `process-boundary-run` call consumes one precomputed result, records the
 call, and signals when the queue is exhausted.

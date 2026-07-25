@@ -164,6 +164,7 @@
    (:file "rate-limiter-test")
    (:file "scheduler-test")
    (:file "process-test")
+   (:file "process-native-test")
    (:file "process-kit-adapter-test")
    (:file "json-adapter-test")
    (:file "network-test")

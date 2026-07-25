@@ -26,7 +26,7 @@
 
 (defun process-kit-run-fn (command &key arguments input directory
                                     (environment nil environment-supplied-p)
-                                    output error-output timeout)
+                                    output error-output (timeout *default-process-timeout-seconds*))
   "A RUN-FN for `make-process-boundary' backed by the nerima-lisp
 `cl-process-kit' process execution toolkit (`process-kit:run-command'),
 in place of this system's own hand-rolled `sb-ext:run-program' escalation
@@ -36,6 +36,8 @@ loop.
 SIGTERM then SIGKILL once TIMEOUT (seconds) elapses, so a timed-out command
 never leaves an orphaned process behind -- the same guarantee this system's
 default runner provides, from a dedicated, independently tested library.
+TIMEOUT defaults to *DEFAULT-PROCESS-TIMEOUT-SECONDS*; pass an explicit
+:TIMEOUT NIL to wait for the child indefinitely instead.
 
 Plug this into `make-process-boundary':
 
