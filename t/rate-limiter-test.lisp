@@ -60,9 +60,12 @@
   (signals error
     (make-recording-rate-limiter :delegate :bad)))
 
-(it "recording-rate-limiter-calls-signals-for-unsupported-limiter-types"
-  (signals error
-    (recording-rate-limiter-calls (make-test-rate-limiter))))
+(it-each ((recording-rate-limiter-calls)
+          (reset-recording-rate-limiter-calls))
+    "~A signals for unsupported limiter types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-rate-limiter)))
+          :to-signal-message-containing "Unsupported rate limiter type"))
 
 (it "reset-recording-rate-limiter-calls-clears-history-and-returns-the-limiter"
   (let ((limiter (make-recording-rate-limiter)))
@@ -70,10 +73,6 @@
     (expect (= 1 (length (recording-rate-limiter-calls limiter))) :to-be-truthy)
     (expect (eq limiter (reset-recording-rate-limiter-calls limiter)) :to-be-truthy)
     (expect (null (recording-rate-limiter-calls limiter)) :to-be-truthy)))
-
-(it "reset-recording-rate-limiter-calls-signals-for-unsupported-limiter-types"
-  (signals error
-    (reset-recording-rate-limiter-calls (make-test-rate-limiter))))
 
 (it "call-if-allowed-runs-the-thunk-only-while-quota-remains"
   (let ((limiter (make-test-rate-limiter :capacity 1)))
@@ -91,12 +90,13 @@
 
 (it "test-rate-limiter-available-stays-within-zero-and-capacity"
   (let ((limiter (make-test-rate-limiter :capacity 3 :refill-rate 0)))
-    (expect (= 3 (rate-limiter-available limiter)) :to-be-truthy)
-    (rate-limiter-allow-p limiter)
-    (expect (= 2 (rate-limiter-available limiter)) :to-be-truthy)
-    (rate-limiter-allow-p limiter)
-    (expect (= 1 (rate-limiter-available limiter)) :to-be-truthy)
-    (rate-limiter-allow-p limiter)
-    (expect (= 0 (rate-limiter-available limiter)) :to-be-truthy)
-    (expect (null (rate-limiter-allow-p limiter)) :to-be-truthy)
-    (expect (= 0 (rate-limiter-available limiter)) :to-be-truthy)))
+    (with-soft-assertions
+      (expect (= 3 (rate-limiter-available limiter)) :to-be-truthy)
+      (rate-limiter-allow-p limiter)
+      (expect (= 2 (rate-limiter-available limiter)) :to-be-truthy)
+      (rate-limiter-allow-p limiter)
+      (expect (= 1 (rate-limiter-available limiter)) :to-be-truthy)
+      (rate-limiter-allow-p limiter)
+      (expect (= 0 (rate-limiter-available limiter)) :to-be-truthy)
+      (expect (null (rate-limiter-allow-p limiter)) :to-be-truthy)
+      (expect (= 0 (rate-limiter-available limiter)) :to-be-truthy))))

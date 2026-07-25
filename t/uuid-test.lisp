@@ -81,9 +81,12 @@
   (signals error
     (make-recording-uuid-source :delegate :bad)))
 
-(it "recording-uuid-source-calls-signals-for-unsupported-source-types"
-  (signals error
-    (recording-uuid-source-calls (make-uuid-source))))
+(it-each ((recording-uuid-source-calls)
+          (reset-recording-uuid-source-calls))
+    "~A signals for unsupported source types"
+    (operation)
+  (expect (lambda () (funcall operation (make-uuid-source)))
+          :to-signal-message-containing "Unsupported UUID source type"))
 
 (it "reset-recording-uuid-source-calls-clears-history-and-returns-the-source"
   (let ((source (make-recording-uuid-source
@@ -93,6 +96,3 @@
     (expect (eq source (reset-recording-uuid-source-calls source)) :to-be-truthy)
     (expect (null (recording-uuid-source-calls source)) :to-be-truthy)))
 
-(it "reset-recording-uuid-source-calls-signals-for-unsupported-source-types"
-  (signals error
-    (reset-recording-uuid-source-calls (make-uuid-source))))

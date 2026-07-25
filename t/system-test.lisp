@@ -49,9 +49,12 @@
   (signals error
     (make-recording-system-boundary :delegate :bad)))
 
-(it "recording-system-calls-signals-for-unsupported-system-types"
-  (signals error
-    (recording-system-calls (make-test-system-boundary))))
+(it-each ((recording-system-calls)
+          (reset-recording-system-calls))
+    "~A signals for unsupported system types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-system-boundary)))
+          :to-signal-message-containing "Unsupported system boundary type"))
 
 (it "reset-recording-system-calls-clears-history-and-returns-the-system"
   (let ((system (make-recording-system-boundary)))
@@ -60,6 +63,3 @@
     (expect (eq system (reset-recording-system-calls system)) :to-be-truthy)
     (expect (null (recording-system-calls system)) :to-be-truthy)))
 
-(it "reset-recording-system-calls-signals-for-unsupported-system-types"
-  (signals error
-    (reset-recording-system-calls (make-test-system-boundary))))

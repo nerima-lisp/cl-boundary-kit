@@ -13,10 +13,7 @@
   ((delegate :initarg :delegate :reader recording-feature-flags-delegate)
    (calls :initform '() :accessor %recording-feature-flag-calls)))
 
-(defun %validate-feature-name (name)
-  (unless (or (stringp name) (and (symbolp name) name))
-    (error "Feature flag name must be a non-nil symbol or a string: ~S" name))
-  name)
+(define-name-validator %validate-feature-name name "Feature flag name")
 
 (defun %validate-enabled-feature-names (enabled)
   (unless (listp enabled)
@@ -46,11 +43,10 @@ flag is off. Names are compared with `equal`."
       (setf (gethash name table) t))
     (make-instance 'test-feature-flags :enabled-fn nil :enabled table)))
 
-(defun make-recording-feature-flags (&key (delegate (make-test-feature-flags)))
+(define-recording-boundary-constructor make-recording-feature-flags recording-feature-flags feature-flags (make-test-feature-flags)
   "Create a feature-flags boundary that records checks while delegating to
 DELEGATE, which defaults to an all-off `make-test-feature-flags`."
-  (require-instance delegate 'feature-flags "DELEGATE")
-  (make-instance 'recording-feature-flags :enabled-fn nil :delegate delegate))
+  :enabled-fn nil)
 
 (define-recording-call-log recording-feature-flag-calls reset-recording-feature-flag-calls
     (flags recording-feature-flags %recording-feature-flag-calls) "feature flags")
@@ -88,19 +84,9 @@ path when off\" pattern."
   (%validate-feature-name name)
   (values (gethash name (test-feature-flags-enabled flags))))
 
-(defmethod feature-enabled-p ((flags recording-feature-flags) name)
-  (%validate-feature-name name)
-  (let ((result (feature-enabled-p (recording-feature-flags-delegate flags) name)))
-    (%record-call (%recording-feature-flag-calls flags)
-      :operation :enabled-p
-      :arguments (list name)
-      :result result)
-    result))
+(define-recording-delegate-method feature-enabled-p (flags recording-feature-flags recording-feature-flags-delegate %recording-feature-flag-calls)
+    ((name) (name)) :enabled-p (list name)
+  (%validate-feature-name name))
 
-(defmethod feature-flags-enabled ((flags recording-feature-flags))
-  (let ((result (feature-flags-enabled (recording-feature-flags-delegate flags))))
-    (%record-call (%recording-feature-flag-calls flags)
-      :operation :enabled-list
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method feature-flags-enabled (flags recording-feature-flags recording-feature-flags-delegate %recording-feature-flag-calls)
+    (() ()) :enabled-list '())

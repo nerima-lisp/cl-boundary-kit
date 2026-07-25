@@ -42,9 +42,12 @@
   (signals error
     (make-recording-working-directory :delegate :bad)))
 
-(it "recording-working-directory-calls-signals-for-unsupported-types"
-  (signals error
-    (recording-working-directory-calls (make-test-working-directory))))
+(it-each ((recording-working-directory-calls)
+          (reset-recording-working-directory-calls))
+    "~A signals for unsupported wd types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-working-directory)))
+          :to-signal-message-containing "Unsupported working directory type"))
 
 (it "reset-recording-working-directory-calls-clears-history-and-returns-it"
   (let ((wd (make-recording-working-directory)))
@@ -52,10 +55,6 @@
     (expect (= 1 (length (recording-working-directory-calls wd))) :to-be-truthy)
     (expect (eq wd (reset-recording-working-directory-calls wd)) :to-be-truthy)
     (expect (null (recording-working-directory-calls wd)) :to-be-truthy)))
-
-(it "reset-recording-working-directory-calls-signals-for-unsupported-types"
-  (signals error
-    (reset-recording-working-directory-calls (make-test-working-directory))))
 
 (it "call-with-working-directory-changes-then-restores"
   (let ((wd (make-test-working-directory :initial #P"/home/")))

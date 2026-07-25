@@ -12,10 +12,7 @@
   ((delegate :initarg :delegate :reader recording-subscriber-delegate)
    (calls :initform '() :accessor %recording-subscriber-calls)))
 
-(defun %validate-subscriber-messages (messages)
-  (unless (listp messages)
-    (error "Test subscriber messages must be a list: ~S" messages))
-  messages)
+(define-list-validator %validate-subscriber-messages messages "Test subscriber messages")
 
 (defun make-subscriber (&key poll-fn)
   "Create a subscriber boundary backed by POLL-FN.
@@ -35,11 +32,10 @@ Each `subscriber-poll` call consumes one queued message and returns NIL once the
                  :poll-fn nil
                  :messages (copy-list (%validate-subscriber-messages messages))))
 
-(defun make-recording-subscriber (&key (delegate (make-test-subscriber)))
+(define-recording-boundary-constructor make-recording-subscriber recording-subscriber subscriber (make-test-subscriber)
   "Create a subscriber that records polls while delegating to DELEGATE, which
 defaults to an empty `make-test-subscriber`."
-  (require-instance delegate 'subscriber "DELEGATE")
-  (make-instance 'recording-subscriber :poll-fn nil :delegate delegate))
+  :poll-fn nil)
 
 (define-recording-call-log recording-subscriber-calls reset-recording-subscriber-calls
     (subscriber recording-subscriber %recording-subscriber-calls) "subscriber")
@@ -68,10 +64,5 @@ subscriber and a recording subscriber records each poll."
       (setf (%test-subscriber-messages subscriber) (rest messages))
       (first messages))))
 
-(defmethod subscriber-poll ((subscriber recording-subscriber))
-  (let ((result (subscriber-poll (recording-subscriber-delegate subscriber))))
-    (%record-call (%recording-subscriber-calls subscriber)
-      :operation :poll
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method subscriber-poll (subscriber recording-subscriber recording-subscriber-delegate %recording-subscriber-calls)
+    (() ()) :poll '())

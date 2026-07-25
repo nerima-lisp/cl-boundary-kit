@@ -28,11 +28,6 @@
     (unless (stringp line)
       (error "Test console input line must be a string: ~S" line))))
 
-(defun %validate-console-line (line)
-  (unless (stringp line)
-    (error "CONSOLE line must be a string: ~S" line))
-  line)
-
 (defun make-console (&key
                        (input *standard-input*)
                        (output *standard-output*)
@@ -78,17 +73,12 @@ recording console distinguishes the two operations in its call history."
     (error "Unsupported console type: ~S" console))
   (reverse (%test-console-errors console)))
 
-(defun make-recording-console (&key (delegate (make-test-console)))
+(define-recording-boundary-constructor make-recording-console recording-console console (make-test-console)
   "Create a console that records interactions while delegating to DELEGATE.
 
 DELEGATE defaults to a `make-test-console`, so a recording console never blocks
 on real terminal input unless you pass a delegate backed by a live stream."
-  (require-instance delegate 'console "DELEGATE")
-  (make-instance 'recording-console
-                 :input-stream nil
-                 :output-stream nil
-                 :error-stream nil
-                 :delegate delegate))
+  :input-stream nil :output-stream nil :error-stream nil)
 
 (define-recording-call-log recording-console-calls reset-recording-console-calls
     (console recording-console %recording-console-calls) "console")

@@ -44,11 +44,10 @@ This is the deterministic double for tests: it reads the supplied list instead
 of the host process's argument vector."
   (make-instance 'test-args :arguments (copy-list (%validate-args-list arguments))))
 
-(defun make-recording-args (&key (delegate (make-test-args)))
+(define-recording-boundary-constructor make-recording-args recording-args args (make-test-args)
   "Create a command-line arguments boundary that records reads while delegating
 to DELEGATE, which defaults to an empty `make-test-args`."
-  (require-instance delegate 'args "DELEGATE")
-  (make-instance 'recording-args :arguments '() :delegate delegate))
+  :arguments '())
 
 (define-recording-call-log recording-args-calls reset-recording-args-calls
     (args recording-args %recording-args-calls) "command-line arguments")
@@ -75,26 +74,11 @@ program name, e.g. `(args-rest args 1)`."
     (error "ARGS-NTH index must be a non-negative integer: ~S" index))
   (nth index (args-arguments args)))
 
-(defmethod args-list ((args recording-args))
-  (let ((result (args-list (recording-args-delegate args))))
-    (%record-call (%recording-args-calls args)
-      :operation :list
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method args-list (args recording-args recording-args-delegate %recording-args-calls)
+    (() ()) :list '())
 
-(defmethod args-count ((args recording-args))
-  (let ((result (args-count (recording-args-delegate args))))
-    (%record-call (%recording-args-calls args)
-      :operation :count
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method args-count (args recording-args recording-args-delegate %recording-args-calls)
+    (() ()) :count '())
 
-(defmethod args-nth ((args recording-args) index)
-  (let ((result (args-nth (recording-args-delegate args) index)))
-    (%record-call (%recording-args-calls args)
-      :operation :nth
-      :arguments (list index)
-      :result result)
-    result))
+(define-recording-delegate-method args-nth (args recording-args recording-args-delegate %recording-args-calls)
+    ((index) (index)) :nth (list index))

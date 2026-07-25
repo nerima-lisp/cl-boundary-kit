@@ -71,9 +71,12 @@
   (signals error
     (make-recording-metrics :delegate :bad)))
 
-(it "recording-metric-events-signals-for-unsupported-metrics-types"
-  (signals error
-    (recording-metric-events (make-metrics))))
+(it-each ((recording-metric-events)
+          (reset-recording-metric-events))
+    "~A signals for unsupported metrics types"
+    (operation)
+  (expect (lambda () (funcall operation (make-metrics)))
+          :to-signal-message-containing "Unsupported metrics type"))
 
 (it "reset-recording-metric-events-clears-history-and-returns-the-metrics"
   (let ((metrics (make-test-metrics)))
@@ -81,10 +84,6 @@
     (expect (= 1 (length (recording-metric-events metrics))) :to-be-truthy)
     (expect (eq metrics (reset-recording-metric-events metrics)) :to-be-truthy)
     (expect (null (recording-metric-events metrics)) :to-be-truthy)))
-
-(it "reset-recording-metric-events-signals-for-unsupported-metrics-types"
-  (signals error
-    (reset-recording-metric-events (make-metrics))))
 
 (it "metrics-increment-emits-a-counter-of-one"
   (let ((metrics (make-test-metrics)))

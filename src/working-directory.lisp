@@ -43,15 +43,12 @@ directory-dependent code without changing the real process directory."
                  :get-fn nil :set-fn nil
                  :current (%validate-working-directory-path initial)))
 
-(defun make-recording-working-directory (&key (delegate (make-test-working-directory)))
+(define-recording-boundary-constructor make-recording-working-directory recording-working-directory working-directory (make-test-working-directory)
   "Create a working-directory boundary that records calls while delegating to DELEGATE.
 
 DELEGATE defaults to a `make-test-working-directory`, so recording never changes
 the real process directory unless you pass a delegate that does."
-  (require-instance delegate 'working-directory "DELEGATE")
-  (make-instance 'recording-working-directory
-                 :get-fn nil :set-fn nil
-                 :delegate delegate))
+  :get-fn nil :set-fn nil)
 
 (define-recording-call-log recording-working-directory-calls reset-recording-working-directory-calls
     (working-directory recording-working-directory %recording-working-directory-calls)
@@ -82,20 +79,9 @@ both directory changes."
   (setf (%test-working-directory-current working-directory)
         (%validate-working-directory-path path)))
 
-(defmethod working-directory-get ((working-directory recording-working-directory))
-  (let ((result (working-directory-get (recording-working-directory-delegate working-directory))))
-    (%record-call (%recording-working-directory-calls working-directory)
-      :operation :get
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method working-directory-get (working-directory recording-working-directory recording-working-directory-delegate %recording-working-directory-calls)
+    (() ()) :get '())
 
-(defmethod working-directory-set ((working-directory recording-working-directory) path)
-  (let* ((normalized (%validate-working-directory-path path))
-         (result (working-directory-set (recording-working-directory-delegate working-directory)
-                                        normalized)))
-    (%record-call (%recording-working-directory-calls working-directory)
-      :operation :set
-      :arguments (list normalized)
-      :result result)
-    result))
+(define-recording-delegate-method working-directory-set (working-directory recording-working-directory recording-working-directory-delegate %recording-working-directory-calls)
+    ((path) (path)) :set (list path)
+  (setf path (%validate-working-directory-path path)))

@@ -111,6 +111,11 @@ binding wins, matching the override semantics of `boundary-context-with`."
              (boundary-context-handlers other))
     (%make-boundary-context handlers)))
 
+(defun require-string (value name)
+  (unless (stringp value)
+    (error "~A must be a string: ~S" name value))
+  value)
+
 (defun require-function (value name)
   (unless (functionp value)
     (error "~A must be a function: ~S" name value))

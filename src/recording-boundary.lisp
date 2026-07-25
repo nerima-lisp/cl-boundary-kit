@@ -113,3 +113,23 @@ appended as a further paragraph on CALLS-NAME's docstring."
            (if (,predicate ,parameter)
                (progn (setf ,accessor-form nil) ,parameter)
                (error ,error-format ,error-datum)))))))
+
+(defmacro define-recording-delegate-method
+    (generic-name (instance-var recording-class delegate-accessor calls-accessor)
+     (lambda-list call-args) operation arguments-form &body before)
+  "Define a GENERIC-NAME method on RECORDING-CLASS that runs BEFORE (typically
+argument validation), delegates to DELEGATE-ACCESSOR via CALL-ARGS (the bound
+parameter names/keyword-pairs matching LAMBDA-LIST, for forwarding &optional
+and &key defaults correctly), records the call onto CALLS-ACCESSOR under
+OPERATION with ARGUMENTS-FORM, and returns the delegate's result.
+
+Only fits the single-return-value \"call then record\" shape; a method that
+returns multiple values (e.g. a present-p flag) is written by hand instead."
+  `(defmethod ,generic-name ((,instance-var ,recording-class) ,@lambda-list)
+     ,@before
+     (let ((result (,generic-name (,delegate-accessor ,instance-var) ,@call-args)))
+       (%record-call (,calls-accessor ,instance-var)
+         :operation ,operation
+         :arguments ,arguments-form
+         :result result)
+       result)))

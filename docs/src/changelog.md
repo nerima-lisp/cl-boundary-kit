@@ -36,6 +36,64 @@ diffs alone.
   are bumped to `v0.11.0`, `v0.8.0`, `v0.3.0`, `v1.1.0`, and `v0.1.0`
   respectively; `cl-log-kit` and `cl-process-kit` now pin to their first
   tagged releases instead of a verified commit.
+- Internal refactor, no behavior change: three new macros
+  (`define-plist-accessor`, `define-recording-boundary-constructor`,
+  `define-recording-delegate-method`) collapse ~60 near-identical accessor,
+  constructor, and CLOS recording-method definitions across `src/*.lisp` into
+  single-form declarations. `%run-native-process/cps` and
+  `test-scheduler-run-pending` each extract a self-contained sub-concern into a
+  named helper. 26 pairs of near-identical "signals for unsupported boundary
+  type" tests collapse into `it-each` tables, matching the pattern already
+  used in `t/network-test.lisp`. `t/filesystem-test.lisp`,
+  `t/process-test.lisp`, and `t/api-test-helpers-markdown.lisp` are each split
+  into smaller, single-purpose files.
+- Internal refactor, no behavior change: two new macros
+  (`define-list-validator`, `define-name-validator`) and a shared
+  `require-string` helper collapse 15 near-identical validator functions
+  (list-must-be-a-list, name-must-be-a-symbol-or-string, and
+  value-must-be-a-string checks) that were duplicated across `src/cache.lisp`,
+  `src/dns.lisp`, `src/feature-flags.lisp`, `src/host-info.lisp`,
+  `src/kv.lisp`, `src/metrics.lisp`, `src/network-helpers.lisp`,
+  `src/notifier.lisp`, `src/process-helpers.lisp`, `src/publisher.lisp`,
+  `src/random.lisp`, `src/secret.lisp`, `src/subscriber.lisp`,
+  `src/temp-path.lisp`, `src/uuid.lisp`, and `src/working-directory.lisp` into
+  single-form declarations or shared calls. `src/metrics.lisp` now uses the
+  existing `define-emit-event-boundary-dispatch` macro (already used by
+  `notifier.lisp`/`publisher.lisp`) instead of hand-duplicating its
+  three-method dispatch. Six CLOS recording-delegate methods
+  (`cache-evict`, `kv-put`, `kv-delete`, `kv-keys`, `feature-enabled-p`,
+  `feature-flags-enabled`, `secret-names`, `working-directory-set`) that fit
+  `define-recording-delegate-method`'s shape but predated its introduction now
+  use it too. `t/prolog-boundary-invariants.lisp`'s untrusted-parsing, DCG,
+  and finite-domain-constraint tests (cl-prolog 0.6.0 usage) split into a new
+  `t/prolog-advanced-test.lisp`. `src/env-classes.lisp`'s
+  `%make-native-environment`/`%make-test-environment`/
+  `%make-recording-environment` each flatten a 1-4 level deep
+  `multiple-value-bind`-plus-`(declare (ignore ...))` chain (the discarded
+  secondary value was never used) into a plain `let` via a new
+  single-value `%plist-value` helper in `src/env-helpers.lisp`.
+- Test suite: adopted `cl-weave` v0.10+'s `with-soft-assertions` (aggregates
+  every `expect` failure in a block into one report instead of stopping at
+  the first) in the 8 `it` blocks across `t/env-test.lisp`,
+  `t/coverage-completion-test.lisp`, `t/filesystem-test.lisp`,
+  `t/kv-test.lisp`, `t/rate-limiter-test.lisp`, and `t/cache-test.lisp` with
+  the most sequential `expect` calls (5-10 each), where seeing every failing
+  assertion at once meaningfully speeds up diagnosing a broken boundary
+  operation instead of fixing failures one bisection cycle at a time.
+- Test suite: two new branch-coverage tests close real gaps identified from
+  a measured sb-cover run (92.23% expression / 84.91% branch). `filesystem-
+  ops-test.lisp` adds `make-filesystem-delete-file-signals-a-real-failure-
+  instead-of-swallowing-it`, covering `%real-filesystem-delete-file`'s
+  re-signal branch (a `file-error` where the path still exists, distinct
+  from "already absent") via `delete-file` rejecting a directory pathname.
+  `filesystem-test.lisp`'s `filesystem-round-trip` now also checks
+  `filesystem-path-exists-p` against a genuinely absent real path, covering
+  `make-filesystem`'s default `path-exists-p-fn`'s not-present branch
+  alongside the already-tested present branch. `publisher-test.lisp`'s
+  `publisher-publish-rejects-an-invalid-topic` now also passes a number
+  (neither a string nor a symbol), covering `define-name-validator`'s
+  `symbolp` branch's false arm; the existing `nil` case only ever exercised
+  its true arm, since `nil` is itself a symbol.
 
 ## 0.5.0
 

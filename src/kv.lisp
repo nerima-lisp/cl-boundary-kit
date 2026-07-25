@@ -62,14 +62,11 @@ sorted by printed representation for reproducible tests."
                    :get-fn nil :put-fn nil :delete-fn nil :keys-fn nil
                    :table table)))
 
-(defun make-recording-kv-store (&key (delegate (make-test-kv-store)))
+(define-recording-boundary-constructor make-recording-kv-store recording-kv-store kv-store (make-test-kv-store)
   "Create a key/value store that records calls while delegating to DELEGATE.
 
 DELEGATE defaults to an empty `make-test-kv-store`."
-  (require-instance delegate 'kv-store "DELEGATE")
-  (make-instance 'recording-kv-store
-                 :get-fn nil :put-fn nil :delete-fn nil :keys-fn nil
-                 :delegate delegate))
+  :get-fn nil :put-fn nil :delete-fn nil :keys-fn nil)
 
 (define-recording-call-log recording-kv-calls reset-recording-kv-calls
     (store recording-kv-store %recording-kv-calls) "key/value store")
@@ -146,29 +143,11 @@ DELEGATE defaults to an empty `make-test-kv-store`."
         :result value)
       (values value present))))
 
-(defmethod kv-put ((store recording-kv-store) key value)
-  (let* ((delegate (recording-kv-store-delegate store))
-         (result (kv-put delegate key value)))
-    (%record-call (%recording-kv-calls store)
-      :operation :put
-      :arguments (list key value)
-      :result result)
-    result))
+(define-recording-delegate-method kv-put (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
+    ((key value) (key value)) :put (list key value))
 
-(defmethod kv-delete ((store recording-kv-store) key)
-  (let* ((delegate (recording-kv-store-delegate store))
-         (result (kv-delete delegate key)))
-    (%record-call (%recording-kv-calls store)
-      :operation :delete
-      :arguments (list key)
-      :result result)
-    result))
+(define-recording-delegate-method kv-delete (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
+    ((key) (key)) :delete (list key))
 
-(defmethod kv-keys ((store recording-kv-store))
-  (let* ((delegate (recording-kv-store-delegate store))
-         (result (kv-keys delegate)))
-    (%record-call (%recording-kv-calls store)
-      :operation :keys
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method kv-keys (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
+    (() ()) :keys '())

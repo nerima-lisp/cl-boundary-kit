@@ -23,44 +23,31 @@
         :calls calls
         :delegate delegate))
 
-(defun %filesystem-type (filesystem)
-  (getf filesystem :type))
+(define-plist-accessor %filesystem-type filesystem :type)
 
-(defun %filesystem-read-file-fn (filesystem)
-  (getf filesystem :read-file-fn))
+(define-plist-accessor %filesystem-read-file-fn filesystem :read-file-fn)
 
-(defun %filesystem-write-file-fn (filesystem)
-  (getf filesystem :write-file-fn))
+(define-plist-accessor %filesystem-write-file-fn filesystem :write-file-fn)
 
-(defun %filesystem-probe-file-fn (filesystem)
-  (getf filesystem :probe-file-fn))
+(define-plist-accessor %filesystem-probe-file-fn filesystem :probe-file-fn)
 
-(defun %filesystem-list-directory-fn (filesystem)
-  (getf filesystem :list-directory-fn))
+(define-plist-accessor %filesystem-list-directory-fn filesystem :list-directory-fn)
 
-(defun %filesystem-path-exists-p-fn (filesystem)
-  (getf filesystem :path-exists-p-fn))
+(define-plist-accessor %filesystem-path-exists-p-fn filesystem :path-exists-p-fn)
 
-(defun %filesystem-delete-file-fn (filesystem)
-  (getf filesystem :delete-file-fn))
+(define-plist-accessor %filesystem-delete-file-fn filesystem :delete-file-fn)
 
-(defun %filesystem-copy-file-fn (filesystem)
-  (getf filesystem :copy-file-fn))
+(define-plist-accessor %filesystem-copy-file-fn filesystem :copy-file-fn)
 
-(defun %filesystem-rename-file-fn (filesystem)
-  (getf filesystem :rename-file-fn))
+(define-plist-accessor %filesystem-rename-file-fn filesystem :rename-file-fn)
 
-(defun %filesystem-make-directory-fn (filesystem)
-  (getf filesystem :make-directory-fn))
+(define-plist-accessor %filesystem-make-directory-fn filesystem :make-directory-fn)
 
-(defun %filesystem-directory-exists-p-fn (filesystem)
-  (getf filesystem :directory-exists-p-fn))
+(define-plist-accessor %filesystem-directory-exists-p-fn filesystem :directory-exists-p-fn)
 
-(defun %filesystem-delete-directory-fn (filesystem)
-  (getf filesystem :delete-directory-fn))
+(define-plist-accessor %filesystem-delete-directory-fn filesystem :delete-directory-fn)
 
-(defun %filesystem-calls-box (filesystem)
-  (getf filesystem :calls))
+(define-plist-accessor %filesystem-calls-box filesystem :calls)
 
 (defun %require-filesystem (filesystem &optional (name "FILESYSTEM"))
   (unless (listp filesystem)

@@ -39,8 +39,14 @@
                    (recording-published-messages publisher)) :to-be-truthy)))
 
 (it "publisher-publish-rejects-an-invalid-topic"
-  (signals error
-    (publisher-publish (make-test-publisher) nil "m")))
+  (with-soft-assertions
+    ;; NIL is itself a symbol, so this exercises the "symbol but falsy" arm.
+    (signals error
+      (publisher-publish (make-test-publisher) nil "m"))
+    ;; A number is neither a string nor a symbol, exercising the
+    ;; not-a-symbol-at-all arm the NIL case above cannot reach.
+    (signals error
+      (publisher-publish (make-test-publisher) 42 "m"))))
 
 (it "recording-publisher-records-messages-and-forwards-them-to-a-delegate"
   (let* ((forwarded '())
@@ -61,9 +67,12 @@
   (signals error
     (make-recording-publisher :delegate :bad)))
 
-(it "recording-published-messages-signals-for-unsupported-publisher-types"
-  (signals error
-    (recording-published-messages (make-publisher))))
+(it-each ((recording-published-messages)
+          (reset-recording-published-messages))
+    "~A signals for unsupported publisher types"
+    (operation)
+  (expect (lambda () (funcall operation (make-publisher)))
+          :to-signal-message-containing "Unsupported publisher type"))
 
 (it "reset-recording-published-messages-clears-history-and-returns-the-publisher"
   (let ((publisher (make-test-publisher)))
@@ -72,6 +81,3 @@
     (expect (eq publisher (reset-recording-published-messages publisher)) :to-be-truthy)
     (expect (null (recording-published-messages publisher)) :to-be-truthy)))
 
-(it "reset-recording-published-messages-signals-for-unsupported-publisher-types"
-  (signals error
-    (reset-recording-published-messages (make-publisher))))

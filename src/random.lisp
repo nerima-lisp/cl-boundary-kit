@@ -30,10 +30,7 @@
     (error "Random source state must be a RANDOM-STATE: ~S" state))
   state)
 
-(defun %validate-test-random-values (values)
-  (unless (listp values)
-    (error "Test random source values must be a list: ~S" values))
-  values)
+(define-list-validator %validate-test-random-values values "Test random source values")
 
 (defun %validate-test-random-value (value limit)
   (unless (and (realp value) (>= value 0) (< value limit))
@@ -62,10 +59,9 @@ This uses Common Lisp RANDOM and is not a cryptographic randomness source."
                  :state nil
                  :values (copy-list (%validate-test-random-values values))))
 
-(defun make-recording-random-source (&key (delegate (make-random-source)))
+(define-recording-boundary-constructor make-recording-random-source recording-random-source random-source (make-random-source)
   "Create a random source that records calls while delegating to DELEGATE."
-  (require-instance delegate 'random-source "DELEGATE")
-  (make-instance 'recording-random-source :state nil :delegate delegate))
+  :state nil)
 
 (define-recording-call-log recording-random-source-calls reset-recording-random-source-calls
     (source recording-random-source %recording-random-source-calls) "random source")
@@ -97,14 +93,9 @@ This uses Common Lisp RANDOM and is not a cryptographic randomness source."
       (setf (test-random-source-values source) (rest values))
       value)))
 
-(defmethod random-source-random ((source recording-random-source) limit)
-  (%validate-random-limit limit)
-  (let ((result (random-source-random (recording-random-source-delegate source) limit)))
-    (%record-call (%recording-random-source-calls source)
-      :operation :random
-      :arguments (list limit)
-      :result result)
-    result))
+(define-recording-delegate-method random-source-random (source recording-random-source recording-random-source-delegate %recording-random-source-calls)
+    ((limit) (limit)) :random (list limit)
+  (%validate-random-limit limit))
 
 (defun random-source-element (source sequence)
   "Return a random element of the non-empty SEQUENCE using SOURCE.

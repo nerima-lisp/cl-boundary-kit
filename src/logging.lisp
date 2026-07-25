@@ -41,13 +41,9 @@
                  :sink-fn nil
                  :timestamp-fn timestamp-fn))
 
-(defun make-recording-logger (&key (delegate (make-logger)))
+(define-recording-boundary-constructor make-recording-logger recording-logger logger (make-logger)
   "Create a logger that records events before forwarding them to DELEGATE."
-  (require-instance delegate 'logger "DELEGATE")
-  (make-instance 'recording-logger
-                 :sink-fn (logger-sink-fn delegate)
-                 :timestamp-fn (logger-timestamp-fn delegate)
-                 :delegate delegate))
+  :sink-fn (logger-sink-fn delegate) :timestamp-fn (logger-timestamp-fn delegate))
 
 (defun recording-log-events (logger)
   "Return the recorded log events in emission order."

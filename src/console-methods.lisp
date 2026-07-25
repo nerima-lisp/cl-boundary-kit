@@ -12,17 +12,17 @@
   (read-line (console-input-stream console) nil nil))
 
 (defmethod console-write-line ((console console) line)
-  (%validate-console-line line)
+  (require-string line "CONSOLE line")
   (write-line line (console-output-stream console))
   line)
 
 (defmethod console-write ((console console) text)
-  (%validate-console-line text)
+  (require-string text "CONSOLE line")
   (write-string text (console-output-stream console))
   text)
 
 (defmethod console-write-error ((console console) line)
-  (%validate-console-line line)
+  (require-string line "CONSOLE line")
   (write-line line (console-error-stream console))
   line)
 
@@ -33,51 +33,31 @@
       (first lines))))
 
 (defmethod console-write-line ((console test-console) line)
-  (%validate-console-line line)
+  (require-string line "CONSOLE line")
   (push line (%test-console-output console))
   line)
 
 (defmethod console-write ((console test-console) text)
-  (%validate-console-line text)
+  (require-string text "CONSOLE line")
   (push text (%test-console-output console))
   text)
 
 (defmethod console-write-error ((console test-console) line)
-  (%validate-console-line line)
+  (require-string line "CONSOLE line")
   (push line (%test-console-errors console))
   line)
 
-(defmethod console-read-line ((console recording-console))
-  (let ((result (console-read-line (recording-console-delegate console))))
-    (%record-call (%recording-console-calls console)
-      :operation :read-line
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method console-read-line (console recording-console recording-console-delegate %recording-console-calls)
+    (() ()) :read-line '())
 
-(defmethod console-write-line ((console recording-console) line)
-  (%validate-console-line line)
-  (let ((result (console-write-line (recording-console-delegate console) line)))
-    (%record-call (%recording-console-calls console)
-      :operation :write-line
-      :arguments (list line)
-      :result result)
-    result))
+(define-recording-delegate-method console-write-line (console recording-console recording-console-delegate %recording-console-calls)
+    ((line) (line)) :write-line (list line)
+  (require-string line "CONSOLE line"))
 
-(defmethod console-write ((console recording-console) text)
-  (%validate-console-line text)
-  (let ((result (console-write (recording-console-delegate console) text)))
-    (%record-call (%recording-console-calls console)
-      :operation :write
-      :arguments (list text)
-      :result result)
-    result))
+(define-recording-delegate-method console-write (console recording-console recording-console-delegate %recording-console-calls)
+    ((text) (text)) :write (list text)
+  (require-string text "CONSOLE line"))
 
-(defmethod console-write-error ((console recording-console) line)
-  (%validate-console-line line)
-  (let ((result (console-write-error (recording-console-delegate console) line)))
-    (%record-call (%recording-console-calls console)
-      :operation :write-error
-      :arguments (list line)
-      :result result)
-    result))
+(define-recording-delegate-method console-write-error (console recording-console recording-console-delegate %recording-console-calls)
+    ((line) (line)) :write-error (list line)
+  (require-string line "CONSOLE line"))

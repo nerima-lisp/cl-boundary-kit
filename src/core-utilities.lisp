@@ -33,6 +33,39 @@
          do (progn ,@body)
          finally (return ,result)))
 
+(defmacro define-list-validator (name parameter noun)
+  "Define NAME as a validator that signals an error naming NOUN unless PARAMETER
+is a list, and returns PARAMETER unchanged."
+  `(defun ,name (,parameter)
+     (unless (listp ,parameter)
+       (error ,(format nil "~A must be a list: ~~S" noun) ,parameter))
+     ,parameter))
+
+(defmacro define-name-validator (name parameter noun)
+  "Define NAME as a validator that signals an error naming NOUN unless PARAMETER
+is a non-nil symbol or a string, and returns PARAMETER unchanged."
+  `(defun ,name (,parameter)
+     (unless (or (stringp ,parameter) (and (symbolp ,parameter) ,parameter))
+       (error ,(format nil "~A must be a non-nil symbol or a string: ~~S" noun) ,parameter))
+     ,parameter))
+
+(defmacro define-plist-accessor (name parameter key &optional docstring)
+  "Define NAME as a reader returning KEY's value from the PARAMETER plist argument."
+  `(defun ,name (,parameter)
+     ,@(when docstring (list docstring))
+     (getf ,parameter ,key)))
+
+(defmacro define-recording-boundary-constructor
+    (name recording-class base-class default-delegate-form docstring &rest extra-initargs)
+  "Define NAME as a constructor for RECORDING-CLASS that validates its DELEGATE
+keyword argument (defaulting to DEFAULT-DELEGATE-FORM) against BASE-CLASS, then
+wraps it in RECORDING-CLASS with EXTRA-INITARGS spliced ahead of :DELEGATE
+DELEGATE. DOCSTRING becomes NAME's docstring."
+  `(defun ,name (&key (delegate ,default-delegate-form))
+     ,docstring
+     (require-instance delegate ',base-class "DELEGATE")
+     (make-instance ',recording-class ,@extra-initargs :delegate delegate)))
+
 (defmacro define-runtime-function (name lambda-list &body body)
   `(progn
      (defun ,name ,lambda-list

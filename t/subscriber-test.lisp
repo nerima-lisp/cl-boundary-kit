@@ -65,9 +65,12 @@
   (signals error
     (make-recording-subscriber :delegate :bad)))
 
-(it "recording-subscriber-calls-signals-for-unsupported-subscriber-types"
-  (signals error
-    (recording-subscriber-calls (make-test-subscriber))))
+(it-each ((recording-subscriber-calls)
+          (reset-recording-subscriber-calls))
+    "~A signals for unsupported subscriber types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-subscriber)))
+          :to-signal-message-containing "Unsupported subscriber type"))
 
 (it "reset-recording-subscriber-calls-clears-history-and-returns-the-subscriber"
   (let ((subscriber (make-recording-subscriber
@@ -77,6 +80,3 @@
     (expect (eq subscriber (reset-recording-subscriber-calls subscriber)) :to-be-truthy)
     (expect (null (recording-subscriber-calls subscriber)) :to-be-truthy)))
 
-(it "reset-recording-subscriber-calls-signals-for-unsupported-subscriber-types"
-  (signals error
-    (reset-recording-subscriber-calls (make-test-subscriber))))

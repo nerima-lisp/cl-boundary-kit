@@ -25,50 +25,39 @@
           :accessor %environment-calls)))
 
 (defun %make-native-environment (options)
-  (multiple-value-bind (get-fn get-supplied-p)
-      (%plist-ref-values options :get-fn #'%native-environment-get)
-    (declare (ignore get-supplied-p))
-    (multiple-value-bind (set-fn set-supplied-p)
-        (%plist-ref-values options :set-fn nil)
-      (declare (ignore set-supplied-p))
-      (multiple-value-bind (unset-fn unset-supplied-p)
-          (%plist-ref-values options :unset-fn nil)
-        (declare (ignore unset-supplied-p))
-        (multiple-value-bind (list-fn list-supplied-p)
-            (%plist-ref-values options :list-fn #'%native-environment-list)
-          (declare (ignore list-supplied-p))
-          (require-function get-fn "GET-FN")
-          (require-optional-function set-fn "SET-FN")
-          (require-optional-function unset-fn "UNSET-FN")
-          (require-function list-fn "LIST-FN")
-          (%make-env-boundary
-           :kind :native
-           :get-fn get-fn
-           :set-fn set-fn
-           :unset-fn unset-fn
-           :list-fn list-fn))))))
+  (let ((get-fn (%plist-value options :get-fn #'%native-environment-get))
+        (set-fn (%plist-value options :set-fn nil))
+        (unset-fn (%plist-value options :unset-fn nil))
+        (list-fn (%plist-value options :list-fn #'%native-environment-list)))
+    (require-function get-fn "GET-FN")
+    (require-optional-function set-fn "SET-FN")
+    (require-optional-function unset-fn "UNSET-FN")
+    (require-function list-fn "LIST-FN")
+    (%make-env-boundary
+     :kind :native
+     :get-fn get-fn
+     :set-fn set-fn
+     :unset-fn unset-fn
+     :list-fn list-fn)))
 
 (%define-plist-constructor make-environment
     "Create a native environment boundary from plist OPTIONS."
     %make-native-environment)
 
 (defun %make-test-environment (options)
-  (multiple-value-bind (initial-values initial-values-supplied-p)
-      (%plist-ref-values options :initial-values nil)
-    (declare (ignore initial-values-supplied-p))
-    (%seed-environment-bindings-cps
-     initial-values
-     (lambda (table)
-       (%make-env-boundary
-        :kind :test
-        :get-fn (lambda (name)
-                  (gethash name table))
-        :set-fn (lambda (name value)
-                  (setf (gethash name table) value))
-        :unset-fn (lambda (name)
-                    (remhash name table))
-        :list-fn (lambda ()
-                   (%sorted-environment-entries-from-table table)))))))
+  (%seed-environment-bindings-cps
+   (%plist-value options :initial-values nil)
+   (lambda (table)
+     (%make-env-boundary
+      :kind :test
+      :get-fn (lambda (name)
+                (gethash name table))
+      :set-fn (lambda (name value)
+                (setf (gethash name table) value))
+      :unset-fn (lambda (name)
+                  (remhash name table))
+      :list-fn (lambda ()
+                 (%sorted-environment-entries-from-table table))))))
 
 (%define-plist-constructor make-test-environment
     "Create a deterministic test environment boundary from plist OPTIONS."
@@ -80,9 +69,7 @@
   ;; make-recording-process-boundary -> make-process-boundary): a caller
   ;; asking for "no delegate" expects the real environment, not a fake
   ;; that always reports missing/nil bindings.
-  (multiple-value-bind (delegate delegate-supplied-p)
-      (%plist-ref-values options :delegate (make-environment))
-    (declare (ignore delegate-supplied-p))
+  (let ((delegate (%plist-value options :delegate (make-environment))))
     (require-instance delegate 'env-boundary "DELEGATE")
     ;; Copy the delegate's own collaborators (transitively raw even when
     ;; DELEGATE is itself a recording environment) instead of routing calls

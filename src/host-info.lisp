@@ -31,16 +31,6 @@
                      (find-symbol "GETPID" "SB-POSIX"))))
     (if getpid (funcall getpid) 0)))
 
-(defun %validate-hostname (hostname)
-  (unless (stringp hostname)
-    (error "Host name must be a string: ~S" hostname))
-  hostname)
-
-(defun %validate-username (username)
-  (unless (stringp username)
-    (error "User name must be a string: ~S" username))
-  username)
-
 (defun %validate-pid (pid)
   (unless (and (integerp pid) (>= pid 0))
     (error "Process id must be a non-negative integer: ~S" pid))
@@ -72,17 +62,14 @@ This is the deterministic double for tests, returning the supplied values
 instead of reading the real host."
   (make-instance 'test-host-info
                  :hostname-fn nil :username-fn nil :pid-fn nil
-                 :hostname (%validate-hostname hostname)
-                 :username (%validate-username username)
+                 :hostname (require-string hostname "Host name")
+                 :username (require-string username "User name")
                  :pid (%validate-pid pid)))
 
-(defun make-recording-host-info (&key (delegate (make-test-host-info)))
+(define-recording-boundary-constructor make-recording-host-info recording-host-info host-info (make-test-host-info)
   "Create a host-info boundary that records reads while delegating to DELEGATE,
 which defaults to a `make-test-host-info`."
-  (require-instance delegate 'host-info "DELEGATE")
-  (make-instance 'recording-host-info
-                 :hostname-fn nil :username-fn nil :pid-fn nil
-                 :delegate delegate))
+  :hostname-fn nil :username-fn nil :pid-fn nil)
 
 (define-recording-call-log recording-host-info-calls reset-recording-host-info-calls
     (host-info recording-host-info %recording-host-info-calls) "host-info")
@@ -105,20 +92,11 @@ which defaults to a `make-test-host-info`."
 (defmethod host-info-pid ((host-info test-host-info))
   (%test-host-info-pid host-info))
 
-(defmethod host-info-hostname ((host-info recording-host-info))
-  (let ((result (host-info-hostname (recording-host-info-delegate host-info))))
-    (%record-call (%recording-host-info-calls host-info)
-      :operation :hostname :arguments '() :result result)
-    result))
+(define-recording-delegate-method host-info-hostname (host-info recording-host-info recording-host-info-delegate %recording-host-info-calls)
+    (() ()) :hostname '())
 
-(defmethod host-info-username ((host-info recording-host-info))
-  (let ((result (host-info-username (recording-host-info-delegate host-info))))
-    (%record-call (%recording-host-info-calls host-info)
-      :operation :username :arguments '() :result result)
-    result))
+(define-recording-delegate-method host-info-username (host-info recording-host-info recording-host-info-delegate %recording-host-info-calls)
+    (() ()) :username '())
 
-(defmethod host-info-pid ((host-info recording-host-info))
-  (let ((result (host-info-pid (recording-host-info-delegate host-info))))
-    (%record-call (%recording-host-info-calls host-info)
-      :operation :pid :arguments '() :result result)
-    result))
+(define-recording-delegate-method host-info-pid (host-info recording-host-info recording-host-info-delegate %recording-host-info-calls)
+    (() ()) :pid '())

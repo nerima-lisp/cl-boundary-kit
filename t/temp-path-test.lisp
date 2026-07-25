@@ -91,9 +91,12 @@
   (signals error
     (make-recording-temp-path-source :delegate :bad)))
 
-(it "recording-temp-path-source-calls-signals-for-unsupported-source-types"
-  (signals error
-    (recording-temp-path-source-calls (make-temp-path-source))))
+(it-each ((recording-temp-path-source-calls)
+          (reset-recording-temp-path-source-calls))
+    "~A signals for unsupported source types"
+    (operation)
+  (expect (lambda () (funcall operation (make-temp-path-source)))
+          :to-signal-message-containing "Unsupported temp path source type"))
 
 (it "reset-recording-temp-path-source-calls-clears-history-and-returns-the-source"
   (let ((source (make-recording-temp-path-source
@@ -102,10 +105,6 @@
     (expect (= 1 (length (recording-temp-path-source-calls source))) :to-be-truthy)
     (expect (eq source (reset-recording-temp-path-source-calls source)) :to-be-truthy)
     (expect (null (recording-temp-path-source-calls source)) :to-be-truthy)))
-
-(it "reset-recording-temp-path-source-calls-signals-for-unsupported-source-types"
-  (signals error
-    (reset-recording-temp-path-source-calls (make-temp-path-source))))
 
 ;;; Constructor and queue validation error branches.
 

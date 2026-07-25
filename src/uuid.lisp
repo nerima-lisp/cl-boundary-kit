@@ -42,10 +42,7 @@
     (error "Sequential UUID source start must be a non-negative integer: ~S" start))
   start)
 
-(defun %validate-test-uuid-values (values)
-  (unless (listp values)
-    (error "Test UUID source values must be a list: ~S" values))
-  values)
+(define-list-validator %validate-test-uuid-values values "Test UUID source values")
 
 (defun %validate-test-uuid-value (value)
   (unless (stringp value)
@@ -85,10 +82,9 @@ queue is exhausted."
                  :generate-fn nil
                  :values (copy-list (%validate-test-uuid-values values))))
 
-(defun make-recording-uuid-source (&key (delegate (make-uuid-source)))
+(define-recording-boundary-constructor make-recording-uuid-source recording-uuid-source uuid-source (make-uuid-source)
   "Create a UUID source that records calls while delegating to DELEGATE."
-  (require-instance delegate 'uuid-source "DELEGATE")
-  (make-instance 'recording-uuid-source :generate-fn nil :delegate delegate))
+  :generate-fn nil)
 
 (define-recording-call-log recording-uuid-source-calls reset-recording-uuid-source-calls
     (source recording-uuid-source %recording-uuid-source-calls) "UUID source")
@@ -109,10 +105,5 @@ queue is exhausted."
       (setf (test-uuid-source-values source) (rest values))
       value)))
 
-(defmethod uuid-generate ((source recording-uuid-source))
-  (let ((result (uuid-generate (recording-uuid-source-delegate source))))
-    (%record-call (%recording-uuid-source-calls source)
-      :operation :generate
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method uuid-generate (source recording-uuid-source recording-uuid-source-delegate %recording-uuid-source-calls)
+    (() ()) :generate '())

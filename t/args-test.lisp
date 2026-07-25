@@ -62,9 +62,12 @@
   (signals error
     (make-recording-args :delegate :bad)))
 
-(it "recording-args-calls-signals-for-unsupported-args-types"
-  (signals error
-    (recording-args-calls (make-test-args))))
+(it-each ((recording-args-calls)
+          (reset-recording-args-calls))
+    "~A signals for unsupported args types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-args)))
+          :to-signal-message-containing "Unsupported command-line arguments type"))
 
 (it "reset-recording-args-calls-clears-history-and-returns-the-args"
   (let ((args (make-recording-args :delegate (make-test-args :arguments (list "a")))))
@@ -73,6 +76,3 @@
     (expect (eq args (reset-recording-args-calls args)) :to-be-truthy)
     (expect (null (recording-args-calls args)) :to-be-truthy)))
 
-(it "reset-recording-args-calls-signals-for-unsupported-args-types"
-  (signals error
-    (reset-recording-args-calls (make-test-args))))

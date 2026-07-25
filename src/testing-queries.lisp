@@ -63,14 +63,11 @@ This is the single-result counterpart of `filter-recorded-calls`, mirroring
   "Return the most recent recorded call in CALLS, or NIL when CALLS is empty."
   (car (last calls)))
 
-(defun recorded-call-operation (call)
-  "Return the `:operation` of a single recorded CALL."
-  (getf call :operation))
+(define-plist-accessor recorded-call-operation call :operation
+  "Return the `:operation` of a single recorded CALL.")
 
-(defun recorded-call-arguments (call)
-  "Return the `:arguments` of a single recorded CALL."
-  (getf call :arguments))
+(define-plist-accessor recorded-call-arguments call :arguments
+  "Return the `:arguments` of a single recorded CALL.")
 
-(defun recorded-call-result (call)
-  "Return the `:result` of a single recorded CALL."
-  (getf call :result))
+(define-plist-accessor recorded-call-result call :result
+  "Return the `:result` of a single recorded CALL.")

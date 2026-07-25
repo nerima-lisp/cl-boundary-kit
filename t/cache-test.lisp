@@ -4,13 +4,14 @@
 
 (it "test-cache-stores-and-reads-values-with-present-p"
   (let ((cache (make-test-cache)))
-    (expect (= 1 (cache-put cache "k" 1)) :to-be-truthy)
-    (multiple-value-bind (value present) (cache-get cache "k")
-      (expect (= 1 value) :to-be-truthy)
-      (expect (eq t present) :to-be-truthy))
-    (multiple-value-bind (value present) (cache-get cache "missing" :default)
-      (expect (eq :default value) :to-be-truthy)
-      (expect (null present) :to-be-truthy))))
+    (with-soft-assertions
+      (expect (= 1 (cache-put cache "k" 1)) :to-be-truthy)
+      (multiple-value-bind (value present) (cache-get cache "k")
+        (expect (= 1 value) :to-be-truthy)
+        (expect (eq t present) :to-be-truthy))
+      (multiple-value-bind (value present) (cache-get cache "missing" :default)
+        (expect (eq :default value) :to-be-truthy)
+        (expect (null present) :to-be-truthy)))))
 
 (it "test-cache-distinguishes-a-stored-nil-from-a-missing-key"
   (let ((cache (make-test-cache)))
@@ -91,9 +92,12 @@
   (signals error
     (make-recording-cache :delegate :bad)))
 
-(it "recording-cache-calls-signals-for-unsupported-cache-types"
-  (signals error
-    (recording-cache-calls (make-test-cache))))
+(it-each ((recording-cache-calls)
+          (reset-recording-cache-calls))
+    "~A signals for unsupported cache types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-cache)))
+          :to-signal-message-containing "Unsupported cache type"))
 
 (it "reset-recording-cache-calls-clears-history-and-returns-the-cache"
   (let ((cache (make-recording-cache)))
@@ -101,10 +105,6 @@
     (expect (= 1 (length (recording-cache-calls cache))) :to-be-truthy)
     (expect (eq cache (reset-recording-cache-calls cache)) :to-be-truthy)
     (expect (null (recording-cache-calls cache)) :to-be-truthy)))
-
-(it "reset-recording-cache-calls-signals-for-unsupported-cache-types"
-  (signals error
-    (reset-recording-cache-calls (make-test-cache))))
 
 (it "cache-fetch-computes-and-stores-a-value-only-on-a-miss"
   (let* ((cache (make-test-cache))

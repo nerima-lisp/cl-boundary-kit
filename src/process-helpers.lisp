@@ -3,8 +3,7 @@
 (defun %make-process-boundary-data (type &rest entries)
   (list* :boundary-type type entries))
 
-(defun %process-boundary-type (boundary)
-  (getf boundary :boundary-type))
+(define-plist-accessor %process-boundary-type boundary :boundary-type)
 
 (defun %process-boundary-p (boundary)
   (let ((type (%process-boundary-type boundary)))
@@ -22,10 +21,7 @@
     (error "~A must be a process boundary: ~S" name boundary))
   boundary)
 
-(defun %validate-test-process-results (results)
-  (unless (listp results)
-    (error "Test process boundary results must be a list: ~S" results))
-  results)
+(define-list-validator %validate-test-process-results results "Test process boundary results")
 
 (defun %process-calls (boundary)
   (if (%recording-process-boundary-p boundary)
@@ -35,17 +31,14 @@
 (defun (setf %process-calls) (new-value boundary)
   (setf (getf boundary :calls) new-value))
 
-(defun %process-runner (boundary)
-  (getf boundary :run-fn))
+(define-plist-accessor %process-runner boundary :run-fn)
 
-(defun %process-results (boundary)
-  (getf boundary :results))
+(define-plist-accessor %process-results boundary :results)
 
 (defun %set-process-results (boundary results)
   (setf (getf boundary :results) results))
 
-(defun %process-delegate (boundary)
-  (getf boundary :delegate))
+(define-plist-accessor %process-delegate boundary :delegate)
 
 (defun %normalize-program (command arguments)
   (normalize-command command arguments))

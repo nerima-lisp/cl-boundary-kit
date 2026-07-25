@@ -14,10 +14,7 @@
                     "body" "content" "payload") table)
       (setf (gethash name table) t))))
 
-(defun %validate-test-network-responses (responses)
-  (unless (listp responses)
-    (error "Test network boundary responses must be a list: ~S" responses))
-  responses)
+(define-list-validator %validate-test-network-responses responses "Test network boundary responses")
 
 (defun %proper-list-p (value)
   (loop for tail = value then (cdr tail)

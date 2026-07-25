@@ -43,14 +43,11 @@ state through `test-lock-held-p`."
     (error "Unsupported lock type: ~S" lock))
   (plusp (%test-lock-depth lock)))
 
-(defun make-recording-lock (&key (delegate (make-test-lock)))
+(define-recording-boundary-constructor make-recording-lock recording-lock lock (make-test-lock)
   "Create a lock that records acquire/release calls while delegating to DELEGATE.
 
 DELEGATE defaults to a non-reentrant `make-test-lock`."
-  (require-instance delegate 'lock "DELEGATE")
-  (make-instance 'recording-lock
-                 :acquire-fn nil :release-fn nil
-                 :delegate delegate))
+  :acquire-fn nil :release-fn nil)
 
 (define-recording-call-log recording-lock-calls reset-recording-lock-calls
     (lock recording-lock %recording-lock-calls) "lock")
@@ -87,18 +84,8 @@ acquire and release."
   (decf (%test-lock-depth lock))
   t)
 
-(defmethod lock-acquire ((lock recording-lock))
-  (let ((result (lock-acquire (recording-lock-delegate lock))))
-    (%record-call (%recording-lock-calls lock)
-      :operation :acquire
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method lock-acquire (lock recording-lock recording-lock-delegate %recording-lock-calls)
+    (() ()) :acquire '())
 
-(defmethod lock-release ((lock recording-lock))
-  (let ((result (lock-release (recording-lock-delegate lock))))
-    (%record-call (%recording-lock-calls lock)
-      :operation :release
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method lock-release (lock recording-lock recording-lock-delegate %recording-lock-calls)
+    (() ()) :release '())

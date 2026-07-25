@@ -12,13 +12,9 @@
   ((delegate :initarg :delegate :reader recording-metrics-delegate)
    (events :initform '() :accessor %metrics-events)))
 
-(defmethod %metrics-events ((metrics metrics))
-  (error "Unsupported metrics type: ~S" metrics))
+(define-emit-event-boundary-dispatch metrics)
 
-(defun %validate-metric-name (name)
-  (unless (or (stringp name) (and (symbolp name) name))
-    (error "Metric name must be a non-nil symbol or a string: ~S" name))
-  name)
+(define-name-validator %validate-metric-name name "Metric name")
 
 (defun %validate-metric-value (value name)
   (unless (realp value)
@@ -50,30 +46,16 @@ event plist and returns it. The events are available through
 `recording-metric-events`."
   (make-instance 'test-metrics :emit-fn nil))
 
-(defun make-recording-metrics (&key (delegate (make-metrics)))
+(define-recording-boundary-constructor make-recording-metrics recording-metrics metrics (make-metrics)
   "Create a metrics boundary that records events before forwarding them to DELEGATE.
 
 DELEGATE defaults to a no-op `make-metrics` sink. The recorded events are
 available through `recording-metric-events`."
-  (require-instance delegate 'metrics "DELEGATE")
-  (make-instance 'recording-metrics
-                 :emit-fn (metrics-emit-fn delegate)
-                 :delegate delegate))
+  :emit-fn (metrics-emit-fn delegate))
 
 (defun recording-metric-events (metrics)
   "Return the recorded metric events in emission order."
   (%snapshot-boundary-events (%metrics-events metrics)))
-
-(defgeneric %reset-metrics-events (metrics))
-
-(defmethod %reset-metrics-events ((metrics metrics))
-  (error "Unsupported metrics type: ~S" metrics))
-
-(defmethod %reset-metrics-events ((metrics test-metrics))
-  (setf (%metrics-events metrics) nil))
-
-(defmethod %reset-metrics-events ((metrics recording-metrics))
-  (setf (%metrics-events metrics) nil))
 
 (defun reset-recording-metric-events (metrics)
   "Clear METRICS's recorded event history and return METRICS.
@@ -83,20 +65,6 @@ lifetime; call this periodically to bound memory growth instead of only being
 able to reclaim it by discarding the object."
   (%reset-metrics-events metrics)
   metrics)
-
-(defgeneric %metrics-emit-event (metrics event))
-
-(defmethod %metrics-emit-event ((metrics metrics) event)
-  (%emit-boundary-event (metrics-emit-fn metrics) event))
-
-(defmethod %metrics-emit-event ((metrics test-metrics) event)
-  (push (%copy-boundary-event event) (%metrics-events metrics))
-  event)
-
-(defmethod %metrics-emit-event ((metrics recording-metrics) event)
-  (push (%copy-boundary-event event) (%metrics-events metrics))
-  (%metrics-emit-event (recording-metrics-delegate metrics) (%copy-boundary-event event))
-  event)
 
 (defmethod metrics-count ((metrics metrics) name amount)
   (%validate-metric-name name)

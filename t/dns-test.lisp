@@ -57,9 +57,12 @@
   (signals error
     (make-recording-dns-resolver :delegate :bad)))
 
-(it "recording-dns-calls-signals-for-unsupported-resolver-types"
-  (signals error
-    (recording-dns-calls (make-test-dns-resolver))))
+(it-each ((recording-dns-calls)
+          (reset-recording-dns-calls))
+    "~A signals for unsupported resolver types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-dns-resolver)))
+          :to-signal-message-containing "Unsupported DNS resolver type"))
 
 (it "reset-recording-dns-calls-clears-history-and-returns-the-resolver"
   (let ((resolver (make-recording-dns-resolver
@@ -68,10 +71,6 @@
     (expect (= 1 (length (recording-dns-calls resolver))) :to-be-truthy)
     (expect (eq resolver (reset-recording-dns-calls resolver)) :to-be-truthy)
     (expect (null (recording-dns-calls resolver)) :to-be-truthy)))
-
-(it "reset-recording-dns-calls-signals-for-unsupported-resolver-types"
-  (signals error
-    (reset-recording-dns-calls (make-test-dns-resolver))))
 
 (it "make-test-dns-resolver-rejects-non-list-addresses"
   (signals-error-message-contains "DNS addresses for"

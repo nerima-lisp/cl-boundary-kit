@@ -17,7 +17,8 @@
                 #:gen-string
                 #:gen-member
                 #:run-all
-                #:signals)
+                #:signals
+                #:with-soft-assertions)
   (:export #:run-tests))
 
 (in-package #:cl-boundary-kit/test)

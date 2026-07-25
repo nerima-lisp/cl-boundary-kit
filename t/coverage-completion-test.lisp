@@ -11,34 +11,36 @@
 
 (it "redact-network-value-traverses-every-supported-shape"
   (flet ((redact (value) (cl-boundary-kit::%redact-network-value value)))
-    ;; atom pass-through
-    (expect (redact 42) :to-be 42)
-    ;; sensitive plist key redacted, ordinary key kept
-    (expect (equal (redact '(:authorization "s" :accept "j"))
-                   '(:authorization :redacted :accept "j"))
-            :to-be-truthy)
-    ;; sensitive alist key redacted
-    (expect (equal (redact '((:token . "s") (:ok . "j")))
-                   '((:token . :redacted) (:ok . "j")))
-            :to-be-truthy)
-    ;; proper list of scalars traversed element-wise
-    (expect (equal (redact '("a" "b")) '("a" "b")) :to-be-truthy)
-    ;; odd-length "plist" fails the plist predicate and is treated as a list
-    (expect (equal (redact '(:a 1 :b)) '(:a 1 :b)) :to-be-truthy)
-    ;; a non-symbol/string key fails the plist and alist predicates
-    (expect (equal (redact '(1 2)) '(1 2)) :to-be-truthy)
-    ;; dotted pair rebuilt through the fallback arm
-    (expect (equal (redact '(1 . 2)) '(1 . 2)) :to-be-truthy)))
+    (with-soft-assertions
+      ;; atom pass-through
+      (expect (redact 42) :to-be 42)
+      ;; sensitive plist key redacted, ordinary key kept
+      (expect (equal (redact '(:authorization "s" :accept "j"))
+                     '(:authorization :redacted :accept "j"))
+              :to-be-truthy)
+      ;; sensitive alist key redacted
+      (expect (equal (redact '((:token . "s") (:ok . "j")))
+                     '((:token . :redacted) (:ok . "j")))
+              :to-be-truthy)
+      ;; proper list of scalars traversed element-wise
+      (expect (equal (redact '("a" "b")) '("a" "b")) :to-be-truthy)
+      ;; odd-length "plist" fails the plist predicate and is treated as a list
+      (expect (equal (redact '(:a 1 :b)) '(:a 1 :b)) :to-be-truthy)
+      ;; a non-symbol/string key fails the plist and alist predicates
+      (expect (equal (redact '(1 2)) '(1 2)) :to-be-truthy)
+      ;; dotted pair rebuilt through the fallback arm
+      (expect (equal (redact '(1 . 2)) '(1 . 2)) :to-be-truthy))))
 
 (it "network-shape-predicates-reject-malformed-structure"
-  (expect (cl-boundary-kit::%network-plist-p '(:a 1 :b 2)) :to-be-truthy)
-  (expect (cl-boundary-kit::%network-plist-p '(:a 1 :b)) :to-be nil)  ; odd
-  (expect (cl-boundary-kit::%network-plist-p '(1 2)) :to-be nil)      ; bad key
-  (expect (cl-boundary-kit::%network-alist-p '((:a . 1))) :to-be-truthy)
-  (expect (cl-boundary-kit::%network-alist-p '(1 2)) :to-be nil)      ; entry not a cons
-  (expect (cl-boundary-kit::%network-alist-p '((1 . 2))) :to-be nil)  ; key not symbol/string
-  (expect (cl-boundary-kit::%proper-list-p '(1 2 3)) :to-be-truthy)
-  (expect (cl-boundary-kit::%proper-list-p '(1 . 2)) :to-be nil))
+  (with-soft-assertions
+    (expect (cl-boundary-kit::%network-plist-p '(:a 1 :b 2)) :to-be-truthy)
+    (expect (cl-boundary-kit::%network-plist-p '(:a 1 :b)) :to-be nil)  ; odd
+    (expect (cl-boundary-kit::%network-plist-p '(1 2)) :to-be nil)      ; bad key
+    (expect (cl-boundary-kit::%network-alist-p '((:a . 1))) :to-be-truthy)
+    (expect (cl-boundary-kit::%network-alist-p '(1 2)) :to-be nil)      ; entry not a cons
+    (expect (cl-boundary-kit::%network-alist-p '((1 . 2))) :to-be nil)  ; key not symbol/string
+    (expect (cl-boundary-kit::%proper-list-p '(1 2 3)) :to-be-truthy)
+    (expect (cl-boundary-kit::%proper-list-p '(1 . 2)) :to-be nil)))
 
 (it "network-sensitive-field-p-classifies-key-kinds"
   (expect (cl-boundary-kit::%network-sensitive-field-p :authorization) :to-be-truthy)

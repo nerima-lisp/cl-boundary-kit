@@ -37,15 +37,14 @@ so a stored `nil` is distinguishable from a missing secret."
       (setf (gethash (car pair) table) (cdr pair)))
     (make-instance 'test-secret-store :get-fn nil :table table)))
 
-(defun make-recording-secret-store (&key (delegate (make-test-secret-store)))
+(define-recording-boundary-constructor make-recording-secret-store recording-secret-store secret-store (make-test-secret-store)
   "Create a secret store that records lookups while delegating to DELEGATE.
 
 Unlike the other recording wrappers, this one deliberately never records the
 returned secret value: it stores the requested name with a `:redacted` result
 and omits the default argument, so secrets cannot leak into a call history that
 tests or logs inspect. DELEGATE defaults to an empty `make-test-secret-store`."
-  (require-instance delegate 'secret-store "DELEGATE")
-  (make-instance 'recording-secret-store :get-fn nil :delegate delegate))
+  :get-fn nil)
 
 (define-recording-call-log recording-secret-calls reset-recording-secret-calls
     (store recording-secret-store %recording-secret-calls) "secret store"
@@ -84,13 +83,7 @@ than the real secret value.")
         :result :redacted)
       (values value present))))
 
-(defmethod secret-names ((store recording-secret-store))
-  ;; Secret NAMES are configuration keys, not the secret values, so they are safe
-  ;; to record verbatim (unlike SECRET-GET's redacted result).
-  (let* ((delegate (recording-secret-store-delegate store))
-         (result (secret-names delegate)))
-    (%record-call (%recording-secret-calls store)
-      :operation :names
-      :arguments '()
-      :result result)
-    result))
+;; Secret NAMES are configuration keys, not the secret values, so they are safe
+;; to record verbatim (unlike SECRET-GET's redacted result).
+(define-recording-delegate-method secret-names (store recording-secret-store recording-secret-store-delegate %recording-secret-calls)
+    (() ()) :names '())

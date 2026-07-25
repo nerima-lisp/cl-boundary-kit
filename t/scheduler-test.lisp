@@ -83,9 +83,12 @@
   (signals error
     (make-recording-scheduler :delegate :bad)))
 
-(it "recording-scheduler-calls-signals-for-unsupported-scheduler-types"
-  (signals error
-    (recording-scheduler-calls (make-test-scheduler))))
+(it-each ((recording-scheduler-calls)
+          (reset-recording-scheduler-calls))
+    "~A signals for unsupported scheduler types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-scheduler)))
+          :to-signal-message-containing "Unsupported scheduler type"))
 
 (it "test-scheduler-accessors-signal-for-unsupported-scheduler-types"
   (signals error
@@ -100,6 +103,3 @@
     (expect (eq scheduler (reset-recording-scheduler-calls scheduler)) :to-be-truthy)
     (expect (null (recording-scheduler-calls scheduler)) :to-be-truthy)))
 
-(it "reset-recording-scheduler-calls-signals-for-unsupported-scheduler-types"
-  (signals error
-    (reset-recording-scheduler-calls (make-test-scheduler))))

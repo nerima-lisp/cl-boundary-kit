@@ -14,10 +14,7 @@
 
 (define-emit-event-boundary-dispatch publisher)
 
-(defun %validate-publisher-topic (topic)
-  (unless (or (stringp topic) (and (symbolp topic) topic))
-    (error "Publisher topic must be a non-nil symbol or a string: ~S" topic))
-  topic)
+(define-name-validator %validate-publisher-topic topic "Publisher topic")
 
 (defun %make-published-message (topic message)
   (list :topic (%copy-boundary-value topic)
@@ -40,15 +37,12 @@ event and returns it. The events are available through
 `recording-published-messages`."
   (make-instance 'test-publisher :emit-fn nil))
 
-(defun make-recording-publisher (&key (delegate (make-publisher)))
+(define-recording-boundary-constructor make-recording-publisher recording-publisher publisher (make-publisher)
   "Create a publisher that records messages before forwarding them to DELEGATE.
 
 DELEGATE defaults to a no-op `make-publisher` sink. The recorded messages are
 available through `recording-published-messages`."
-  (require-instance delegate 'publisher "DELEGATE")
-  (make-instance 'recording-publisher
-                 :emit-fn (publisher-emit-fn delegate)
-                 :delegate delegate))
+  :emit-fn (publisher-emit-fn delegate))
 
 (defun recording-published-messages (publisher)
   "Return the recorded published messages in emission order."

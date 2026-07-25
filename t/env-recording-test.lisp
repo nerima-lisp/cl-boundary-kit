@@ -43,9 +43,12 @@
 ;;; unlike every sibling accessor (RECORDING-FILESYSTEM-CALLS,
 ;;; RECORDING-PROCESS-CALLS, RECORDING-NETWORK-CALLS), which all signal on
 ;;; an unsupported boundary type.
-(it "recording-environment-calls-signals-for-unsupported-environment-types"
-  (signals-error-message-contains "Unsupported environment type"
-      (recording-environment-calls (make-environment))))
+(it-each ((recording-environment-calls)
+          (reset-recording-environment-calls))
+    "~A signals for unsupported environment types"
+    (operation)
+  (expect (lambda () (funcall operation (make-environment)))
+          :to-signal-message-containing "Unsupported environment type"))
 
 ;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
 ;;; double-record every call -- once on the wrapper, once on the delegate's
@@ -76,6 +79,3 @@
     (expect (eq (reset-recording-environment-calls env) env) :to-be-truthy)
     (expect (null (recording-environment-calls env)) :to-be-truthy)))
 
-(it "reset-recording-environment-calls-signals-for-unsupported-environment-types"
-  (signals-error-message-contains "Unsupported environment type"
-      (reset-recording-environment-calls (make-environment))))

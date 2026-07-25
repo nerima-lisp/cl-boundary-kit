@@ -125,9 +125,12 @@
   (signals error
     (make-recording-logger :delegate :bad)))
 
-(it "recording-log-events-signals-for-unsupported-logger-types"
-  (signals-error-message-contains "Unsupported logger type"
-      (recording-log-events (make-logger))))
+(it-each ((recording-log-events)
+          (reset-recording-log-events))
+    "~A signals for unsupported logger types"
+    (operation)
+  (expect (lambda () (funcall operation (make-logger)))
+          :to-signal-message-containing "Unsupported logger type"))
 
 ;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
 ;;; double-record every event -- once on the wrapper, once on the delegate's
@@ -153,10 +156,6 @@
     (expect (null (recording-log-events logger)) :to-be-truthy)
     (logger-log logger :info "three")
     (expect (= (length (recording-log-events logger)) 1) :to-be-truthy)))
-
-(it "reset-recording-log-events-signals-for-unsupported-logger-types"
-  (signals-error-message-contains "Unsupported logger type"
-      (reset-recording-log-events (make-logger))))
 
 (it "reset-recording-log-events-clears-a-test-logger-history"
   (let ((logger (make-test-logger)))

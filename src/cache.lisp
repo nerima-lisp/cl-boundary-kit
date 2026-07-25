@@ -52,12 +52,10 @@ expiry from a fake clock."
     (make-instance 'test-cache :get-fn nil :put-fn nil :evict-fn nil
                                :table table :now-fn now-fn)))
 
-(defun make-recording-cache (&key (delegate (make-test-cache)))
+(define-recording-boundary-constructor make-recording-cache recording-cache cache (make-test-cache)
   "Create a cache that records calls while delegating to DELEGATE, which defaults
 to an empty `make-test-cache`."
-  (require-instance delegate 'cache "DELEGATE")
-  (make-instance 'recording-cache :get-fn nil :put-fn nil :evict-fn nil
-                                  :delegate delegate))
+  :get-fn nil :put-fn nil :evict-fn nil)
 
 (define-recording-call-log recording-cache-calls reset-recording-cache-calls
     (cache recording-cache %recording-cache-calls) "cache")
@@ -126,22 +124,12 @@ to an empty `make-test-cache`."
       :result value)
     (values value present)))
 
-(defmethod cache-put ((cache recording-cache) key value &key ttl)
-  (%validate-cache-ttl ttl)
-  (let ((result (cache-put (recording-cache-delegate cache) key value :ttl ttl)))
-    (%record-call (%recording-cache-calls cache)
-      :operation :put
-      :arguments (list key value ttl)
-      :result result)
-    result))
+(define-recording-delegate-method cache-put (cache recording-cache recording-cache-delegate %recording-cache-calls)
+    ((key value &key ttl) (key value :ttl ttl)) :put (list key value ttl)
+  (%validate-cache-ttl ttl))
 
-(defmethod cache-evict ((cache recording-cache) key)
-  (let ((result (cache-evict (recording-cache-delegate cache) key)))
-    (%record-call (%recording-cache-calls cache)
-      :operation :evict
-      :arguments (list key)
-      :result result)
-    result))
+(define-recording-delegate-method cache-evict (cache recording-cache recording-cache-delegate %recording-cache-calls)
+    ((key) (key)) :evict (list key))
 
 (defmethod cache-clear ((cache recording-cache))
   (cache-clear (recording-cache-delegate cache))

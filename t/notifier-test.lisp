@@ -69,9 +69,12 @@
   (signals error
     (make-recording-notifier :delegate :bad)))
 
-(it "recording-sent-notifications-signals-for-unsupported-notifier-types"
-  (signals error
-    (recording-sent-notifications (make-notifier))))
+(it-each ((recording-sent-notifications)
+          (reset-recording-sent-notifications))
+    "~A signals for unsupported notifier types"
+    (operation)
+  (expect (lambda () (funcall operation (make-notifier)))
+          :to-signal-message-containing "Unsupported notifier type"))
 
 (it "reset-recording-sent-notifications-clears-history-and-returns-the-notifier"
   (let ((notifier (make-test-notifier)))
@@ -80,6 +83,3 @@
     (expect (eq notifier (reset-recording-sent-notifications notifier)) :to-be-truthy)
     (expect (null (recording-sent-notifications notifier)) :to-be-truthy)))
 
-(it "reset-recording-sent-notifications-signals-for-unsupported-notifier-types"
-  (signals error
-    (reset-recording-sent-notifications (make-notifier))))

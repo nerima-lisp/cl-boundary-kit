@@ -69,9 +69,12 @@
   (signals error
     (make-recording-secret-store :delegate :bad)))
 
-(it "recording-secret-calls-signals-for-unsupported-store-types"
-  (signals error
-    (recording-secret-calls (make-test-secret-store))))
+(it-each ((recording-secret-calls)
+          (reset-recording-secret-calls))
+    "~A signals for unsupported store types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-secret-store)))
+          :to-signal-message-containing "Unsupported secret store type"))
 
 (it "reset-recording-secret-calls-clears-history-and-returns-the-store"
   (let ((store (make-recording-secret-store)))
@@ -79,10 +82,6 @@
     (expect (= 1 (length (recording-secret-calls store))) :to-be-truthy)
     (expect (eq store (reset-recording-secret-calls store)) :to-be-truthy)
     (expect (null (recording-secret-calls store)) :to-be-truthy)))
-
-(it "reset-recording-secret-calls-signals-for-unsupported-store-types"
-  (signals error
-    (reset-recording-secret-calls (make-test-secret-store))))
 
 (it "secret-names-returns-the-names-fn-result"
   (let ((store (make-secret-store :get-fn (lambda (name) (declare (ignore name)) (values nil nil))

@@ -57,9 +57,12 @@
   (signals error
     (make-recording-lock :delegate :bad)))
 
-(it "recording-lock-calls-signals-for-unsupported-lock-types"
-  (signals error
-    (recording-lock-calls (make-test-lock))))
+(it-each ((recording-lock-calls)
+          (reset-recording-lock-calls))
+    "~A signals for unsupported lock types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-lock)))
+          :to-signal-message-containing "Unsupported lock type"))
 
 (it "reset-recording-lock-calls-clears-history-and-returns-the-lock"
   (let ((lock (make-recording-lock)))
@@ -67,10 +70,6 @@
     (expect (= 1 (length (recording-lock-calls lock))) :to-be-truthy)
     (expect (eq lock (reset-recording-lock-calls lock)) :to-be-truthy)
     (expect (null (recording-lock-calls lock)) :to-be-truthy)))
-
-(it "reset-recording-lock-calls-signals-for-unsupported-lock-types"
-  (signals error
-    (reset-recording-lock-calls (make-test-lock))))
 
 (it "call-with-lock-acquires-runs-and-releases"
   (let ((lock (make-recording-lock)))

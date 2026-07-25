@@ -48,9 +48,12 @@
   (signals error
     (make-recording-host-info :delegate :bad)))
 
-(it "recording-host-info-calls-signals-for-unsupported-host-info-types"
-  (signals error
-    (recording-host-info-calls (make-test-host-info))))
+(it-each ((recording-host-info-calls)
+          (reset-recording-host-info-calls))
+    "~A signals for unsupported host-info types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-host-info)))
+          :to-signal-message-containing "Unsupported host-info type"))
 
 (it "reset-recording-host-info-calls-clears-history-and-returns-it"
   (let ((host (make-recording-host-info)))
@@ -58,10 +61,6 @@
     (expect (= 1 (length (recording-host-info-calls host))) :to-be-truthy)
     (expect (eq host (reset-recording-host-info-calls host)) :to-be-truthy)
     (expect (null (recording-host-info-calls host)) :to-be-truthy)))
-
-(it "reset-recording-host-info-calls-signals-for-unsupported-host-info-types"
-  (signals error
-    (reset-recording-host-info-calls (make-test-host-info))))
 
 (it "make-test-host-info-rejects-a-non-string-username"
   (signals-error-message-contains "User name must be a string"

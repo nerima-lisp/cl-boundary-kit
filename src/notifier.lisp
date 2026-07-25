@@ -14,11 +14,6 @@
 
 (define-emit-event-boundary-dispatch notifier)
 
-(defun %validate-notification-field (value name)
-  (unless (stringp value)
-    (error "~A must be a string: ~S" name value))
-  value)
-
 (defun %make-notification (recipient subject body)
   (list :recipient (%copy-boundary-value recipient)
         :subject (%copy-boundary-value subject)
@@ -41,15 +36,12 @@ event and returns it. The events are available through
 `recording-sent-notifications`."
   (make-instance 'test-notifier :emit-fn nil))
 
-(defun make-recording-notifier (&key (delegate (make-notifier)))
+(define-recording-boundary-constructor make-recording-notifier recording-notifier notifier (make-notifier)
   "Create a notifier that records notifications before forwarding them to DELEGATE.
 
 DELEGATE defaults to a no-op `make-notifier` sink. The recorded notifications are
 available through `recording-sent-notifications`."
-  (require-instance delegate 'notifier "DELEGATE")
-  (make-instance 'recording-notifier
-                 :emit-fn (notifier-emit-fn delegate)
-                 :delegate delegate))
+  :emit-fn (notifier-emit-fn delegate))
 
 (defun recording-sent-notifications (notifier)
   "Return the recorded notifications in send order."
@@ -65,7 +57,7 @@ being able to reclaim it by discarding the object."
   notifier)
 
 (defmethod notifier-notify ((notifier notifier) recipient subject body)
-  (%validate-notification-field recipient "Notification recipient")
-  (%validate-notification-field subject "Notification subject")
-  (%validate-notification-field body "Notification body")
+  (require-string recipient "Notification recipient")
+  (require-string subject "Notification subject")
+  (require-string body "Notification body")
   (%notifier-emit-event notifier (%make-notification recipient subject body)))

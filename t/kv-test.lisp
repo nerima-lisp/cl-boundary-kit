@@ -33,12 +33,13 @@
 
 (it "test-kv-store-stores-reads-and-deletes-values"
   (let ((store (make-test-kv-store :initial '(("alpha" . 1)))))
-    (expect (= 1 (kv-get store "alpha")) :to-be-truthy)
-    (expect (= 2 (kv-put store "beta" 2)) :to-be-truthy)
-    (expect (equal (list "alpha" "beta") (kv-keys store)) :to-be-truthy)
-    (expect (eq t (kv-delete store "beta")) :to-be-truthy)
-    (expect (null (kv-delete store "beta")) :to-be-truthy)
-    (expect (equal (list "alpha") (kv-keys store)) :to-be-truthy)))
+    (with-soft-assertions
+      (expect (= 1 (kv-get store "alpha")) :to-be-truthy)
+      (expect (= 2 (kv-put store "beta" 2)) :to-be-truthy)
+      (expect (equal (list "alpha" "beta") (kv-keys store)) :to-be-truthy)
+      (expect (eq t (kv-delete store "beta")) :to-be-truthy)
+      (expect (null (kv-delete store "beta")) :to-be-truthy)
+      (expect (equal (list "alpha") (kv-keys store)) :to-be-truthy))))
 
 (it "test-kv-store-distinguishes-a-stored-nil-from-a-missing-key"
   (let ((store (make-test-kv-store)))
@@ -82,9 +83,12 @@
   (signals error
     (make-recording-kv-store :delegate :bad)))
 
-(it "recording-kv-calls-signals-for-unsupported-store-types"
-  (signals error
-    (recording-kv-calls (make-test-kv-store))))
+(it-each ((recording-kv-calls)
+          (reset-recording-kv-calls))
+    "~A signals for unsupported store types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-kv-store)))
+          :to-signal-message-containing "Unsupported key/value store type"))
 
 (it "reset-recording-kv-calls-clears-history-and-returns-the-store"
   (let ((store (make-recording-kv-store)))
@@ -92,10 +96,6 @@
     (expect (= 1 (length (recording-kv-calls store))) :to-be-truthy)
     (expect (eq store (reset-recording-kv-calls store)) :to-be-truthy)
     (expect (null (recording-kv-calls store)) :to-be-truthy)))
-
-(it "reset-recording-kv-calls-signals-for-unsupported-store-types"
-  (signals error
-    (reset-recording-kv-calls (make-test-kv-store))))
 
 (it "kv-update-reads-modifies-and-writes-a-value"
   (let ((store (make-test-kv-store :initial '(("n" . 1)))))

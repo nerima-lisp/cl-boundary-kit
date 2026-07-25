@@ -51,14 +51,13 @@ The captured codes are available through `test-system-exit-codes`."
     (error "Unsupported system boundary type: ~S" system))
   (reverse (%test-system-exit-codes system)))
 
-(defun make-recording-system-boundary (&key (delegate (make-test-system-boundary)))
+(define-recording-boundary-constructor make-recording-system-boundary recording-system-boundary system-boundary (make-test-system-boundary)
   "Create a system boundary that records exit requests while delegating to DELEGATE.
 
 DELEGATE defaults to a non-terminating `make-test-system-boundary`, so a
 recording system boundary never exits the process unless you pass a delegate
 that does."
-  (require-instance delegate 'system-boundary "DELEGATE")
-  (make-instance 'recording-system-boundary :exit-fn nil :delegate delegate))
+  :exit-fn nil)
 
 (define-recording-call-log recording-system-calls reset-recording-system-calls
     (system recording-system-boundary %recording-system-calls) "system boundary")
@@ -72,11 +71,6 @@ that does."
   (push code (%test-system-exit-codes system))
   code)
 
-(defmethod system-exit ((system recording-system-boundary) &optional (code 0))
-  (%validate-exit-code code)
-  (let ((result (system-exit (recording-system-boundary-delegate system) code)))
-    (%record-call (%recording-system-calls system)
-      :operation :exit
-      :arguments (list code)
-      :result result)
-    result))
+(define-recording-delegate-method system-exit (system recording-system-boundary recording-system-boundary-delegate %recording-system-calls)
+    ((&optional (code 0)) (code)) :exit (list code)
+  (%validate-exit-code code))

@@ -23,11 +23,6 @@
     (error "Temp path directory must be a pathname or string: ~S" directory))
   (pathname directory))
 
-(defun %validate-temp-path-string (value name)
-  (unless (stringp value)
-    (error "~A must be a string: ~S" name value))
-  value)
-
 (defun %validate-temp-path-start (start)
   (unless (and (integerp start) (>= start 0))
     (error "Sequential temp path start must be a non-negative integer: ~S" start))
@@ -38,10 +33,7 @@
     (error "Temp path random state must be a random-state: ~S" state))
   state)
 
-(defun %validate-test-temp-paths (paths)
-  (unless (listp paths)
-    (error "Test temp path source paths must be a list: ~S" paths))
-  paths)
+(define-list-validator %validate-test-temp-paths paths "Test temp path source paths")
 
 (defun %temp-path-under (directory name)
   (merge-pathnames (pathname name) directory))
@@ -69,8 +61,8 @@ and skips candidates that already exist. This does not atomically create the
 file; callers that need exclusive creation must still open the returned path
 with an exclusive creation mode."
   (let ((directory (%validate-temp-path-directory directory))
-        (prefix (%validate-temp-path-string prefix "PREFIX"))
-        (suffix (%validate-temp-path-string suffix "SUFFIX"))
+        (prefix (require-string prefix "PREFIX"))
+        (suffix (require-string suffix "SUFFIX"))
         (state (%validate-temp-path-random-state state)))
     (make-instance 'temp-path-source
                    :next-fn (lambda () (%random-temp-path directory prefix suffix state)))))
@@ -85,8 +77,8 @@ reproducible examples."
   (make-instance 'sequential-temp-path-source
                  :next-fn nil
                  :directory (%validate-temp-path-directory directory)
-                 :prefix (%validate-temp-path-string prefix "PREFIX")
-                 :suffix (%validate-temp-path-string suffix "SUFFIX")
+                 :prefix (require-string prefix "PREFIX")
+                 :suffix (require-string suffix "SUFFIX")
                  :counter (%validate-temp-path-start start)))
 
 (defun make-test-temp-path-source (&key paths)
@@ -98,10 +90,9 @@ coerced to a pathname) and signals when the queue is exhausted."
                  :next-fn nil
                  :paths (%copy-boundary-value (%validate-test-temp-paths paths))))
 
-(defun make-recording-temp-path-source (&key (delegate (make-temp-path-source)))
+(define-recording-boundary-constructor make-recording-temp-path-source recording-temp-path-source temp-path-source (make-temp-path-source)
   "Create a temp-path source that records calls while delegating to DELEGATE."
-  (require-instance delegate 'temp-path-source "DELEGATE")
-  (make-instance 'recording-temp-path-source :next-fn nil :delegate delegate))
+  :next-fn nil)
 
 (define-recording-call-log recording-temp-path-source-calls reset-recording-temp-path-source-calls
     (source recording-temp-path-source %recording-temp-path-source-calls) "temp path source")
@@ -128,10 +119,5 @@ coerced to a pathname) and signals when the queue is exhausted."
       (setf (test-temp-path-source-paths source) (rest paths))
       (pathname path))))
 
-(defmethod temp-path-next ((source recording-temp-path-source))
-  (let ((result (temp-path-next (recording-temp-path-source-delegate source))))
-    (%record-call (%recording-temp-path-source-calls source)
-      :operation :next
-      :arguments '()
-      :result result)
-    result))
+(define-recording-delegate-method temp-path-next (source recording-temp-path-source recording-temp-path-source-delegate %recording-temp-path-source-calls)
+    (() ()) :next '())

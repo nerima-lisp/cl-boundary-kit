@@ -12,11 +12,6 @@
   ((delegate :initarg :delegate :reader recording-dns-resolver-delegate)
    (calls :initform '() :accessor %recording-dns-calls)))
 
-(defun %validate-dns-hostname (hostname)
-  (unless (stringp hostname)
-    (error "DNS hostname must be a string: ~S" hostname))
-  hostname)
-
 (defun %validate-dns-addresses (hostname addresses)
   (unless (listp addresses)
     (error "DNS addresses for ~S must be a list: ~S" hostname addresses))
@@ -41,36 +36,30 @@ strings. `dns-resolve` returns the mapped addresses, and signals for a hostname
 that is not present, mirroring a resolution failure."
   (let ((table (make-hash-table :test 'equal)))
     (dolist (pair (%normalize-kv-initial hosts))
-      (setf (gethash (%validate-dns-hostname (car pair)) table)
+      (setf (gethash (require-string (car pair) "DNS hostname") table)
             (copy-list (%validate-dns-addresses (car pair) (cdr pair)))))
     (make-instance 'test-dns-resolver :resolve-fn nil :hosts table)))
 
-(defun make-recording-dns-resolver (&key (delegate (make-test-dns-resolver)))
+(define-recording-boundary-constructor make-recording-dns-resolver recording-dns-resolver dns-resolver (make-test-dns-resolver)
   "Create a DNS resolver that records lookups while delegating to DELEGATE,
 which defaults to an empty `make-test-dns-resolver`."
-  (require-instance delegate 'dns-resolver "DELEGATE")
-  (make-instance 'recording-dns-resolver :resolve-fn nil :delegate delegate))
+  :resolve-fn nil)
 
 (define-recording-call-log recording-dns-calls reset-recording-dns-calls
     (resolver recording-dns-resolver %recording-dns-calls) "DNS resolver")
 
 (defmethod dns-resolve ((resolver dns-resolver) hostname)
-  (%validate-dns-hostname hostname)
+  (require-string hostname "DNS hostname")
   (funcall (dns-resolver-resolve-fn resolver) hostname))
 
 (defmethod dns-resolve ((resolver test-dns-resolver) hostname)
-  (%validate-dns-hostname hostname)
+  (require-string hostname "DNS hostname")
   (multiple-value-bind (addresses present)
       (gethash hostname (test-dns-resolver-hosts resolver))
     (unless present
       (error "DNS resolution failed: no records for ~S" hostname))
     (copy-list addresses)))
 
-(defmethod dns-resolve ((resolver recording-dns-resolver) hostname)
-  (%validate-dns-hostname hostname)
-  (let ((result (dns-resolve (recording-dns-resolver-delegate resolver) hostname)))
-    (%record-call (%recording-dns-calls resolver)
-      :operation :resolve
-      :arguments (list hostname)
-      :result result)
-    result))
+(define-recording-delegate-method dns-resolve (resolver recording-dns-resolver recording-dns-resolver-delegate %recording-dns-calls)
+    ((hostname) (hostname)) :resolve (list hostname)
+  (require-string hostname "DNS hostname"))

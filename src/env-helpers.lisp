@@ -87,6 +87,11 @@
     (when (eq (car rest) key)
       (return (values (cadr rest) t)))))
 
+(defun %plist-value (plist key default)
+  "Return KEY's value in PLIST, or DEFAULT when absent. Like `%plist-ref-values`
+but drops the present-p secondary value for callers that never need it."
+  (nth-value 0 (%plist-ref-values plist key default)))
+
 (defun %normalize-environment-values-cps (initial-values kont)
   (cond
     ((null initial-values)

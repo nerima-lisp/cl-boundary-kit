@@ -59,9 +59,12 @@
   (signals error
     (make-recording-semaphore :delegate :bad)))
 
-(it "recording-semaphore-calls-signals-for-unsupported-semaphore-types"
-  (signals error
-    (recording-semaphore-calls (make-test-semaphore))))
+(it-each ((recording-semaphore-calls)
+          (reset-recording-semaphore-calls))
+    "~A signals for unsupported semaphore types"
+    (operation)
+  (expect (lambda () (funcall operation (make-test-semaphore)))
+          :to-signal-message-containing "Unsupported semaphore type"))
 
 (it "reset-recording-semaphore-calls-clears-history-and-returns-the-semaphore"
   (let ((sem (make-recording-semaphore)))
@@ -69,10 +72,6 @@
     (expect (= 1 (length (recording-semaphore-calls sem))) :to-be-truthy)
     (expect (eq sem (reset-recording-semaphore-calls sem)) :to-be-truthy)
     (expect (null (recording-semaphore-calls sem)) :to-be-truthy)))
-
-(it "reset-recording-semaphore-calls-signals-for-unsupported-semaphore-types"
-  (signals error
-    (reset-recording-semaphore-calls (make-test-semaphore))))
 
 (it "call-with-semaphore-acquires-runs-and-releases"
   (let ((sem (make-test-semaphore :permits 1)))
