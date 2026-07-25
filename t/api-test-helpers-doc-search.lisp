@@ -135,7 +135,7 @@
        :file "SECURITY.md"
        :exists t
        :contains ("## Supported Versions"
-                  "| `0.5.x` | Yes |"
+                  "| `0.6.x` | Yes |"
                   "private report"
                   "5 business days"
                   "## Disclosure Expectations"))

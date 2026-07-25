@@ -33,8 +33,8 @@ documentation and evidence exercise, not just a version bump.
    version matches `cl-boundary-kit.asd` `:version`, then push the tag:
 
    ```sh
-   git tag -a v0.5.0 -m "cl-boundary-kit 0.5.0"
-   git push origin v0.5.0
+   git tag -a v0.6.0 -m "cl-boundary-kit 0.6.0"
+   git push origin v0.6.0
    ```
 
    Pushing a `v[0-9]+.[0-9]+.[0-9]+` tag triggers
@@ -45,7 +45,7 @@ documentation and evidence exercise, not just a version bump.
 
 ## Versioning Expectations
 
-- `0.5.x` should keep the documented exported API stable unless a breaking
+- `0.6.x` should keep the documented exported API stable unless a breaking
   change is explicitly called out.
 - Intentionally breaking changes must update `CHANGELOG.md` and
   [Compatibility](compatibility.md) in the same change.

@@ -13,6 +13,8 @@ called out explicitly here. When a supported replacement exists, include
 migration guidance so consumers can move without inferring policy from code
 diffs alone.
 
+## 0.6.0
+
 ### Changed (breaking)
 
 - `process-boundary-run` and `process-kit-run-fn` no longer wait unboundedly

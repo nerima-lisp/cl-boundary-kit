@@ -1315,7 +1315,7 @@ should not be treated as supported contracts unless that document says so.
 The public contract is intentionally narrow:
 
 - The exported symbols listed in `## API Overview` define the supported library
-  surface for `0.5.x`.
+  surface for `0.6.x`.
 - The checked-in README snippets, `examples/*.lisp`, and the
   `asdf:load-system :cl-boundary-kit/test` plus `cl-boundary-kit/test:run-tests`
   flow are treated as regression-checked usage contracts, not illustrative
