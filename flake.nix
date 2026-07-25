@@ -4,6 +4,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # cl-weave is the deepest sibling, so it owns the single paredit-cli (and
+    # therefore the single rust-overlay) node that every other sibling follows.
     cl-weave = {
       url = "github:nerima-lisp/cl-weave/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -13,21 +15,34 @@
       url = "github:nerima-lisp/cl-prolog/v1.0.1";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.cl-weave.follows = "cl-weave";
+      inputs.paredit-cli.follows = "cl-weave/paredit-cli";
     };
 
     cl-log-kit = {
       url = "github:nerima-lisp/cl-log-kit/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.cl-weave.follows = "cl-weave";
+      inputs.cl-json-kit.follows = "cl-json-kit";
+      inputs.paredit-cli.follows = "cl-weave/paredit-cli";
     };
 
+    # NOTE: cl-process-kit depends on cl-boundary-kit by design — cl-process-kit
+    # builds its injectable clock/sleeper hooks on this system's boundary
+    # abstractions (see DEPENDENCY_POLICY.md). That back-reference is
+    # deliberate, not a cycle to be broken, so its cl-boundary-kit and
+    # cl-log-kit inputs are left alone: pointing them at this flake's own nodes
+    # is what would turn the intentional back-reference into a real cycle.
     cl-process-kit = {
       url = "github:nerima-lisp/cl-process-kit/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.cl-weave.follows = "cl-weave";
     };
 
     cl-json-kit = {
       url = "github:nerima-lisp/cl-json-kit/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.cl-weave.follows = "cl-weave";
+      inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
     treefmt-nix = {
