@@ -21,7 +21,7 @@
     };
 
     cl-process-kit = {
-      url = "github:nerima-lisp/cl-process-kit/v0.2.0";
+      url = "github:nerima-lisp/cl-process-kit/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
