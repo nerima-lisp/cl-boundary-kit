@@ -29,6 +29,11 @@
       url = "github:nerima-lisp/cl-json-kit/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -40,6 +45,7 @@
       cl-log-kit,
       cl-process-kit,
       cl-json-kit,
+      treefmt-nix,
       ...
     }:
     let
@@ -72,6 +78,19 @@
         builtins.head (builtins.match "[[:space:]]*:version \"([^\"]*)\"" versionLine);
 
       version = asdVersion ./cl-boundary-kit.asd;
+
+      # treefmt drives `nix fmt` and the `checks.<system>.formatting` gate.
+      # Scope is Nix only: nixfmt (RFC-style) is a zero-footgun, low-diff
+      # formatter, whereas YAML formatters mangle the GitHub Actions `on:` key
+      # and Markdown reformatting would churn the whole docs tree — which the
+      # api-doc-* tests read line by line.
+      treefmtEval = forAllSystems (
+        system:
+        treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} {
+          projectRootFile = "flake.nix";
+          programs.nixfmt.enable = true;
+        }
+      );
 
       mkDocs =
         pkgs:
@@ -194,9 +213,25 @@
             name = "cl-boundary-kit-coverage";
             coverage = true;
           };
+
+          # Fails `nix flake check` when any tracked file is unformatted,
+          # turning the formatter into an enforced CI gate rather than a
+          # convention people remember to run.
+          formatting = treefmtEval.${system}.config.build.check self;
+
+          # The docs package builds with `mkdocs --strict`, so a broken link or
+          # a page missing from the nav fails the build. Without this check the
+          # site is only ever built by the publish workflow, which runs after a
+          # merge to main — so such a break surfaces as a failed deploy instead
+          # of as a failed pull request.
+          docs = self.packages.${system}.docs;
+
           default = checkout-tests;
         }
       );
+
+      # `nix fmt` entry point.
+      formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);
 
       apps = forAllSystems (
         system:
