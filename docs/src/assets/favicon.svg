@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="cl-boundary-kit">
+  <rect width="32" height="32" rx="7" fill="#2952cc"/>
+  <rect x="7" y="7" width="18" height="18" rx="2" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-dasharray="4 3"/>
+  <circle cx="16" cy="16" r="4" fill="#ffffff"/>
+</svg>

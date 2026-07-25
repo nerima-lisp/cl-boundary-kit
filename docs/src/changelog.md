@@ -6,7 +6,7 @@ This project follows a simple keep-a-changelog-style structure.
 
 This section tracks intentional public changes that may ship in the next
 release. Long-term ideas, non-committed exploration, and deferred work belong
-in [`ROADMAP.md`](ROADMAP.md) instead.
+in [Roadmap](roadmap.md) instead.
 
 Deprecations, removals, and intentionally breaking behavior changes should be
 called out explicitly here. When a supported replacement exists, include

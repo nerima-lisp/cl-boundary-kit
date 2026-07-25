@@ -1,7 +1,14 @@
 # cl-boundary-kit
 
+[![Documentation](https://img.shields.io/badge/docs-MkDocs%20Material-2952cc)](https://nerima-lisp.github.io/cl-boundary-kit/)
+
 `cl-boundary-kit` is a small Common Lisp library for making boundaries to the
 outside world explicit.
+
+This README is the exhaustive, executable-verified API reference. A browsable
+MkDocs (Material) site built from the same content, organized by topic, is
+published at <https://nerima-lisp.github.io/cl-boundary-kit/>; its source
+lives in [`docs/src/`](docs/src/README.md).
 
 It provides lightweight protocols and test doubles for:
 
@@ -1222,6 +1229,7 @@ executing their snippet body.
 - `run-tests.lisp` canonical checkout test runner
 - `flake.nix` pinned Nix build, test, report, and coverage entrypoints
 - `nix/` CI runner and coverage threshold tooling
+- `docs/` MkDocs (Material) source for the published documentation site
 - `COOKBOOK.md` pattern-oriented usage guide for supported flows
 - `FAQ.md` user-facing decision points and contract clarifications
 - `ARCHITECTURE.md` layering model and design constraints

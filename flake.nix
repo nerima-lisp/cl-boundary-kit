@@ -52,6 +52,49 @@
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
       sourceRegistry = "${cl-weave}//:${cl-prolog}//:${cl-log-kit}//:${cl-process-kit}//:${cl-json-kit}//:${self}//";
+
+      # Single source of truth for the package version: the `:version` form in
+      # cl-boundary-kit.asd. A release only ever edits the .asd file and every
+      # Nix package (default + docs) follows automatically. Nix regexes are
+      # whole-string anchored and `.` never spans newlines, so the version is
+      # extracted line-by-line rather than with one multi-line match.
+      version =
+        let
+          lines = nixpkgs.lib.splitString "\n" (builtins.readFile ./cl-boundary-kit.asd);
+          versionLine = builtins.head (
+            builtins.filter (line: builtins.match "[[:space:]]*:version \"[^\"]*\"" line != null) lines
+          );
+        in
+        builtins.head (builtins.match "[[:space:]]*:version \"([^\"]*)\"" versionLine);
+
+      mkDocs =
+        pkgs:
+        pkgs.stdenvNoCC.mkDerivation {
+          pname = "cl-boundary-kit-docs";
+          inherit version;
+          src = pkgs.lib.fileset.toSource {
+            root = ./docs;
+            fileset = pkgs.lib.fileset.unions [
+              ./docs/mkdocs.yml
+              ./docs/src
+            ];
+          };
+          nativeBuildInputs = [ pkgs.python3Packages.mkdocs-material ];
+          # Build fully offline: Material for MkDocs bundles all of its assets,
+          # so no network access is required inside the Nix sandbox. --strict
+          # promotes broken links and unlisted pages to build failures.
+          buildPhase = ''
+            runHook preBuild
+            mkdocs build --strict --config-file mkdocs.yml --site-dir "$out"
+            runHook postBuild
+          '';
+          dontInstall = true;
+          meta = {
+            description = "Rendered MkDocs (Material) documentation for cl-boundary-kit";
+            homepage = "https://github.com/nerima-lisp/cl-boundary-kit";
+            license = pkgs.lib.licenses.mit;
+          };
+        };
     in
     {
       packages = forAllSystems (
@@ -62,10 +105,11 @@
         rec {
           cl-boundary-kit = pkgs.sbcl.buildASDFSystem {
             pname = "cl-boundary-kit";
-            version = "0.4.0";
+            inherit version;
             src = self;
             systems = [ "cl-boundary-kit" ];
           };
+          docs = mkDocs pkgs;
           default = cl-boundary-kit;
         }
       );

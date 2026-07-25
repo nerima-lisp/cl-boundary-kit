@@ -1,0 +1,23 @@
+# Repository Layout
+
+- `src/` core library implementation
+- `t/` test runner and subsystem tests
+- `examples/` REPL-friendly usage snippets
+- `cl-boundary-kit.asd` ASDF system definitions
+- `run-tests.lisp` canonical checkout test runner
+- `flake.nix` pinned Nix build, test, report, and coverage entrypoints
+- `nix/` CI runner and coverage threshold tooling
+- `docs/` MkDocs (Material) source for this documentation site
+- `COOKBOOK.md` pattern-oriented usage guide for supported flows
+- `FAQ.md` user-facing decision points and contract clarifications
+- `ARCHITECTURE.md` layering model and design constraints
+- `COMPATIBILITY.md` current verification scope and non-claims
+- `CONTRIBUTING.md` change workflow and test expectations
+- `GOVERNANCE.md` maintainer decision model and contract surface
+- `CODE_OF_CONDUCT.md` contributor behavior and reporting expectations
+- `SUPPORT.md` request routing and maintenance boundary
+- `RELEASE.md` maintainer release checklist and evidence requirements
+- `CHANGELOG.md` release history and pending unreleased changes
+- `ROADMAP.md` deferred work and non-goals
+- `SECURITY.md` security reporting guidance
+- `LICENSE` MIT license terms
