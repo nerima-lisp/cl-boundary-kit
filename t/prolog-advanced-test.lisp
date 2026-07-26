@@ -3,7 +3,7 @@
 ;;;; Advanced cl-prolog usage: bounded parsing of untrusted policy source,
 ;;;; ISO-conformant rejection of malformed goals, and terminating transitive
 ;;;; reasoning over a boundary delegation graph. Split from
-;;;; prolog-boundary-invariants.lisp, which holds the trusted-Lisp-data policy
+;;;; prolog-boundary-invariants-test.lisp, which holds the trusted-Lisp-data policy
 ;;;; and its declarative invariant/completeness checks.
 
 (in-package #:cl-boundary-kit/test)

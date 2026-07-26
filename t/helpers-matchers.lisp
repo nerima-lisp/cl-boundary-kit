@@ -1,4 +1,4 @@
-;;;; t/matchers.lisp
+;;;; t/helpers-matchers.lisp
 ;;;;
 ;;;; Domain-specific cl-weave matchers for cl-boundary-kit's tests. Registering
 ;;;; these with DEFMATCHER / EXTEND-EXPECT lets boundary tests assert in the

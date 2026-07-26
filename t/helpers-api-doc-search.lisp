@@ -1,7 +1,7 @@
-;;;; t/api-test-helpers-doc-search.lisp
+;;;; t/helpers-api-doc-search.lisp
 ;;;;
 ;;;; Shared document-search test-case data and the macros that expand it into
-;;;; individual test cases, split out of api-test-helpers-markdown.lisp.
+;;;; individual test cases, split out of helpers-api-markdown.lisp.
 
 (in-package #:cl-boundary-kit/test)
 

@@ -1,4 +1,4 @@
-;;;; t/prolog-boundary-invariants.lisp
+;;;; t/prolog-boundary-invariants-test.lisp
 
 (in-package #:cl-boundary-kit/test)
 

@@ -1,4 +1,4 @@
-;;;; t/api-test-helpers-regression.lisp
+;;;; t/helpers-api-regression.lisp
 
 (in-package #:cl-boundary-kit/test)
 

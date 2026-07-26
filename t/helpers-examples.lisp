@@ -1,4 +1,4 @@
-;;;; t/examples-test-helpers.lisp
+;;;; t/helpers-examples.lisp
 
 (in-package #:cl-boundary-kit/test)
 

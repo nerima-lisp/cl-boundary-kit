@@ -1,4 +1,4 @@
-;;;; t/api-test-helpers-fresh-sbcl.lisp
+;;;; t/helpers-api-fresh-sbcl.lisp
 
 (in-package #:cl-boundary-kit/test)
 

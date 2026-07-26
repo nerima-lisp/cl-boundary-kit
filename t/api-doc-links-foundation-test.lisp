@@ -73,7 +73,7 @@
   (let* ((compatibility (repository-file-string "docs/src/compatibility.md"))
          (api-tests (api-test-suite-string))
          (example-tests (repository-file-string "t/examples-runtime-test.lisp"))
-         (example-helpers (repository-file-string "t/examples-test-helpers.lisp"))
+         (example-helpers (repository-file-string "t/helpers-examples.lisp"))
          (installation-snippet (single-document-fenced-code-block
                                  "docs/src/installation.md" "# Installation" "## Nix" "lisp"))
          (testing-repl-snippet (single-document-fenced-code-block
@@ -113,7 +113,7 @@
   (let* ((release (repository-file-string "docs/src/release-process.md"))
          (compatibility (repository-file-string "docs/src/compatibility.md"))
          (api-tests (api-test-suite-string))
-         (example-helpers (repository-file-string "t/examples-test-helpers.lisp")))
+         (example-helpers (repository-file-string "t/helpers-examples.lisp")))
     (assert-contains-all release
                          '("the checkout installation flow"
                            "the documented REPL test-runner path"

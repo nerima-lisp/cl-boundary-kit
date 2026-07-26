@@ -1,7 +1,7 @@
-;;;; t/test-macros.lisp
+;;;; t/helpers-test-macros.lisp
 ;;;;
 ;;;; Shared IT-case generators for regression-test shapes repeated across many
-;;;; boundary test files, kept apart from MATCHERS.LISP's cl-weave matcher
+;;;; boundary test files, kept apart from HELPERS-MATCHERS.LISP's cl-weave matcher
 ;;;; registrations since these define whole test cases rather than assertion
 ;;;; vocabulary.
 
