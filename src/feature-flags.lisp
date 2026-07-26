@@ -43,7 +43,8 @@ flag is off. Names are compared with `equal`."
       (setf (gethash name table) t))
     (make-instance 'test-feature-flags :enabled-fn nil :enabled table)))
 
-(define-recording-boundary-constructor make-recording-feature-flags recording-feature-flags feature-flags (make-test-feature-flags)
+(define-recording-boundary-constructor make-recording-feature-flags
+    recording-feature-flags feature-flags (make-test-feature-flags)
   "Create a feature-flags boundary that records checks while delegating to
 DELEGATE, which defaults to an all-off `make-test-feature-flags`."
   :enabled-fn nil)
@@ -84,9 +85,11 @@ path when off\" pattern."
   (%validate-feature-name name)
   (values (gethash name (test-feature-flags-enabled flags))))
 
-(define-recording-delegate-method feature-enabled-p (flags recording-feature-flags recording-feature-flags-delegate %recording-feature-flag-calls)
+(define-recording-delegate-method feature-enabled-p
+    (flags recording-feature-flags recording-feature-flags-delegate %recording-feature-flag-calls)
     ((name) (name)) :enabled-p (list name)
   (%validate-feature-name name))
 
-(define-recording-delegate-method feature-flags-enabled (flags recording-feature-flags recording-feature-flags-delegate %recording-feature-flag-calls)
+(define-recording-delegate-method feature-flags-enabled
+    (flags recording-feature-flags recording-feature-flags-delegate %recording-feature-flag-calls)
     (() ()) :enabled-list '())

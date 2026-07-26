@@ -46,7 +46,8 @@ event plist and returns it. The events are available through
 `recording-metric-events`."
   (make-instance 'test-metrics :emit-fn nil))
 
-(define-recording-boundary-constructor make-recording-metrics recording-metrics metrics (make-metrics)
+(define-recording-boundary-constructor make-recording-metrics
+    recording-metrics metrics (make-metrics)
   "Create a metrics boundary that records events before forwarding them to DELEGATE.
 
 DELEGATE defaults to a no-op `make-metrics` sink. The recorded events are

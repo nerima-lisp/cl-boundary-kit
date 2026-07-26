@@ -82,7 +82,8 @@ queue is exhausted."
                  :generate-fn nil
                  :values (copy-list (%validate-test-uuid-values values))))
 
-(define-recording-boundary-constructor make-recording-uuid-source recording-uuid-source uuid-source (make-uuid-source)
+(define-recording-boundary-constructor make-recording-uuid-source
+    recording-uuid-source uuid-source (make-uuid-source)
   "Create a UUID source that records calls while delegating to DELEGATE."
   :generate-fn nil)
 
@@ -105,5 +106,6 @@ queue is exhausted."
       (setf (test-uuid-source-values source) (rest values))
       value)))
 
-(define-recording-delegate-method uuid-generate (source recording-uuid-source recording-uuid-source-delegate %recording-uuid-source-calls)
+(define-recording-delegate-method uuid-generate
+    (source recording-uuid-source recording-uuid-source-delegate %recording-uuid-source-calls)
     (() ()) :generate '())

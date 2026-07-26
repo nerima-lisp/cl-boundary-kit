@@ -66,7 +66,8 @@ instead of reading the real host."
                  :username (require-string username "User name")
                  :pid (%validate-pid pid)))
 
-(define-recording-boundary-constructor make-recording-host-info recording-host-info host-info (make-test-host-info)
+(define-recording-boundary-constructor make-recording-host-info
+    recording-host-info host-info (make-test-host-info)
   "Create a host-info boundary that records reads while delegating to DELEGATE,
 which defaults to a `make-test-host-info`."
   :hostname-fn nil :username-fn nil :pid-fn nil)
@@ -92,11 +93,14 @@ which defaults to a `make-test-host-info`."
 (defmethod host-info-pid ((host-info test-host-info))
   (%test-host-info-pid host-info))
 
-(define-recording-delegate-method host-info-hostname (host-info recording-host-info recording-host-info-delegate %recording-host-info-calls)
+(define-recording-delegate-method host-info-hostname
+    (host-info recording-host-info recording-host-info-delegate %recording-host-info-calls)
     (() ()) :hostname '())
 
-(define-recording-delegate-method host-info-username (host-info recording-host-info recording-host-info-delegate %recording-host-info-calls)
+(define-recording-delegate-method host-info-username
+    (host-info recording-host-info recording-host-info-delegate %recording-host-info-calls)
     (() ()) :username '())
 
-(define-recording-delegate-method host-info-pid (host-info recording-host-info recording-host-info-delegate %recording-host-info-calls)
+(define-recording-delegate-method host-info-pid
+    (host-info recording-host-info recording-host-info-delegate %recording-host-info-calls)
     (() ()) :pid '())

@@ -6,7 +6,11 @@
 (defconstant +test-filesystem-type+ :test)
 (defconstant +recording-filesystem-type+ :recording)
 
-(defun %make-filesystem-data (type &key read-file-fn write-file-fn probe-file-fn list-directory-fn path-exists-p-fn delete-file-fn copy-file-fn rename-file-fn make-directory-fn directory-exists-p-fn delete-directory-fn files calls delegate)
+(defun %make-filesystem-data (type &key read-file-fn write-file-fn probe-file-fn
+                                        list-directory-fn path-exists-p-fn delete-file-fn
+                                        copy-file-fn rename-file-fn make-directory-fn
+                                        directory-exists-p-fn delete-directory-fn
+                                        files calls delegate)
   (list :type type
         :read-file-fn read-file-fn
         :write-file-fn write-file-fn
@@ -80,7 +84,8 @@
                                      (lambda () ,@body))
          (progn ,@body))))
 
-(defmacro %define-recording-filesystem-operation (name lambda-list operation arguments direct-form &optional docstring)
+(defmacro %define-recording-filesystem-operation
+    (name lambda-list operation arguments direct-form &optional docstring)
   ;; %WITH-RECORDING-FILESYSTEM-CALL already validates FILESYSTEM via
   ;; %REQUIRE-FILESYSTEM itself, so no need to validate it again out here.
   `(defun ,name ,lambda-list

@@ -58,7 +58,8 @@ refill from a fake clock, keeping the two boundaries decoupled."
                  :tokens capacity
                  :last-time (funcall now-fn)))
 
-(define-recording-boundary-constructor make-recording-rate-limiter recording-rate-limiter rate-limiter (make-test-rate-limiter)
+(define-recording-boundary-constructor make-recording-rate-limiter
+    recording-rate-limiter rate-limiter (make-test-rate-limiter)
   "Create a rate limiter that records calls while delegating to DELEGATE, which
 defaults to a single-token `make-test-rate-limiter`."
   :allow-fn nil :available-fn nil)
@@ -110,8 +111,10 @@ rate-limited-execution counterpart of the `call-with-*` helpers."
   (%refill-test-rate-limiter limiter)
   (floor (%test-rate-limiter-tokens limiter)))
 
-(define-recording-delegate-method rate-limiter-allow-p (limiter recording-rate-limiter recording-rate-limiter-delegate %recording-rate-limiter-calls)
+(define-recording-delegate-method rate-limiter-allow-p
+    (limiter recording-rate-limiter recording-rate-limiter-delegate %recording-rate-limiter-calls)
     (() ()) :allow-p '())
 
-(define-recording-delegate-method rate-limiter-available (limiter recording-rate-limiter recording-rate-limiter-delegate %recording-rate-limiter-calls)
+(define-recording-delegate-method rate-limiter-available
+    (limiter recording-rate-limiter recording-rate-limiter-delegate %recording-rate-limiter-calls)
     (() ()) :available '())

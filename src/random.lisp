@@ -59,7 +59,8 @@ This uses Common Lisp RANDOM and is not a cryptographic randomness source."
                  :state nil
                  :values (copy-list (%validate-test-random-values values))))
 
-(define-recording-boundary-constructor make-recording-random-source recording-random-source random-source (make-random-source)
+(define-recording-boundary-constructor make-recording-random-source
+    recording-random-source random-source (make-random-source)
   "Create a random source that records calls while delegating to DELEGATE."
   :state nil)
 
@@ -93,7 +94,8 @@ This uses Common Lisp RANDOM and is not a cryptographic randomness source."
       (setf (test-random-source-values source) (rest values))
       value)))
 
-(define-recording-delegate-method random-source-random (source recording-random-source recording-random-source-delegate %recording-random-source-calls)
+(define-recording-delegate-method random-source-random
+    (source recording-random-source recording-random-source-delegate %recording-random-source-calls)
     ((limit) (limit)) :random (list limit)
   (%validate-random-limit limit))
 

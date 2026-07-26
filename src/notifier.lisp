@@ -36,7 +36,8 @@ event and returns it. The events are available through
 `recording-sent-notifications`."
   (make-instance 'test-notifier :emit-fn nil))
 
-(define-recording-boundary-constructor make-recording-notifier recording-notifier notifier (make-notifier)
+(define-recording-boundary-constructor make-recording-notifier
+    recording-notifier notifier (make-notifier)
   "Create a notifier that records notifications before forwarding them to DELEGATE.
 
 DELEGATE defaults to a no-op `make-notifier` sink. The recorded notifications are

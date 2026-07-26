@@ -38,7 +38,8 @@
 (defgeneric console-write-line (console line)
   (:documentation "Write LINE to CONSOLE's standard output and return LINE."))
 (defgeneric console-write (console text)
-  (:documentation "Write TEXT to CONSOLE's standard output without a trailing newline and return TEXT."))
+  (:documentation
+   "Write TEXT to CONSOLE's standard output without a trailing newline and return TEXT."))
 (defgeneric console-write-error (console line)
   (:documentation "Write LINE to CONSOLE's error output and return LINE."))
 
@@ -54,13 +55,15 @@
 (defgeneric kv-keys (store)
   (:documentation "Return STORE's current keys."))
 (defgeneric kv-update (store key function &optional default)
-  (:documentation "Read KEY from STORE (or DEFAULT), apply FUNCTION, store the result, and return it."))
+  (:documentation
+   "Read KEY from STORE (or DEFAULT), apply FUNCTION, store the result, and return it."))
 (defgeneric kv-clear (store)
   (:documentation "Remove every key from STORE and return STORE."))
 (defgeneric kv-get-or-put (store key default-thunk)
   (:documentation "Return KEY from STORE, or store and return DEFAULT-THUNK's value when absent."))
 (defgeneric kv-increment (store key &optional delta)
-  (:documentation "Add DELTA to KEY's numeric value in STORE (absent = 0) and return the new value."))
+  (:documentation
+   "Add DELTA to KEY's numeric value in STORE (absent = 0) and return the new value."))
 
 (defgeneric lock-acquire (lock)
   (:documentation "Acquire LOCK and return true."))
@@ -93,13 +96,15 @@
   (:documentation "Return the names of the flags currently enabled in FLAGS."))
 
 (defgeneric cache-get (cache key &optional default)
-  (:documentation "Return KEY's cached value from CACHE plus a present-p secondary value, or DEFAULT."))
+  (:documentation
+   "Return KEY's cached value from CACHE plus a present-p secondary value, or DEFAULT."))
 (defgeneric cache-put (cache key value &key ttl)
   (:documentation "Store VALUE under KEY in CACHE with optional TTL and return VALUE."))
 (defgeneric cache-evict (cache key)
   (:documentation "Remove KEY from CACHE and return whether it was present."))
 (defgeneric cache-fetch (cache key thunk &key ttl)
-  (:documentation "Return KEY's cached value, or compute it with THUNK, store it with optional TTL, and return it."))
+  (:documentation
+   "Return KEY's cached value, or compute with THUNK, store it with optional TTL, and return it."))
 (defgeneric cache-clear (cache)
   (:documentation "Remove every entry from CACHE and return CACHE."))
 

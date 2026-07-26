@@ -44,7 +44,8 @@ what would otherwise block), `semaphore-release` returns one permit, and
                  :acquire-fn nil :release-fn nil :available-fn nil
                  :permits (%validate-semaphore-permits permits)))
 
-(define-recording-boundary-constructor make-recording-semaphore recording-semaphore semaphore (make-test-semaphore)
+(define-recording-boundary-constructor make-recording-semaphore
+    recording-semaphore semaphore (make-test-semaphore)
   "Create a semaphore that records calls while delegating to DELEGATE, which
 defaults to a single-permit `make-test-semaphore`."
   :acquire-fn nil :release-fn nil :available-fn nil)
@@ -89,11 +90,14 @@ records the acquire and release."
 (defmethod semaphore-available ((semaphore test-semaphore))
   (%test-semaphore-permits semaphore))
 
-(define-recording-delegate-method semaphore-acquire (semaphore recording-semaphore recording-semaphore-delegate %recording-semaphore-calls)
+(define-recording-delegate-method semaphore-acquire
+    (semaphore recording-semaphore recording-semaphore-delegate %recording-semaphore-calls)
     (() ()) :acquire '())
 
-(define-recording-delegate-method semaphore-release (semaphore recording-semaphore recording-semaphore-delegate %recording-semaphore-calls)
+(define-recording-delegate-method semaphore-release
+    (semaphore recording-semaphore recording-semaphore-delegate %recording-semaphore-calls)
     (() ()) :release '())
 
-(define-recording-delegate-method semaphore-available (semaphore recording-semaphore recording-semaphore-delegate %recording-semaphore-calls)
+(define-recording-delegate-method semaphore-available
+    (semaphore recording-semaphore recording-semaphore-delegate %recording-semaphore-calls)
     (() ()) :available '())

@@ -43,7 +43,8 @@ directory-dependent code without changing the real process directory."
                  :get-fn nil :set-fn nil
                  :current (%validate-working-directory-path initial)))
 
-(define-recording-boundary-constructor make-recording-working-directory recording-working-directory working-directory (make-test-working-directory)
+(define-recording-boundary-constructor make-recording-working-directory
+    recording-working-directory working-directory (make-test-working-directory)
   "Create a working-directory boundary that records calls while delegating to DELEGATE.
 
 DELEGATE defaults to a `make-test-working-directory`, so recording never changes
@@ -79,9 +80,13 @@ both directory changes."
   (setf (%test-working-directory-current working-directory)
         (%validate-working-directory-path path)))
 
-(define-recording-delegate-method working-directory-get (working-directory recording-working-directory recording-working-directory-delegate %recording-working-directory-calls)
+(define-recording-delegate-method working-directory-get
+    (working-directory recording-working-directory
+     recording-working-directory-delegate %recording-working-directory-calls)
     (() ()) :get '())
 
-(define-recording-delegate-method working-directory-set (working-directory recording-working-directory recording-working-directory-delegate %recording-working-directory-calls)
+(define-recording-delegate-method working-directory-set
+    (working-directory recording-working-directory
+     recording-working-directory-delegate %recording-working-directory-calls)
     ((path) (path)) :set (list path)
   (setf path (%validate-working-directory-path path)))

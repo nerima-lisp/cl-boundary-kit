@@ -37,7 +37,8 @@ so a stored `nil` is distinguishable from a missing secret."
       (setf (gethash (car pair) table) (cdr pair)))
     (make-instance 'test-secret-store :get-fn nil :table table)))
 
-(define-recording-boundary-constructor make-recording-secret-store recording-secret-store secret-store (make-test-secret-store)
+(define-recording-boundary-constructor make-recording-secret-store
+    recording-secret-store secret-store (make-test-secret-store)
   "Create a secret store that records lookups while delegating to DELEGATE.
 
 Unlike the other recording wrappers, this one deliberately never records the
@@ -69,10 +70,12 @@ than the real secret value.")
 
 ;; Record only the name and a redacted marker: never the secret value or the
 ;; (possibly secret) default, so the history stays safe to inspect.
-(define-recording-delegate-present-method secret-get (store recording-secret-store recording-secret-store-delegate %recording-secret-calls)
+(define-recording-delegate-present-method secret-get
+    (store recording-secret-store recording-secret-store-delegate %recording-secret-calls)
     ((name &optional default) (name default)) :get (list name) :redacted)
 
 ;; Secret NAMES are configuration keys, not the secret values, so they are safe
 ;; to record verbatim (unlike SECRET-GET's redacted result).
-(define-recording-delegate-method secret-names (store recording-secret-store recording-secret-store-delegate %recording-secret-calls)
+(define-recording-delegate-method secret-names
+    (store recording-secret-store recording-secret-store-delegate %recording-secret-calls)
     (() ()) :names '())

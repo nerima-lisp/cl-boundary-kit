@@ -37,7 +37,8 @@ event and returns it. The events are available through
 `recording-published-messages`."
   (make-instance 'test-publisher :emit-fn nil))
 
-(define-recording-boundary-constructor make-recording-publisher recording-publisher publisher (make-publisher)
+(define-recording-boundary-constructor make-recording-publisher
+    recording-publisher publisher (make-publisher)
   "Create a publisher that records messages before forwarding them to DELEGATE.
 
 DELEGATE defaults to a no-op `make-publisher` sink. The recorded messages are

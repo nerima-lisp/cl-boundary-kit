@@ -40,7 +40,8 @@ that is not present, mirroring a resolution failure."
             (copy-list (%validate-dns-addresses (car pair) (cdr pair)))))
     (make-instance 'test-dns-resolver :resolve-fn nil :hosts table)))
 
-(define-recording-boundary-constructor make-recording-dns-resolver recording-dns-resolver dns-resolver (make-test-dns-resolver)
+(define-recording-boundary-constructor make-recording-dns-resolver
+    recording-dns-resolver dns-resolver (make-test-dns-resolver)
   "Create a DNS resolver that records lookups while delegating to DELEGATE,
 which defaults to an empty `make-test-dns-resolver`."
   :resolve-fn nil)
@@ -60,6 +61,7 @@ which defaults to an empty `make-test-dns-resolver`."
       (error "DNS resolution failed: no records for ~S" hostname))
     (copy-list addresses)))
 
-(define-recording-delegate-method dns-resolve (resolver recording-dns-resolver recording-dns-resolver-delegate %recording-dns-calls)
+(define-recording-delegate-method dns-resolve
+    (resolver recording-dns-resolver recording-dns-resolver-delegate %recording-dns-calls)
     ((hostname) (hostname)) :resolve (list hostname)
   (require-string hostname "DNS hostname"))

@@ -99,7 +99,8 @@ and the tasks after it remain pending, and the original error is re-signaled."
             (%requeue-remaining-scheduler-tasks scheduler task tasks)
             (error condition)))))))
 
-(define-recording-boundary-constructor make-recording-scheduler recording-scheduler scheduler (make-test-scheduler)
+(define-recording-boundary-constructor make-recording-scheduler
+    recording-scheduler scheduler (make-test-scheduler)
   "Create a scheduler that records calls while delegating to DELEGATE, which
 defaults to a `make-test-scheduler`. Recorded `:schedule` calls carry the delay
 but not the thunk, so the history stays comparable."
@@ -131,10 +132,13 @@ but not the thunk, so the history stays comparable."
       (setf (gethash id (%test-scheduler-cancelled-task-ids scheduler)) t)
       t)))
 
-(define-recording-delegate-method scheduler-schedule (scheduler recording-scheduler recording-scheduler-delegate %recording-scheduler-calls)
-    ((delay thunk) (delay thunk)) :schedule (list delay) ;; Record the delay but not the thunk, so recorded calls stay comparable.
+(define-recording-delegate-method scheduler-schedule
+    (scheduler recording-scheduler recording-scheduler-delegate %recording-scheduler-calls)
+    ;; Record the delay but not the thunk, so recorded calls stay comparable.
+    ((delay thunk) (delay thunk)) :schedule (list delay)
   (%validate-schedule-delay delay)
   (require-function thunk "THUNK"))
 
-(define-recording-delegate-method scheduler-cancel (scheduler recording-scheduler recording-scheduler-delegate %recording-scheduler-calls)
+(define-recording-delegate-method scheduler-cancel
+    (scheduler recording-scheduler recording-scheduler-delegate %recording-scheduler-calls)
     ((id) (id)) :cancel (list id))

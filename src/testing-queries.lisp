@@ -7,7 +7,9 @@
 
 (in-package #:cl-boundary-kit)
 
-(defun filter-recorded-calls (calls operation &key (arguments nil arguments-supplied-p) (result nil result-supplied-p))
+(defun filter-recorded-calls (calls operation
+                              &key (arguments nil arguments-supplied-p)
+                                   (result nil result-supplied-p))
   "Return the CALLS matching OPERATION and optional ARGUMENTS/RESULT expectations.
 
 Unlike `assert-recorded-call`, this never signals; it returns the matching
@@ -19,7 +21,9 @@ subset (in CALLS order) so tests can inspect or further process them."
                             result
                             result-supplied-p))
 
-(defun count-recorded-calls (calls operation &key (arguments nil arguments-supplied-p) (result nil result-supplied-p))
+(defun count-recorded-calls (calls operation
+                             &key (arguments nil arguments-supplied-p)
+                                  (result nil result-supplied-p))
   "Return how many CALLS match OPERATION and optional ARGUMENTS/RESULT expectations.
 
 This is the non-asserting counterpart of `assert-recorded-call-count`."
@@ -31,7 +35,9 @@ This is the non-asserting counterpart of `assert-recorded-call-count`."
                                         result
                                         result-supplied-p)))
 
-(defun find-recorded-call (calls operation &key (arguments nil arguments-supplied-p) (result nil result-supplied-p))
+(defun find-recorded-call (calls operation
+                           &key (arguments nil arguments-supplied-p)
+                                (result nil result-supplied-p))
   "Return the first call in CALLS matching OPERATION and optional expectations, or NIL.
 
 This is the single-result counterpart of `filter-recorded-calls`, mirroring

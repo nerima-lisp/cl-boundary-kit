@@ -73,7 +73,8 @@ recording console distinguishes the two operations in its call history."
     (error "Unsupported console type: ~S" console))
   (reverse (%test-console-errors console)))
 
-(define-recording-boundary-constructor make-recording-console recording-console console (make-test-console)
+(define-recording-boundary-constructor make-recording-console
+    recording-console console (make-test-console)
   "Create a console that records interactions while delegating to DELEGATE.
 
 DELEGATE defaults to a `make-test-console`, so a recording console never blocks

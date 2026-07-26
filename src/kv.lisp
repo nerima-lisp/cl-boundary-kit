@@ -62,7 +62,8 @@ sorted by printed representation for reproducible tests."
                    :get-fn nil :put-fn nil :delete-fn nil :keys-fn nil
                    :table table)))
 
-(define-recording-boundary-constructor make-recording-kv-store recording-kv-store kv-store (make-test-kv-store)
+(define-recording-boundary-constructor make-recording-kv-store
+    recording-kv-store kv-store (make-test-kv-store)
   "Create a key/value store that records calls while delegating to DELEGATE.
 
 DELEGATE defaults to an empty `make-test-kv-store`."
@@ -129,14 +130,18 @@ DELEGATE defaults to an empty `make-test-kv-store`."
 (defmethod kv-keys ((store test-kv-store))
   (%sorted-hash-keys (test-kv-store-table store)))
 
-(define-recording-delegate-present-method kv-get (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
+(define-recording-delegate-present-method kv-get
+    (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
     ((key &optional default) (key default)) :get (list key default))
 
-(define-recording-delegate-method kv-put (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
+(define-recording-delegate-method kv-put
+    (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
     ((key value) (key value)) :put (list key value))
 
-(define-recording-delegate-method kv-delete (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
+(define-recording-delegate-method kv-delete
+    (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
     ((key) (key)) :delete (list key))
 
-(define-recording-delegate-method kv-keys (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
+(define-recording-delegate-method kv-keys
+    (store recording-kv-store recording-kv-store-delegate %recording-kv-calls)
     (() ()) :keys '())

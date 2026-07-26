@@ -2,7 +2,8 @@
 
 (in-package #:cl-boundary-kit)
 
-(defun %filesystem-store-file/cps (filesystem path content if-exists if-does-not-exist external-format)
+(defun %filesystem-store-file/cps (filesystem path content if-exists if-does-not-exist
+                                   external-format)
   (%with-recording-filesystem-call
       (filesystem
        :write-file

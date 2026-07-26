@@ -2,7 +2,9 @@
 
 (in-package #:cl-boundary-kit)
 
-(defun assert-recorded-call (calls operation &key (arguments nil arguments-supplied-p) (result nil result-supplied-p))
+(defun assert-recorded-call (calls operation
+                             &key (arguments nil arguments-supplied-p)
+                                  (result nil result-supplied-p))
   "Assert that CALLS contains OPERATION with optional ARGUMENTS and RESULT expectations."
   (let ((same-operation-calls '())
         (matching-call nil))
@@ -29,7 +31,9 @@
                (nreverse same-operation-calls)
                calls))))
 
-(defun assert-recorded-call-count (calls operation expected-count &key (arguments nil arguments-supplied-p) (result nil result-supplied-p))
+(defun assert-recorded-call-count (calls operation expected-count
+                                   &key (arguments nil arguments-supplied-p)
+                                        (result nil result-supplied-p))
   "Assert that CALLS contains EXPECTED-COUNT matches for OPERATION and optional expectations."
   (let* ((matches (%matching-recorded-calls calls
                                             operation
@@ -70,10 +74,11 @@ optionally constrain :ARGUMENTS and :RESULT."
           for index from 0
           for remaining = calls then (rest remaining)
           do (unless remaining
-               (error "Expected recorded call at index ~D matching ~S, but calls ended after ~D entries"
-                      index
-                      expectation
-                      index))
+               (error
+                "Expected recorded call at index ~D matching ~S, but calls ended after ~D entries"
+                index
+                expectation
+                index))
              (unless (%recorded-call-sequence-entry-matches-p (first remaining) expectation)
                (error "Recorded call mismatch at index ~D, expected ~S, got ~S, all calls were ~S"
                       index
@@ -82,7 +87,9 @@ optionally constrain :ARGUMENTS and :RESULT."
                       calls)))
     calls))
 
-(defun assert-no-recorded-call (calls operation &key (arguments nil arguments-supplied-p) (result nil result-supplied-p))
+(defun assert-no-recorded-call (calls operation
+                                &key (arguments nil arguments-supplied-p)
+                                     (result nil result-supplied-p))
   "Assert that CALLS contains no match for OPERATION and optional expectations.
 
 Returns CALLS when the assertion holds, signaling an error otherwise. This lets

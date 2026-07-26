@@ -42,7 +42,8 @@ SIGTERM-then-SIGKILL escalated, so a boundary-abstracted command execution is
 never left unbounded by default. Pass an explicit :TIMEOUT NIL to wait for a
 child indefinitely instead.")
 
-(defun %native-process-options (input directory environment environment-supplied-p output error-output)
+(defun %native-process-options (input directory environment environment-supplied-p
+                                output error-output)
   ;; ENVIRONMENT-SUPPLIED-P (not a truthiness check on ENVIRONMENT) decides
   ;; whether :ENVIRONMENT is passed at all: an explicit empty '() must still
   ;; reach sb-ext:run-program as "give the child no environment", not be

@@ -67,7 +67,8 @@ with an exclusive creation mode."
     (make-instance 'temp-path-source
                    :next-fn (lambda () (%random-temp-path directory prefix suffix state)))))
 
-(defun make-sequential-temp-path-source (&key (directory #P"/tmp/") (prefix "tmp") (suffix "") (start 0))
+(defun make-sequential-temp-path-source (&key (directory #P"/tmp/") (prefix "tmp")
+                                              (suffix "") (start 0))
   "Create a deterministic temp-path source that returns counter-numbered paths.
 
 Each `temp-path-next` returns \"<prefix>-<8 hex digits><suffix>\" under DIRECTORY
@@ -90,7 +91,8 @@ coerced to a pathname) and signals when the queue is exhausted."
                  :next-fn nil
                  :paths (%copy-boundary-value (%validate-test-temp-paths paths))))
 
-(define-recording-boundary-constructor make-recording-temp-path-source recording-temp-path-source temp-path-source (make-temp-path-source)
+(define-recording-boundary-constructor make-recording-temp-path-source
+    recording-temp-path-source temp-path-source (make-temp-path-source)
   "Create a temp-path source that records calls while delegating to DELEGATE."
   :next-fn nil)
 
@@ -119,5 +121,7 @@ coerced to a pathname) and signals when the queue is exhausted."
       (setf (test-temp-path-source-paths source) (rest paths))
       (pathname path))))
 
-(define-recording-delegate-method temp-path-next (source recording-temp-path-source recording-temp-path-source-delegate %recording-temp-path-source-calls)
+(define-recording-delegate-method temp-path-next
+    (source recording-temp-path-source
+     recording-temp-path-source-delegate %recording-temp-path-source-calls)
     (() ()) :next '())

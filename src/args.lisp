@@ -74,11 +74,14 @@ program name, e.g. `(args-rest args 1)`."
     (error "ARGS-NTH index must be a non-negative integer: ~S" index))
   (nth index (args-arguments args)))
 
-(define-recording-delegate-method args-list (args recording-args recording-args-delegate %recording-args-calls)
+(define-recording-delegate-method args-list
+    (args recording-args recording-args-delegate %recording-args-calls)
     (() ()) :list '())
 
-(define-recording-delegate-method args-count (args recording-args recording-args-delegate %recording-args-calls)
+(define-recording-delegate-method args-count
+    (args recording-args recording-args-delegate %recording-args-calls)
     (() ()) :count '())
 
-(define-recording-delegate-method args-nth (args recording-args recording-args-delegate %recording-args-calls)
+(define-recording-delegate-method args-nth
+    (args recording-args recording-args-delegate %recording-args-calls)
     ((index) (index)) :nth (list index))

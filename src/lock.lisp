@@ -84,8 +84,10 @@ acquire and release."
   (decf (%test-lock-depth lock))
   t)
 
-(define-recording-delegate-method lock-acquire (lock recording-lock recording-lock-delegate %recording-lock-calls)
+(define-recording-delegate-method lock-acquire
+    (lock recording-lock recording-lock-delegate %recording-lock-calls)
     (() ()) :acquire '())
 
-(define-recording-delegate-method lock-release (lock recording-lock recording-lock-delegate %recording-lock-calls)
+(define-recording-delegate-method lock-release
+    (lock recording-lock recording-lock-delegate %recording-lock-calls)
     (() ()) :release '())

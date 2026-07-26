@@ -23,7 +23,8 @@
 ;; externally, for both :TEST and :RECORDING kinds.
 (define-network-boundary-request-method recording-network-boundary
     (network-boundary request timeout)
-  (%network-boundary-request (recording-network-boundary-delegate network-boundary) request timeout))
+  (%network-boundary-request (recording-network-boundary-delegate network-boundary)
+                             request timeout))
 
 (defmethod %network-boundary-request ((network-boundary network-boundary) request timeout)
   (funcall (network-boundary-request-fn network-boundary) request :timeout timeout))

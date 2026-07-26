@@ -33,7 +33,8 @@ ever delaying, so tests can drive time-dependent code without waiting. Wrap it
 in `make-recording-sleeper` to assert on the requested durations."
   (make-instance 'test-sleeper :sleep-fn nil))
 
-(define-recording-boundary-constructor make-recording-sleeper recording-sleeper sleeper (make-test-sleeper)
+(define-recording-boundary-constructor make-recording-sleeper
+    recording-sleeper sleeper (make-test-sleeper)
   "Create a sleeper that records requested durations while delegating to DELEGATE.
 
 DELEGATE defaults to a non-blocking `make-test-sleeper`, so recording a sleeper
@@ -52,6 +53,7 @@ in tests never introduces a real delay unless you pass a blocking delegate."
   (%validate-sleep-seconds seconds)
   seconds)
 
-(define-recording-delegate-method sleeper-sleep (sleeper recording-sleeper recording-sleeper-delegate %recording-sleeper-calls)
+(define-recording-delegate-method sleeper-sleep
+    (sleeper recording-sleeper recording-sleeper-delegate %recording-sleeper-calls)
     ((seconds) (seconds)) :sleep (list seconds)
   (%validate-sleep-seconds seconds))

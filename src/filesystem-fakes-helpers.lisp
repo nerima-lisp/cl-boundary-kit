@@ -158,5 +158,7 @@
    :copy-file-fn (%make-test-filesystem-copy-fn files directories directory-counts)
    :rename-file-fn (%make-test-filesystem-rename-fn files directories directory-counts)
    :make-directory-fn (%make-test-filesystem-make-directory-fn files directories directory-counts)
-   :directory-exists-p-fn (%make-test-filesystem-directory-exists-p-fn files directories directory-counts)
-   :delete-directory-fn (%make-test-filesystem-delete-directory-fn files directories directory-counts)))
+   :directory-exists-p-fn (%make-test-filesystem-directory-exists-p-fn
+                           files directories directory-counts)
+   :delete-directory-fn (%make-test-filesystem-delete-directory-fn
+                         files directories directory-counts)))

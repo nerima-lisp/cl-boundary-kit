@@ -47,17 +47,21 @@
   (push line (%test-console-errors console))
   line)
 
-(define-recording-delegate-method console-read-line (console recording-console recording-console-delegate %recording-console-calls)
+(define-recording-delegate-method console-read-line
+    (console recording-console recording-console-delegate %recording-console-calls)
     (() ()) :read-line '())
 
-(define-recording-delegate-method console-write-line (console recording-console recording-console-delegate %recording-console-calls)
+(define-recording-delegate-method console-write-line
+    (console recording-console recording-console-delegate %recording-console-calls)
     ((line) (line)) :write-line (list line)
   (require-string line "CONSOLE line"))
 
-(define-recording-delegate-method console-write (console recording-console recording-console-delegate %recording-console-calls)
+(define-recording-delegate-method console-write
+    (console recording-console recording-console-delegate %recording-console-calls)
     ((text) (text)) :write (list text)
   (require-string text "CONSOLE line"))
 
-(define-recording-delegate-method console-write-error (console recording-console recording-console-delegate %recording-console-calls)
+(define-recording-delegate-method console-write-error
+    (console recording-console recording-console-delegate %recording-console-calls)
     ((line) (line)) :write-error (list line)
   (require-string line "CONSOLE line"))

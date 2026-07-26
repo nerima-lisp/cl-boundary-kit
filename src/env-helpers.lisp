@@ -24,7 +24,8 @@
          ,@body)
        (progn ,@body)))
 
-(defmacro %define-recording-environment-operation (name lambda-list operation arguments direct-form &optional docstring)
+(defmacro %define-recording-environment-operation
+    (name lambda-list operation arguments direct-form &optional docstring)
   `(defun ,name ,lambda-list
      ,@(when docstring (list docstring))
      (%with-environment (environment)

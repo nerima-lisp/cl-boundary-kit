@@ -32,7 +32,8 @@ Each `subscriber-poll` call consumes one queued message and returns NIL once the
                  :poll-fn nil
                  :messages (copy-list (%validate-subscriber-messages messages))))
 
-(define-recording-boundary-constructor make-recording-subscriber recording-subscriber subscriber (make-test-subscriber)
+(define-recording-boundary-constructor make-recording-subscriber
+    recording-subscriber subscriber (make-test-subscriber)
   "Create a subscriber that records polls while delegating to DELEGATE, which
 defaults to an empty `make-test-subscriber`."
   :poll-fn nil)
@@ -64,5 +65,6 @@ subscriber and a recording subscriber records each poll."
       (setf (%test-subscriber-messages subscriber) (rest messages))
       (first messages))))
 
-(define-recording-delegate-method subscriber-poll (subscriber recording-subscriber recording-subscriber-delegate %recording-subscriber-calls)
+(define-recording-delegate-method subscriber-poll
+    (subscriber recording-subscriber recording-subscriber-delegate %recording-subscriber-calls)
     (() ()) :poll '())

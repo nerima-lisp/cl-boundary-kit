@@ -4,19 +4,22 @@
   (loop for tail on plist by #'cddr
         thereis (eql (first tail) key)))
 
-(defun %recorded-call-matches-p (call operation arguments arguments-supplied-p result result-supplied-p)
+(defun %recorded-call-matches-p (call operation arguments arguments-supplied-p
+                                 result result-supplied-p)
   (and (eql (getf call :operation) operation)
        (or (not arguments-supplied-p) (equal (getf call :arguments) arguments))
        (or (not result-supplied-p) (equal (getf call :result) result))))
 
-(defun %recorded-call-expectation (operation arguments arguments-supplied-p result result-supplied-p)
+(defun %recorded-call-expectation (operation arguments arguments-supplied-p
+                                   result result-supplied-p)
   (list* :operation operation
          (when arguments-supplied-p
            (list :arguments arguments))
          (when result-supplied-p
            (list :result result))))
 
-(defun %matching-recorded-calls (calls operation arguments arguments-supplied-p result result-supplied-p)
+(defun %matching-recorded-calls (calls operation arguments arguments-supplied-p
+                                 result result-supplied-p)
   (loop for call in calls
         when (%recorded-call-matches-p call
                                        operation
