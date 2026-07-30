@@ -40,6 +40,14 @@
        (coverage-manifest (uiop:getenv "CL_BOUNDARY_KIT_COVERAGE_MANIFEST")))
   (unless report-path
     (error "CL_BOUNDARY_KIT_REPORT is required."))
+  ;; Load CL-PROLOG/WEAVE before coverage instrumentation is proclaimed below:
+  ;; SB-COVER:STORE-COVERAGE-DATA is a global optimize quality, so compiling a
+  ;; dependency while it is active would instrument that dependency's own
+  ;; sources too. CL-PROLOG's SRC/BUILTINS/CORE.LISP would then collide on
+  ;; basename with this system's own SRC/CORE.LISP in the coverage report,
+  ;; which check-coverage.pl cannot disambiguate (SB-COVER's HTML reports
+  ;; only carry basenames, not full paths).
+  (asdf:load-system :cl-prolog/weave)
   (when coverage-p
     (unless coverage-manifest
       (error "CL_BOUNDARY_KIT_COVERAGE_MANIFEST is required for coverage runs."))
@@ -49,7 +57,6 @@
   (finish-output *error-output*)
   (if coverage-p
       (progn
-        (asdf:load-system :cl-prolog/weave)
         (write-system-source-manifest :cl-boundary-kit coverage-manifest)
         (asdf:load-system :cl-boundary-kit :force t)
         (format *error-output* "Loading cl-boundary-kit test sources.~%")
