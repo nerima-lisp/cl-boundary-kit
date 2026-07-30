@@ -6,11 +6,11 @@ The recommended pinned checkout test command is:
 nix run .#test
 ```
 
-The flake pins the test environment, so this path does not require Quicklisp
-or separately installed Common Lisp dependencies. `cl-weave` provides the test runner,
-machine-readable reporting, and coverage integration. `cl-prolog` is used by
-the test system to express and verify cross-boundary invariants. These runnable
-flake apps and checks are emitted for
+The flake pins SBCL, `cl-prolog`, and `cl-weave`, so this path does not require
+Quicklisp or separately installed Common Lisp dependencies. `cl-weave` provides
+the test runner, machine-readable reporting, and coverage integration.
+`cl-prolog` is used by the test system to express and verify cross-boundary
+invariants. These runnable flake apps and checks are emitted for
 `x86_64-linux` and `aarch64-darwin`; the Ubuntu GitHub Actions workflow is the
 canonical Linux CI path.
 
@@ -20,14 +20,20 @@ machine-readable report generation, and the coverage threshold. The CI
 workflow additionally builds the `machine-report` and `coverage` checks as
 artifacts. They contain `report.json`, and, for the coverage check,
 `coverage.dat`, `coverage-summary.txt`, and the `coverage-html/` report. The
-coverage check currently requires 100% statement coverage. Hosts outside
-the emitted flake systems should use
-`sbcl --script run-tests.lisp` there when the test-system dependencies are
-already discoverable by ASDF.
+coverage check requires 100% expression coverage of executable source forms.
+`package.lisp`, `process.lisp`, `protocols.lisp`, and `system-data.lisp` are
+excluded because they only establish package, constants, or generic-function
+declarations; SB-COVER cannot record a runtime hit for those top-level
+declarations. The `cl-weave` runner limits each test to 30 seconds. Each Nix
+check has a 300-second outer limit followed by a 30-second forced-termination
+grace period, so a stopped test process cannot retain a CI worker. Hosts outside
+the emitted flake systems are not a compatibility claim; use
+`sbcl --script run-tests.lisp` there when `cl-prolog` and `cl-weave` are
+discoverable by ASDF.
 
 For local development on any host with an existing SBCL environment, run
 `sbcl --script run-tests.lisp`. Quicklisp itself is not required, but direct
-SBCL and REPL use requires the test-system dependencies to be discoverable by
+SBCL and REPL use requires `cl-prolog` and `cl-weave` to be discoverable by
 ASDF. The suite exercises
 filesystem, environment, clock, random, process, network, logging, recording,
 and boundary composition behavior.

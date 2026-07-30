@@ -1,16 +1,13 @@
 (require :asdf)
 
-(require :sb-cover)
-
 ;; CL-WEAVE:RUN-ALL is called directly below regardless of COVERAGE-P, and the
 ;; coverage branch loads CL-BOUNDARY-KIT/TEST's sources with LOAD rather than
 ;; ASDF:LOAD-SYSTEM, so ASDF's own dependency resolution never runs for it;
 ;; load CL-WEAVE explicitly so its package exists either way.
 (asdf:load-system :cl-weave)
 
-;; The test sources use CL-PROLOG/WEAVE (deftest-queries / assert-query).  This
-;; runner loads test files directly rather than via the test system's
-;; :depends-on, so the subsystem's package must be loaded explicitly here.
+;; Tests use CL-PROLOG/WEAVE (deftest-queries / assert-query).  Load test
+;; systems interpreted so SBCL does not enter its Darwin compiler-worker stall.
 (defun system-source-files (system)
   (labels ((collect (component)
              (if (typep component 'asdf:cl-source-file) (list (asdf:component-pathname component))
@@ -37,7 +34,8 @@
        (coverage-p (uiop:getenv "CL_BOUNDARY_KIT_COVERAGE"))
        (coverage-data (uiop:getenv "CL_BOUNDARY_KIT_COVERAGE_DATA"))
        (coverage-report (uiop:getenv "CL_BOUNDARY_KIT_COVERAGE_REPORT"))
-       (coverage-manifest (uiop:getenv "CL_BOUNDARY_KIT_COVERAGE_MANIFEST")))
+       (coverage-manifest (uiop:getenv "CL_BOUNDARY_KIT_COVERAGE_MANIFEST"))
+       (test-filter (uiop:getenv "CL_WEAVE_TEST_FILTER")))
   (unless report-path
     (error "CL_BOUNDARY_KIT_REPORT is required."))
   ;; Load CL-PROLOG/WEAVE before coverage instrumentation is proclaimed below:
@@ -51,49 +49,80 @@
   (when coverage-p
     (unless coverage-manifest
       (error "CL_BOUNDARY_KIT_COVERAGE_MANIFEST is required for coverage runs."))
-    (proclaim (quote (optimize sb-cover:store-coverage-data)))
-    (sb-cover:reset-coverage))
+    (require :sb-cover)
+    (proclaim (read-from-string "(optimize sb-cover:store-coverage-data)"))
+    (funcall (read-from-string "sb-cover:reset-coverage")))
   (format *error-output* "Loading cl-boundary-kit sources.~%")
   (finish-output *error-output*)
   (if coverage-p
       (progn
         (write-system-source-manifest :cl-boundary-kit coverage-manifest)
-        (asdf:load-system :cl-boundary-kit :force t)
-        (format *error-output* "Loading cl-boundary-kit test sources.~%")
-        (finish-output *error-output*)
-        (load-system-sources :cl-boundary-kit/test))
-      (asdf:load-system :cl-boundary-kit/test))
+        ;; Coverage instrumentation is a compile-time property: only code
+        ;; compiled while SB-COVER:STORE-COVERAGE-DATA is proclaimed records
+        ;; hits. The build phase already compiled CL-BOUNDARY-KIT's FASLs
+        ;; without that proclamation, so :FORCE T is required here -- without
+        ;; it ASDF finds those FASLs current and loads them unrecompiled,
+        ;; producing an empty report. This is the same pattern cl-nix-forge's
+        ;; batteries/coverage.nix mkCoverageReport uses.
+        (asdf:load-system :cl-boundary-kit :force t))
+      (asdf:load-system :cl-boundary-kit))
+  (format *error-output* "Loading cl-boundary-kit test sources.~%")
+  (finish-output *error-output*)
+  ;; SB-COVER instrumentation is recorded per compiled form. Loading test
+  ;; sources interpreted (as the non-coverage path does, to dodge SBCL's
+  ;; Darwin compiler-worker stall) leaves nearly every call site inside them
+  ;; unattributed, so a coverage run compiles them normally instead; the
+  ;; stall has not reproduced under coverage's :force t recompile of
+  ;; CL-BOUNDARY-KIT itself, which is a comparably large compile.
+  (let ((sb-ext:*evaluator-mode* (if coverage-p :compile :interpret)))
+    (format
+      *error-output*
+      "Loading cl-boundary-kit base test sources in interpreter mode.~%")
+    (finish-output *error-output*)
+    (load-system-sources :cl-boundary-kit/test-base)
+    (format *error-output* "Loading cl-prolog weave test support.~%")
+    (finish-output *error-output*)
+    (asdf:load-system :cl-prolog/weave)
+    (format
+      *error-output*
+      "Loading cl-boundary-kit Prolog test sources in interpreter mode.~%")
+    (finish-output *error-output*)
+    (load-system-sources :cl-boundary-kit/test-prolog))
   (format *error-output* "Running cl-weave tests.~%")
   (finish-output *error-output*)
   (ensure-directories-exist report-path)
   (let ((success-p
-          (with-open-file (stream
-                           report-path
-                           :direction
-                           :output
-                           :if-exists
-                           :supersede
-                           :if-does-not-exist
-                           :create)
-            (cl-weave:run-all
-             :reporter
-             :json
-             :stream
-             stream
-             :name-filter
-             (uiop:getenv "CL_WEAVE_TEST_FILTER")
-             :max-workers
-             (and coverage-p 1)
-             :coverage
-             coverage-p
-             :coverage-reset
-             nil
-             :coverage-output
-             coverage-data
-             :coverage-report-directory
-             coverage-report
-             :pass-with-no-tests
-             nil))))
+        (with-open-file (stream
+            report-path
+            :direction
+            :output
+            :if-exists
+            :supersede
+            :if-does-not-exist
+            :create)
+          (uiop:symbol-call
+            :cl-weave
+            :run-all
+            :reporter
+            :json
+            :stream
+            stream
+            :name-filter
+            test-filter
+            :max-workers
+            1
+            :timeout-ms
+            30000
+            :coverage
+            coverage-p
+            :coverage-reset
+            nil
+            :coverage-output
+            coverage-data
+            :coverage-report-directory
+            coverage-report
+            :pass-with-no-tests
+            nil))))
     (unless success-p
       (uiop:quit 1)))
   (uiop:quit 0))

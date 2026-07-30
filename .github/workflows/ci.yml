@@ -43,8 +43,17 @@ jobs:
       # Runs the SBCL test suite (checks.default), the treefmt formatting gate
       # (checks.formatting), and the mkdocs --strict build (checks.docs).
       # Add `--all-systems` only when the flake declares more than one system.
+      #
+      # --max-jobs 1: checks.coverage, checks.machine-report, and
+      # checks.checkout-tests each spawn their own SBCL process compiling most
+      # of the source tree; the coverage run additionally compiles (not
+      # interprets) the test sources so SB-COVER can attribute hits per line,
+      # which raised its peak memory enough that running all three in
+      # parallel exceeds the runner's RAM with no error beyond a silently
+      # killed build. Sequential builds still share the same Nix store and
+      # cache within this one job -- only the wall-clock cost changes.
       - name: Check flake
-        run: nix flake check --print-build-logs
+        run: nix flake check --print-build-logs --max-jobs 1
 
       # Catches stray conflict markers and whitespace errors that compile fine.
       - name: Check diff hygiene

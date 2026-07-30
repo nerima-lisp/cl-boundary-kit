@@ -276,6 +276,19 @@
                                     '(:status 204)))))
           :to-signal-message-containing "Unsupported network boundary type"))
 
+(it "internal %network-calls reader signals for unsupported network boundary types"
+  (expect (lambda ()
+            (cl-boundary-kit::%network-calls
+             (make-network-boundary :request-fn #'identity)))
+          :to-signal-message-containing "Unsupported network boundary type"))
+
+(it "internal (setf %network-calls) writer signals for unsupported network boundary types"
+  (expect (lambda ()
+            (setf (cl-boundary-kit::%network-calls
+                   (make-network-boundary :request-fn #'identity))
+                  nil))
+          :to-signal-message-containing "Unsupported network boundary type"))
+
 (it "reset-recording-network-calls-clears-history-and-returns-the-boundary"
   (let ((network (make-test-network-boundary :responses (list "ok" "ok2"))))
     (network-boundary-request network '(:method :get))

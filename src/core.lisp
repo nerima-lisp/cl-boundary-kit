@@ -1,19 +1,18 @@
 ;;;; src/core.lisp
-
 (in-package #:cl-boundary-kit)
 
 (declaim (optimize (speed 3) (safety 1) (debug 0)))
 
-(defstruct (boundary-context
-            (:constructor %make-boundary-context (handlers)))
-  handlers)
+(defstruct (boundary-context (:constructor %make-boundary-context (handlers))) handlers)
 
 (defun %populate-boundary-context-handlers (handlers bindings)
   (when (oddp (length bindings))
-    (error "Boundary context bindings must come in keyword/value pairs: ~S" bindings))
+    (error
+      "Boundary context bindings must come in keyword/value pairs: ~S"
+      bindings))
   (loop for (key value) on bindings by #'cddr
         do (unless (keywordp key)
-             (error "Boundary context keys must be keywords: ~S" key))
+      (error "Boundary context keys must be keywords: ~S" key))
         do (setf (gethash key handlers) value))
   handlers)
 
@@ -55,8 +54,10 @@ The pairs are in no particular order; sort by key if a stable order is needed.
 Useful for inspecting or serializing a whole context at once."
   (require-instance context 'boundary-context "CONTEXT")
   (let ((pairs '()))
-    (maphash (lambda (key value) (push (cons key value) pairs))
-             (boundary-context-handlers context))
+    (maphash
+      (lambda (key value)
+        (push (cons key value) pairs))
+      (boundary-context-handlers context))
     pairs))
 
 (defun boundary-context-with (context &rest bindings)
@@ -75,11 +76,12 @@ Unlike `boundary-context-get`, this never silently substitutes a default, so it
 is the fail-fast reader for wiring code that must not run with a missing
 boundary."
   (require-instance context 'boundary-context "CONTEXT")
-  (multiple-value-bind (value present)
-      (gethash key (boundary-context-handlers context))
+  (multiple-value-bind (value present) (gethash key (boundary-context-handlers context))
     (unless present
-      (error "Boundary context has no binding for ~S; bound keys are ~S"
-             key (boundary-context-keys context)))
+      (error
+        "Boundary context has no binding for ~S; bound keys are ~S"
+        key
+        (boundary-context-keys context)))
     value))
 
 (defun boundary-context-remove (context &rest keys)
@@ -127,5 +129,4 @@ binding wins, matching the override semantics of `boundary-context-with`."
   value)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (setf (documentation 'boundary-context 'type)
-        "Mapping from keyword boundary identifiers to boundary instances."))
+  (setf (documentation 'boundary-context 'type) "Mapping from keyword boundary identifiers to boundary instances."))

@@ -18,6 +18,14 @@
       inputs.paredit-cli.follows = "cl-weave/paredit-cli";
     };
 
+    # crane for Common Lisp/ASDF: builds cl-weave-runtime, cl-prolog-runtime,
+    # and cl-boundary-kit itself as lispDerivations instead of hand-rolled
+    # pkgs.sbcl.buildASDFSystem calls.
+    cl-nix-forge = {
+      url = "github:nerima-lisp/cl-nix-forge/v0.4.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -30,6 +38,7 @@
       nixpkgs,
       cl-weave,
       cl-prolog,
+      cl-nix-forge,
       treefmt-nix,
       ...
     }:
@@ -39,14 +48,10 @@
         "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
-      # Each entry is a checkout root whose .asd sits at the top level, so these
-      # are deliberately non-recursive: a `//' entry makes every SBCL process
-      # that inherits CL_SOURCE_REGISTRY re-walk all three trees in full before
-      # resolving a system it would have found immediately. The checks start one
-      # process per examples/*.lisp file, so that scan is paid ~40 times per run.
-      # run-tests.lisp builds its own registry the same way.
-      sourceRegistry = "${cl-weave}:${cl-prolog}:${self}";
-      testTimeoutSeconds = "300";
+      # Tests load from this checkout, while Nix supplies precompiled dependency
+      # systems. Including sibling sources here makes ASDF rebuild them during
+      # test startup and can deadlock SBCL's compiler on Darwin.
+      sourceRegistry = "${self}";
 
       # Single source of truth for a package version: the `:version` form in its
       # .asd. A release only ever edits the .asd file and every Nix package
@@ -114,6 +119,7 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          cl = cl-nix-forge.lib.${system};
         in
         rec {
           cl-weave-runtime = pkgs.sbcl.buildASDFSystem {
@@ -132,26 +138,36 @@
             ];
             lispLibs = [ cl-weave-runtime ];
           };
-          cl-boundary-kit = pkgs.sbcl.buildASDFSystem {
-            pname = "cl-boundary-kit";
+          # Built via cl-nix-forge's lispDerivation rather than
+          # pkgs.sbcl.buildASDFSystem. TEST-SBCL/DEPS-SBCL below stay on
+          # buildASDFSystem/withPackages: cl.lispWithSystems bakes
+          # ASDF_OUTPUT_TRANSLATIONS="/:/" (fasls beside sources) into its
+          # wrapper unconditionally, which fails with permission denied when
+          # these checks compile the read-only ${self} checkout fresh for
+          # coverage instrumentation.
+          cl-boundary-kit = cl.lispDerivation {
+            lispSystem = "cl-boundary-kit";
             inherit version;
             src = self;
-            systems = [ "cl-boundary-kit" ];
           };
-          cl-boundary-kit-test = pkgs.sbcl.buildASDFSystem {
-            pname = "cl-boundary-kit-test";
-            inherit version;
-            src = self;
-            systems = [
-              "cl-boundary-kit"
-              "cl-boundary-kit/test"
-            ];
-            lispLibs = [
-              cl-weave-runtime
-              cl-prolog-runtime
-            ];
-          };
-          test-sbcl = pkgs.sbcl.withPackages (_: [ cl-boundary-kit-test ]);
+          # TEST-SBCL and DEPS-SBCL are identical: every check and app loads
+          # CL-BOUNDARY-KIT's own sources fresh from the checkout (via
+          # ci-runner.lisp/run-tests.lisp) rather than through a pre-built
+          # cl-boundary-kit package, so both only need CL-WEAVE and CL-PROLOG
+          # available without recompiling them from source under
+          # CL_SOURCE_REGISTRY. A prior version of TEST-SBCL additionally
+          # bundled a pre-built CL-BOUNDARY-KIT (to dodge compiling test
+          # definitions here, which can deadlock SBCL's compile worker on
+          # Darwin) -- but that bundled copy's own CL_SOURCE_REGISTRY entry
+          # sorted ahead of the checkout's, so the README doc tests' spawned
+          # child SBCL process resolved CL-BOUNDARY-KIT/TEST-BASE against
+          # that read-only, never-compiled copy and failed with permission
+          # denied trying to write its fasls there.
+          deps-sbcl = pkgs.sbcl.withPackages (_: [
+            cl-weave-runtime
+            cl-prolog-runtime
+          ]);
+          test-sbcl = deps-sbcl;
           docs = mkDocs pkgs;
           default = cl-boundary-kit;
         }
@@ -162,26 +178,23 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           testSbcl = self.packages.${system}.test-sbcl;
+          depsSbcl = self.packages.${system}.deps-sbcl;
           runCheck =
             {
               name,
               coverage ? false,
             }:
             pkgs.runCommand name
-              (
-                {
-                  nativeBuildInputs = [
-                    pkgs.coreutils
-                    (if coverage then pkgs.sbcl else testSbcl)
-                  ];
-                }
-                // pkgs.lib.optionalAttrs coverage {
-                  CL_SOURCE_REGISTRY = sourceRegistry;
-                }
-              )
+              ({
+                nativeBuildInputs = [
+                  pkgs.coreutils
+                  (if coverage then depsSbcl else testSbcl)
+                ];
+              })
               ''
                 export HOME="$TMPDIR/home"
                 mkdir -p "$HOME" "$out"
+                export CL_SOURCE_REGISTRY="${sourceRegistry}''${CL_SOURCE_REGISTRY:+:$CL_SOURCE_REGISTRY}"
                 export CL_BOUNDARY_KIT_REPORT="$out/report.json"
                 ${
                   if coverage then
@@ -194,7 +207,7 @@
                   else
                     ""
                 }
-                if ! timeout --foreground -k 10s ${testTimeoutSeconds}s sbcl --script ${self}/nix/ci-runner.lisp; then
+                if ! timeout --preserve-status -k 30 300 sbcl --script ${self}/nix/ci-runner.lisp; then
                   cat "$CL_BOUNDARY_KIT_REPORT"
                   exit 1
                 fi
@@ -216,14 +229,14 @@
               {
                 nativeBuildInputs = [
                   pkgs.coreutils
-                  pkgs.sbcl
+                  depsSbcl
                 ];
-                CL_SOURCE_REGISTRY = sourceRegistry;
               }
               ''
                 export HOME="$TMPDIR/home"
                 mkdir -p "$HOME" "$out"
-                timeout --foreground -k 10s ${testTimeoutSeconds}s sbcl --script ${self}/run-tests.lisp
+                export CL_SOURCE_REGISTRY="${sourceRegistry}''${CL_SOURCE_REGISTRY:+:$CL_SOURCE_REGISTRY}"
+                timeout --preserve-status -k 30 300 sbcl --script ${self}/run-tests.lisp
                 touch "$out/passed"
               '';
           machine-report = runCheck { name = "cl-boundary-kit-machine-report"; };
@@ -265,8 +278,11 @@
             text = ''
               report_dir="$(mktemp -d)"
               trap 'rm -rf "$report_dir"' EXIT
+              export HOME="$report_dir/home"
+              mkdir -p "$HOME"
+              export CL_SOURCE_REGISTRY="${sourceRegistry}''${CL_SOURCE_REGISTRY:+:$CL_SOURCE_REGISTRY}"
               export CL_BOUNDARY_KIT_REPORT="$report_dir/report.json"
-              timeout --foreground -k 10s ${testTimeoutSeconds}s sbcl --script ${self}/nix/ci-runner.lisp
+              timeout --preserve-status -k 30 300 sbcl --script ${self}/nix/ci-runner.lisp
               cat "$CL_BOUNDARY_KIT_REPORT"
             '';
           };

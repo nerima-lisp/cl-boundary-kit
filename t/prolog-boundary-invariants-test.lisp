@@ -1,12 +1,10 @@
 ;;;; t/prolog-boundary-invariants-test.lisp
-
 (in-package #:cl-boundary-kit/test)
 
 (defun %prolog-binding (variable solution)
   (cdr (assoc variable solution)))
 
-(defparameter *boundary-policy*
-  (cl-prolog:prolog
+(defparameter *boundary-policy* (cl-prolog:prolog
     ((boundary filesystem))
     ((boundary environment))
     ((boundary process))
@@ -24,24 +22,25 @@
     ((recordable process))
     ((recordable network))
     ((permitted ?boundary ?operation)
-     (boundary ?boundary)
-     (effect ?boundary ?operation))
+      (boundary ?boundary)
+      (effect ?boundary ?operation))
     ((observable-effect ?boundary ?operation)
-     (permitted ?boundary ?operation)
-     (recordable ?boundary)))
+      (permitted ?boundary ?operation)
+      (recordable ?boundary)))
   "Facts and rules describing the effect surface of boundary objects.")
 
-(cl-prolog/weave:deftest-queries prolog-boundary-policy-has-declarative-invariants
-    (*boundary-policy*)
+(cl-prolog/weave:deftest-queries
+  prolog-boundary-policy-has-declarative-invariants
+  (*boundary-policy*)
   ("filesystem boundaries permit the expected operations"
-   (permitted filesystem ?operation) :set
-   (((?operation . read))
-    ((?operation . write))))
+    (permitted filesystem ?operation)
+    :set
+    (((?operation . read)) ((?operation . write))))
   ("observable request effects stay on the network boundary"
-   (observable-effect ?boundary request) :ordered
-   (((?boundary . network))))
-  ("undefined clock mutations are rejected"
-   (permitted clock mutate) :fails))
+    (observable-effect ?boundary request)
+    :ordered
+    (((?boundary . network))))
+  ("undefined clock mutations are rejected" (permitted clock mutate) :fails))
 
 ;;;; ---------------------------------------------------------------------------
 ;;;; API-surface completeness as a declarative invariant
@@ -61,92 +60,128 @@
 ;;;; added with a full native/test/recording triad, so they extend the fact
 ;;;; base and the expected solution set below rather than introducing new
 ;;;; asymmetries.
-(defparameter *boundary-api-completeness*
-  (cl-prolog:prolog
-    ((provides-native filesystem)) ((provides-native environment))
-    ((provides-native process)) ((provides-native network))
-    ((provides-native clock)) ((provides-native random))
-    ((provides-native uuid)) ((provides-native temp-path))
-    ((provides-native args)) ((provides-native host-info))
+(defparameter *boundary-api-completeness* (cl-prolog:prolog
+    ((provides-native filesystem))
+    ((provides-native environment))
+    ((provides-native process))
+    ((provides-native network))
+    ((provides-native clock))
+    ((provides-native random))
+    ((provides-native uuid))
+    ((provides-native temp-path))
+    ((provides-native args))
+    ((provides-native host-info))
     ((provides-native sleeper))
-    ((provides-native console)) ((provides-native system))
-    ((provides-native kv)) ((provides-native metrics))
-    ((provides-native lock)) ((provides-native semaphore))
+    ((provides-native console))
+    ((provides-native system))
+    ((provides-native kv))
+    ((provides-native metrics))
+    ((provides-native lock))
+    ((provides-native semaphore))
     ((provides-native working-directory))
-    ((provides-native dns)) ((provides-native secret))
-    ((provides-native feature-flags)) ((provides-native cache))
-    ((provides-native rate-limiter)) ((provides-native scheduler))
-    ((provides-native publisher)) ((provides-native subscriber))
+    ((provides-native dns))
+    ((provides-native secret))
+    ((provides-native feature-flags))
+    ((provides-native cache))
+    ((provides-native rate-limiter))
+    ((provides-native scheduler))
+    ((provides-native publisher))
+    ((provides-native subscriber))
     ((provides-native notifier))
-    ((provides-test filesystem)) ((provides-test environment))
-    ((provides-test process)) ((provides-test network))
+    ((provides-test filesystem))
+    ((provides-test environment))
+    ((provides-test process))
+    ((provides-test network))
     ((provides-test random))
-    ((provides-test uuid)) ((provides-test temp-path))
-    ((provides-test args)) ((provides-test host-info))
+    ((provides-test uuid))
+    ((provides-test temp-path))
+    ((provides-test args))
+    ((provides-test host-info))
     ((provides-test sleeper))
-    ((provides-test console)) ((provides-test system))
-    ((provides-test kv)) ((provides-test metrics))
-    ((provides-test lock)) ((provides-test semaphore))
+    ((provides-test console))
+    ((provides-test system))
+    ((provides-test kv))
+    ((provides-test metrics))
+    ((provides-test lock))
+    ((provides-test semaphore))
     ((provides-test working-directory))
-    ((provides-test dns)) ((provides-test secret))
-    ((provides-test feature-flags)) ((provides-test cache))
-    ((provides-test rate-limiter)) ((provides-test scheduler))
-    ((provides-test publisher)) ((provides-test subscriber))
+    ((provides-test dns))
+    ((provides-test secret))
+    ((provides-test feature-flags))
+    ((provides-test cache))
+    ((provides-test rate-limiter))
+    ((provides-test scheduler))
+    ((provides-test publisher))
+    ((provides-test subscriber))
     ((provides-test notifier))
-    ((provides-recording filesystem)) ((provides-recording environment))
-    ((provides-recording process)) ((provides-recording network))
+    ((provides-recording filesystem))
+    ((provides-recording environment))
+    ((provides-recording process))
+    ((provides-recording network))
     ((provides-recording random))
-    ((provides-recording uuid)) ((provides-recording temp-path))
-    ((provides-recording args)) ((provides-recording host-info))
+    ((provides-recording uuid))
+    ((provides-recording temp-path))
+    ((provides-recording args))
+    ((provides-recording host-info))
     ((provides-recording sleeper))
-    ((provides-recording console)) ((provides-recording system))
-    ((provides-recording kv)) ((provides-recording metrics))
-    ((provides-recording lock)) ((provides-recording semaphore))
+    ((provides-recording console))
+    ((provides-recording system))
+    ((provides-recording kv))
+    ((provides-recording metrics))
+    ((provides-recording lock))
+    ((provides-recording semaphore))
     ((provides-recording working-directory))
-    ((provides-recording dns)) ((provides-recording secret))
-    ((provides-recording feature-flags)) ((provides-recording cache))
-    ((provides-recording rate-limiter)) ((provides-recording scheduler))
-    ((provides-recording publisher)) ((provides-recording subscriber))
+    ((provides-recording dns))
+    ((provides-recording secret))
+    ((provides-recording feature-flags))
+    ((provides-recording cache))
+    ((provides-recording rate-limiter))
+    ((provides-recording scheduler))
+    ((provides-recording publisher))
+    ((provides-recording subscriber))
     ((provides-recording notifier))
     ((complete-triad ?boundary)
-     (provides-native ?boundary)
-     (provides-test ?boundary)
-     (provides-recording ?boundary)))
+      (provides-native ?boundary)
+      (provides-test ?boundary)
+      (provides-recording ?boundary)))
   "Which native/test/recording constructors each boundary kind actually
 exports.")
 
-(cl-prolog/weave:deftest-queries boundary-api-triads-match-the-documented-asymmetry
-    (*boundary-api-completeness*)
+(cl-prolog/weave:deftest-queries
+  boundary-api-triads-match-the-documented-asymmetry
+  (*boundary-api-completeness*)
   ("every boundary except clock completes the native/test/recording triad"
-   (complete-triad ?boundary) :set
-   (((?boundary . filesystem))
-    ((?boundary . environment))
-    ((?boundary . process))
-    ((?boundary . network))
-    ((?boundary . random))
-    ((?boundary . uuid))
-    ((?boundary . temp-path))
-    ((?boundary . args))
-    ((?boundary . host-info))
-    ((?boundary . sleeper))
-    ((?boundary . console))
-    ((?boundary . system))
-    ((?boundary . kv))
-    ((?boundary . metrics))
-    ((?boundary . lock))
-    ((?boundary . semaphore))
-    ((?boundary . working-directory))
-    ((?boundary . dns))
-    ((?boundary . secret))
-    ((?boundary . feature-flags))
-    ((?boundary . cache))
-    ((?boundary . rate-limiter))
-    ((?boundary . scheduler))
-    ((?boundary . publisher))
-    ((?boundary . subscriber))
-    ((?boundary . notifier))))
+    (complete-triad ?boundary)
+    :set
+    (((?boundary . filesystem))
+      ((?boundary . environment))
+      ((?boundary . process))
+      ((?boundary . network))
+      ((?boundary . random))
+      ((?boundary . uuid))
+      ((?boundary . temp-path))
+      ((?boundary . args))
+      ((?boundary . host-info))
+      ((?boundary . sleeper))
+      ((?boundary . console))
+      ((?boundary . system))
+      ((?boundary . kv))
+      ((?boundary . metrics))
+      ((?boundary . lock))
+      ((?boundary . semaphore))
+      ((?boundary . working-directory))
+      ((?boundary . dns))
+      ((?boundary . secret))
+      ((?boundary . feature-flags))
+      ((?boundary . cache))
+      ((?boundary . rate-limiter))
+      ((?boundary . scheduler))
+      ((?boundary . publisher))
+      ((?boundary . subscriber))
+      ((?boundary . notifier))))
   ("clock is the one documented, deliberate asymmetry"
-   (complete-triad clock) :fails))
+    (complete-triad clock)
+    :fails))
 
 ;;; Dynamic database: a plugin can register a wholly new boundary kind at
 ;;; runtime by ASSERTZ-ing facts into a policy copy, immediately making it
@@ -161,7 +196,6 @@ exports.")
 ;;; ASSERTZ/RETRACT against a predicate that already has clauses unless it was
 ;;; declared DYNAMIC in advance. A fresh predicate has no such history, so it
 ;;; is free to become dynamic on first use.
-
 (defun %call-with-empty-dynamic-registration (policy body)
   "Seed PLUGIN-REGISTRATION's predicates as dynamic-but-empty, then run BODY.
 
@@ -170,10 +204,18 @@ existence error on lookup rather than simply failing. ASSERTZ-ing and
 immediately RETRACT-ing a throwaway fact registers the predicate as dynamic
 with an empty extension, so BODY can query it before anything real is
 registered without tripping that error."
-  (cl-prolog:query-prolog policy '(cl-prolog:assertz (registered-boundary %seed%)))
-  (cl-prolog:query-prolog policy '(cl-prolog:assertz (registered-effect %seed% %seed%)))
-  (cl-prolog:query-prolog policy '(cl-prolog:retract (registered-boundary %seed%)))
-  (cl-prolog:query-prolog policy '(cl-prolog:retract (registered-effect %seed% %seed%)))
+  (cl-prolog:query-prolog
+    policy
+    '(cl-prolog:assertz (registered-boundary %seed%)))
+  (cl-prolog:query-prolog
+    policy
+    '(cl-prolog:assertz (registered-effect %seed% %seed%)))
+  (cl-prolog:query-prolog
+    policy
+    '(cl-prolog:retract (registered-boundary %seed%)))
+  (cl-prolog:query-prolog
+    policy
+    '(cl-prolog:retract (registered-effect %seed% %seed%)))
   (funcall body))
 
 (it "runtime-plugin-registration-via-assertz-and-retract-updates-permitted-facts"
@@ -200,9 +242,8 @@ registered without tripping that error."
 ;;; (using NOT rather than the :FAILS query kind above) so the restriction is
 ;;; itself a declarative fact a query can depend on, not only an assertion a
 ;;; test makes about the absence of solutions.
-
-(defparameter *boundary-policy-with-negation*
-  (cl-prolog:extend-rulebase *boundary-policy*
+(defparameter *boundary-policy-with-negation* (cl-prolog:extend-rulebase
+    *boundary-policy*
     ((clock-mutation-forbidden) (not (permitted clock mutate)))))
 
 (it "negation-as-failure-declares-clock-mutation-forbidden"
@@ -217,39 +258,53 @@ registered without tripping that error."
            '(clock-observation-forbidden))
           :to-be-null))
 
-(it "prolog-rulebase-extension-is-transactional"
+(it
+  "prolog-rulebase-extension-is-transactional"
   (let ((extended
-          (cl-prolog:extend-rulebase *boundary-policy*
-            ((effect clock advance))
-            ((recordable clock)))))
-    (cl-prolog/weave:assert-query *boundary-policy*
-        (permitted clock advance) :fails)
-    (cl-prolog/weave:assert-query *boundary-policy*
-        (permitted clock ?operation) :set
+        (cl-prolog:extend-rulebase
+          *boundary-policy*
+          ((effect clock advance))
+          ((recordable clock)))))
+    (cl-prolog/weave:assert-query
+      *boundary-policy*
+      (permitted clock advance)
+      :fails)
+    (cl-prolog/weave:assert-query
+      *boundary-policy*
+      (permitted clock ?operation)
+      :set
       (((?operation . observe))))
-    (cl-prolog/weave:assert-query extended
-        (permitted clock ?operation) :set
-      (((?operation . advance))
-       ((?operation . observe))))
-    (cl-prolog/weave:assert-query extended
-        (observable-effect clock ?operation) :set
-      (((?operation . advance))
-       ((?operation . observe))))))
+    (cl-prolog/weave:assert-query
+      extended
+      (permitted clock ?operation)
+      :set
+      (((?operation . advance)) ((?operation . observe))))
+    (cl-prolog/weave:assert-query
+      extended
+      (observable-effect clock ?operation)
+      :set
+      (((?operation . advance)) ((?operation . observe))))))
 
-(it "prolog-solutions-stream-through-cps-query-boundary"
+(it
+  "prolog-solutions-stream-through-cps-query-boundary"
   (let ((seen '()))
     (cl-prolog:map-prolog-solutions
-     (lambda (solution)
-       (push (%prolog-binding '?boundary solution) seen))
-     *boundary-policy*
-     '(observable-effect ?boundary ?operation)
-     :limit 3)
+      (lambda (solution)
+        (push (%prolog-binding '?boundary solution) seen))
+      *boundary-policy*
+      '(observable-effect ?boundary ?operation)
+      :limit
+      3)
     (expect (= 3 (length seen)) :to-be-truthy)
-    (expect (every (lambda (boundary)
-                 (member boundary '(filesystem environment process network)))
-               seen) :to-be-truthy)))
+    (expect
+      (every
+        (lambda (boundary)
+          (member boundary '(filesystem environment process network)))
+        seen)
+      :to-be-truthy)))
 
-(it "prolog-occurs-check-rejects-cyclic-boundary-facts"
+(it
+  "prolog-occurs-check-rejects-cyclic-boundary-facts"
   (expect (null (cl-prolog:unify '?boundary '(wrapped ?boundary))) :to-be-truthy))
 
 ;;; FINDALL: aggregate every declared BOUNDARY/1 fact into one list and
@@ -260,17 +315,21 @@ registered without tripping that error."
 ;;; mixing the two representations left BOUNDARY/1 unresolvable from a
 ;;; text-parsed goal (an atom-identity mismatch between the two clause
 ;;; authoring styles).
-(it "findall-aggregates-every-declared-boundary-fact-into-one-count"
-  (let ((policy (cl-prolog:consult-prolog
-                 "boundary(filesystem).
+(it
+  "findall-aggregates-every-declared-boundary-fact-into-one-count"
+  (let ((policy
+        (cl-prolog:consult-prolog
+          "boundary(filesystem).
                   boundary(environment).
                   boundary(process).
                   boundary(network).
                   boundary(clock).")))
-    (expect (= 1 (length
-                  (cl-prolog:query-prolog
-                   policy
-                   (cl-prolog:read-prolog-term
-                    "findall(B, boundary(B), [filesystem,environment,process,network,clock])"))))
-            :to-be-truthy)))
-
+    (expect
+      (=
+        1
+        (length
+          (cl-prolog:query-prolog
+            policy
+            (cl-prolog:read-prolog-term
+              "findall(B, boundary(B), [filesystem,environment,process,network,clock])"))))
+      :to-be-truthy)))

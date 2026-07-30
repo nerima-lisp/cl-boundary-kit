@@ -295,6 +295,23 @@
   (let ((actual (exported-symbol-names)))
     (assert-string-set-equal *expected-public-api-symbol-names* actual)))
 
+(it
+  "removed-adapter-systems-and-dependencies-stay-absent"
+  (dolist (system-name (quote ("cl-boundary-kit/process-kit" "cl-boundary-kit/json")))
+    (expect (null (asdf:find-system system-name nil)) :to-be-truthy))
+  (dolist (system-name (quote ("cl-boundary-kit" "cl-boundary-kit/test")))
+    (let ((dependency-names
+           (mapcar
+            (lambda (dependency)
+              (string-downcase (string dependency)))
+            (asdf:system-depends-on (asdf:find-system system-name)))))
+      (dolist (forbidden-dependency
+               (quote ("cl-log-kit" "cl-process-kit" "cl-json-kit")))
+        (expect
+         (not (member forbidden-dependency dependency-names
+                      :test (function string=)))
+         :to-be-truthy)))))
+
 (it "readme-api-overview-covers-the-exported-surface"
   (let* ((documented (mapcar #'string-upcase
                              (readme-api-overview-symbol-names)))

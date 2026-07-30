@@ -32,6 +32,7 @@ For structured logging, call the application's logging system directly from
 the application boundary. `cl-boundary-kit` does not translate external event
 formats or log levels.
 
+
 See [`examples/recording-logger.lisp`](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/examples/recording-logger.lisp)
 and [`examples/test-logger.lisp`](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/examples/test-logger.lisp).
 

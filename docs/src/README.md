@@ -126,7 +126,7 @@ at the repository root packages `cl-boundary-kit` as a Nix flake:
   ASDF source registry.
 - `nix run .#test` — the pinned checkout test runner (`run-tests.lisp`).
 - `nix flake check` — the checkout runner, a `cl-weave` machine-readable
-  report, and a 100% statement-coverage gate, as reproducible derivations for
+  report, and a 100% expression-coverage gate, as reproducible derivations for
   `x86_64-linux` and `aarch64-darwin`.
 - `nix build .#docs` — builds this documentation site with MkDocs (Material)
   in `--strict` mode, so broken links fail the build.
