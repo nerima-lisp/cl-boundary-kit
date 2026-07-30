@@ -7,42 +7,15 @@
     # cl-weave is the deepest sibling, so it owns the single paredit-cli (and
     # therefore the single rust-overlay) node that every other sibling follows.
     cl-weave = {
-      url = "github:nerima-lisp/cl-weave/v1.0.0";
+      url = "github:nerima-lisp/cl-weave/v1.0.1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cl-prolog = {
-      url = "github:nerima-lisp/cl-prolog/v1.0.1";
+      url = "github:nerima-lisp/cl-prolog/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.cl-weave.follows = "cl-weave";
       inputs.paredit-cli.follows = "cl-weave/paredit-cli";
-    };
-
-    cl-log-kit = {
-      url = "github:nerima-lisp/cl-log-kit/v1.0.0";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.cl-weave.follows = "cl-weave";
-      inputs.cl-json-kit.follows = "cl-json-kit";
-      inputs.paredit-cli.follows = "cl-weave/paredit-cli";
-    };
-
-    # NOTE: cl-process-kit depends on cl-boundary-kit by design — cl-process-kit
-    # builds its injectable clock/sleeper hooks on this system's boundary
-    # abstractions (see DEPENDENCY_POLICY.md). That back-reference is
-    # deliberate, not a cycle to be broken, so its cl-boundary-kit and
-    # cl-log-kit inputs are left alone: pointing them at this flake's own nodes
-    # is what would turn the intentional back-reference into a real cycle.
-    cl-process-kit = {
-      url = "github:nerima-lisp/cl-process-kit/v1.0.1";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.cl-weave.follows = "cl-weave";
-    };
-
-    cl-json-kit = {
-      url = "github:nerima-lisp/cl-json-kit/v1.0.0";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.cl-weave.follows = "cl-weave";
-      inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
     treefmt-nix = {
@@ -57,9 +30,6 @@
       nixpkgs,
       cl-weave,
       cl-prolog,
-      cl-log-kit,
-      cl-process-kit,
-      cl-json-kit,
       treefmt-nix,
       ...
     }:
@@ -71,11 +41,12 @@
       forAllSystems = nixpkgs.lib.genAttrs systems;
       # Each entry is a checkout root whose .asd sits at the top level, so these
       # are deliberately non-recursive: a `//' entry makes every SBCL process
-      # that inherits CL_SOURCE_REGISTRY re-walk all six trees in full before
+      # that inherits CL_SOURCE_REGISTRY re-walk all three trees in full before
       # resolving a system it would have found immediately. The checks start one
       # process per examples/*.lisp file, so that scan is paid ~40 times per run.
       # run-tests.lisp builds its own registry the same way.
-      sourceRegistry = "${cl-weave}:${cl-prolog}:${cl-log-kit}:${cl-process-kit}:${cl-json-kit}:${self}";
+      sourceRegistry = "${cl-weave}:${cl-prolog}:${self}";
+      testTimeoutSeconds = "300";
 
       # Single source of truth for a package version: the `:version` form in its
       # .asd. A release only ever edits the .asd file and every Nix package
@@ -93,6 +64,8 @@
         builtins.head (builtins.match "[[:space:]]*:version \"([^\"]*)\"" versionLine);
 
       version = asdVersion ./cl-boundary-kit.asd;
+      clWeaveVersion = asdVersion "${cl-weave}/cl-weave.asd";
+      clPrologVersion = asdVersion "${cl-prolog}/cl-prolog.asd";
 
       # treefmt drives `nix fmt` and the `checks.<system>.formatting` gate.
       # Scope is Nix only: nixfmt (RFC-style) is a zero-footgun, low-diff
@@ -141,26 +114,44 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          # cl-boundary-kit.asd declares :depends-on (:asdf :cl-log-kit), so the
-          # dependency has to reach buildASDFSystem through lispLibs. Declaring
-          # cl-log-kit as a flake input is not enough on its own: that only feeds
-          # the CL_SOURCE_REGISTRY used by checks/devShells, and without this the
-          # package build fails with `Component :CL-LOG-KIT not found`.
-          clLogKit = pkgs.sbcl.buildASDFSystem {
-            pname = "cl-log-kit";
-            version = asdVersion "${cl-log-kit}/cl-log-kit.asd";
-            src = cl-log-kit;
-            systems = [ "cl-log-kit" ];
-          };
         in
         rec {
+          cl-weave-runtime = pkgs.sbcl.buildASDFSystem {
+            pname = "cl-weave";
+            version = clWeaveVersion;
+            src = cl-weave;
+            systems = [ "cl-weave" ];
+          };
+          cl-prolog-runtime = pkgs.sbcl.buildASDFSystem {
+            pname = "cl-prolog";
+            version = clPrologVersion;
+            src = cl-prolog;
+            systems = [
+              "cl-prolog"
+              "cl-prolog/weave"
+            ];
+            lispLibs = [ cl-weave-runtime ];
+          };
           cl-boundary-kit = pkgs.sbcl.buildASDFSystem {
             pname = "cl-boundary-kit";
             inherit version;
             src = self;
             systems = [ "cl-boundary-kit" ];
-            lispLibs = [ clLogKit ];
           };
+          cl-boundary-kit-test = pkgs.sbcl.buildASDFSystem {
+            pname = "cl-boundary-kit-test";
+            inherit version;
+            src = self;
+            systems = [
+              "cl-boundary-kit"
+              "cl-boundary-kit/test"
+            ];
+            lispLibs = [
+              cl-weave-runtime
+              cl-prolog-runtime
+            ];
+          };
+          test-sbcl = pkgs.sbcl.withPackages (_: [ cl-boundary-kit-test ]);
           docs = mkDocs pkgs;
           default = cl-boundary-kit;
         }
@@ -170,16 +161,22 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          testSbcl = self.packages.${system}.test-sbcl;
           runCheck =
             {
               name,
               coverage ? false,
             }:
             pkgs.runCommand name
-              {
-                nativeBuildInputs = [ pkgs.sbcl ];
-                CL_SOURCE_REGISTRY = sourceRegistry;
+              ({
+                nativeBuildInputs = [
+                  pkgs.coreutils
+                  (if coverage then pkgs.sbcl else testSbcl)
+                ];
               }
+              // pkgs.lib.optionalAttrs coverage {
+                CL_SOURCE_REGISTRY = sourceRegistry;
+              })
               ''
                 export HOME="$TMPDIR/home"
                 mkdir -p "$HOME" "$out"
@@ -190,11 +187,12 @@
                       export CL_BOUNDARY_KIT_COVERAGE=1
                       export CL_BOUNDARY_KIT_COVERAGE_DATA="$out/coverage.dat"
                       export CL_BOUNDARY_KIT_COVERAGE_REPORT="$out/coverage-html/"
+                      export CL_BOUNDARY_KIT_COVERAGE_MANIFEST="$out/coverage-manifest.txt"
                     ''
                   else
                     ""
                 }
-                if ! sbcl --script ${self}/nix/ci-runner.lisp; then
+                if ! timeout --foreground -k 10s ${testTimeoutSeconds}s sbcl --script ${self}/nix/ci-runner.lisp; then
                   cat "$CL_BOUNDARY_KIT_REPORT"
                   exit 1
                 fi
@@ -202,7 +200,7 @@
                   if coverage then
                     ''
                       ${pkgs.perl}/bin/perl ${self}/nix/check-coverage.pl \
-                        "$out/coverage-html/cover-index.html" 80 \
+                        "$out/coverage-html/cover-index.html" 100 "$out/coverage-manifest.txt" \
                         | tee "$out/coverage-summary.txt"
                     ''
                   else
@@ -214,13 +212,16 @@
           checkout-tests =
             pkgs.runCommand "cl-boundary-kit-checkout-tests"
               {
-                nativeBuildInputs = [ pkgs.sbcl ];
+                nativeBuildInputs = [
+                  pkgs.coreutils
+                  pkgs.sbcl
+                ];
                 CL_SOURCE_REGISTRY = sourceRegistry;
               }
               ''
                 export HOME="$TMPDIR/home"
                 mkdir -p "$HOME" "$out"
-                sbcl --script ${self}/run-tests.lisp
+                timeout --foreground -k 10s ${testTimeoutSeconds}s sbcl --script ${self}/run-tests.lisp
                 touch "$out/passed"
               '';
           machine-report = runCheck { name = "cl-boundary-kit-machine-report"; };
@@ -252,12 +253,19 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          testSbcl = self.packages.${system}.test-sbcl;
           test = pkgs.writeShellApplication {
             name = "cl-boundary-kit-test";
-            runtimeInputs = [ pkgs.sbcl ];
+            runtimeInputs = [
+              pkgs.coreutils
+              testSbcl
+            ];
             text = ''
-              export CL_SOURCE_REGISTRY="${sourceRegistry}"
-              exec sbcl --script ${self}/run-tests.lisp
+              report_dir="$(mktemp -d)"
+              trap 'rm -rf "$report_dir"' EXIT
+              export CL_BOUNDARY_KIT_REPORT="$report_dir/report.json"
+              timeout --foreground -k 10s ${testTimeoutSeconds}s sbcl --script ${self}/nix/ci-runner.lisp
+              cat "$CL_BOUNDARY_KIT_REPORT"
             '';
           };
         in
