@@ -31,6 +31,13 @@
     ;; Stops at MAX before the queue drains.
     (expect (equal (list "a" "b") (subscriber-poll-batch subscriber 2)) :to-be-truthy)))
 
+;; Every other MAKE-RECORDING-SUBSCRIBER test above supplies an explicit
+;; :DELEGATE; exercise the &KEY default (an empty MAKE-TEST-SUBSCRIBER) too.
+(it "recording-subscriber-defaults-to-an-empty-test-subscriber"
+  (let ((subscriber (make-recording-subscriber)))
+    (expect (null (subscriber-poll subscriber)) :to-be-truthy)
+    (expect (= (length (recording-subscriber-calls subscriber)) 1) :to-be-truthy)))
+
 (it "subscriber-poll-batch-with-max-zero-polls-nothing"
   (let ((subscriber (make-recording-subscriber
                      :delegate (make-test-subscriber :messages (list "a")))))

@@ -77,6 +77,13 @@
   (signals error
     (nth-recorded-call '() -1)))
 
+;; The test above only exercises a negative integer index, taking the AND's
+;; other operand's false branch; a non-integer takes INTEGERP's own false
+;; branch.
+(it "nth-recorded-call-rejects-a-non-integer-index"
+  (signals error
+    (nth-recorded-call '() 1.5)))
+
 (it "event-helpers-match-events-by-key-value-constraints"
   (let ((events (list (list :level :info :message "start")
                       (list :level :error :message "boom")
@@ -187,12 +194,33 @@
                               :result "/usr/bin"))
     (expect (cl-boundary-kit:assert-recorded-call calls :get) :to-be-truthy)))
 
+;; The tests above only ever see one call per operation, so ASSERT-RECORDED-
+;; CALL's loop always finds its match on the first matching iteration;
+;; exercise a second, later match for the same operation being skipped once
+;; MATCHING-CALL is already set.
+(it "assert-recorded-call-returns-the-first-match-among-several"
+  (with-boundary-calls (calls
+                        (:get (list "PATH") :result "/usr/bin")
+                        (:get (list "HOME") :result "/home/x"))
+    (expect (equal (getf (cl-boundary-kit:assert-recorded-call calls :get) :arguments)
+               (list "PATH")) :to-be-truthy)))
+
 (it "assert-recorded-call-signals-when-call-is-missing"
   (signals error
     (cl-boundary-kit:assert-recorded-call
      (list (cl-boundary-kit:boundary-call-plist :get (list "HOME") :result "/tmp"))
      :set
      :arguments (list "HOME" :value "/srv"))))
+
+;; The test above only supplies :ARGUMENTS; also cover the failure message
+;; when an explicit :RESULT expectation is supplied too.
+(it "assert-recorded-call-signals-when-call-is-missing-with-a-result-expectation"
+  (signals error
+    (cl-boundary-kit:assert-recorded-call
+     (list (cl-boundary-kit:boundary-call-plist :get (list "HOME") :result "/tmp"))
+     :set
+     :arguments (list "HOME" :value "/srv")
+     :result t)))
 
 (it "assert-recorded-call-count-matches-repeated-calls"
   (with-boundary-calls (calls

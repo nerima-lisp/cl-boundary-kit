@@ -10,6 +10,20 @@
     (expect (= (random-source-random source-a 1000)
            (random-source-random source-b 1000)) :to-be-truthy)))
 
+;; Every other MAKE-DETERMINISTIC-RANDOM-SOURCE test above supplies an
+;; explicit :MODULUS; exercise the &KEY default (2^64) too.
+(it "deterministic-random-source-defaults-to-a-seed-of-1-and-a-2-to-the-64-modulus"
+  (let ((source (make-deterministic-random-source)))
+    (expect (< (random-source-random source 1000) 1000) :to-be-truthy)))
+
+;; Every other DETERMINISTIC-RANDOM-SOURCE test above passes an integer
+;; LIMIT, taking RANDOM-SOURCE-RANDOM's ETYPECASE INTEGER arm; exercise the
+;; REAL (non-integer) arm too.
+(it "deterministic-random-source-random-supports-a-non-integer-limit"
+  (let* ((source (make-deterministic-random-source :seed 1))
+         (value (random-source-random source 1.5d0)))
+    (expect (and (>= value 0) (< value 1.5d0)) :to-be-truthy)))
+
 (it "random-source-produces-bounded-values"
   (let ((source (make-random-source :state (make-random-state t))))
     (expect (< (random-source-random source 10) 10) :to-be-truthy)
@@ -190,6 +204,20 @@
   (signals error
     (random-source-bytes (make-test-random-source) -1)))
 
+;; The test above complements this one: -1 is an integer that fails (>= COUNT
+;; 0), taking the AND's other operand's false branch; a non-integer takes
+;; INTEGERP's own false branch.
+(it "random-source-bytes-rejects-a-non-integer-count"
+  (signals error
+    (random-source-bytes (make-test-random-source) 1.5)))
+
+;; Every other RANDOM-SOURCE-SAMPLE test above draws from a vector; exercise
+;; the list-input branch (a full copy plus partial Fisher-Yates) too.
+(it "random-source-sample-draws-distinct-elements-from-a-list"
+  (let* ((source (make-test-random-source :values '(0 0)))
+         (result (random-source-sample source '(:a :b :c) 2)))
+    (expect (equal (list :a :b) result) :to-be-truthy)))
+
 (it "random-source-sample-draws-distinct-elements-deterministically"
   ;; Partial Fisher-Yates for count 2 over a length-3 sequence draws limits 3
   ;; then 2. Draws 0 and 0 pick index 0 then index 1.
@@ -207,6 +235,13 @@
     (random-source-sample (make-test-random-source) #(:a :b) 3))
   (signals error
     (random-source-sample (make-test-random-source) #(:a :b) -1)))
+
+;; The test above only exercises out-of-range integer counts, taking the
+;; AND's other operand's false branch; a non-integer takes INTEGERP's own
+;; false branch.
+(it "random-source-sample-rejects-a-non-integer-count"
+  (signals error
+    (random-source-sample (make-test-random-source) #(:a :b) 1.5)))
 
 (it "random-source-sample-on-vectors-preserves-input-and-draw-order"
   ;; Partial Fisher-Yates draws bounds 3 then 2. The vector-specific sparse

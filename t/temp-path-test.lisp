@@ -19,6 +19,19 @@
   (signals error
     (make-sequential-temp-path-source :start -1)))
 
+;; The test above only exercises an out-of-range integer :START, taking the
+;; AND's other operand's false branch; a non-integer takes INTEGERP's own
+;; false branch.
+(it "sequential-temp-path-source-rejects-a-non-integer-start"
+  (signals error
+    (make-sequential-temp-path-source :start 1.5)))
+
+;; Every other MAKE-SEQUENTIAL-TEMP-PATH-SOURCE call above supplies at least
+;; one explicit keyword; exercise all four &KEY defaults together too.
+(it "sequential-temp-path-source-defaults-to-tmp-with-a-zero-start"
+  (let ((source (make-sequential-temp-path-source)))
+    (expect (equal #P"/tmp/tmp-00000000" (temp-path-next source)) :to-be-truthy)))
+
 (it "make-temp-path-source-generates-distinct-paths-under-the-directory"
   (let* ((source (make-temp-path-source :directory #P"/tmp/" :prefix "x"))
          (first (temp-path-next source))
@@ -52,6 +65,34 @@
 (it "make-temp-path-source-rejects-invalid-random-state"
   (signals error
     (make-temp-path-source :state :bad)))
+
+;; %RANDOM-TEMP-PATH tries 256 candidates before giving up; the test above
+;; only occupies one, so drive it to full exhaustion here to hit that path.
+(it "make-temp-path-source-signals-when-all-256-candidates-are-occupied"
+  (let* ((state (make-random-state t))
+         (probe-state (make-random-state state))
+         (occupied (loop repeat 256
+                         collect (merge-pathnames
+                                  (pathname (format nil "x-~(~32,'0x~).tmp"
+                                                    (random (ash 1 128) probe-state)))
+                                  #P"/tmp/")))
+         (source (make-temp-path-source :directory #P"/tmp/"
+                                        :prefix "x"
+                                        :suffix ".tmp"
+                                        :state state)))
+    (unwind-protect
+         (progn
+           (dolist (path occupied)
+             (with-open-file (stream path
+                                     :direction :output
+                                     :if-exists :supersede
+                                     :if-does-not-exist :create)
+               (write-string "occupied" stream)))
+           (signals-error-message-contains "Unable to find an unused temp path"
+             (temp-path-next source)))
+      (dolist (path occupied)
+        (when (probe-file path)
+          (delete-file path))))))
 
 (it "test-temp-path-source-consumes-queued-paths"
   (let ((source (make-test-temp-path-source :paths (list #P"/tmp/a" "/tmp/b"))))
@@ -90,6 +131,16 @@
 (it "make-recording-temp-path-source-rejects-a-non-temp-path-source-delegate"
   (signals error
     (make-recording-temp-path-source :delegate :bad)))
+
+;; Every other MAKE-RECORDING-TEMP-PATH-SOURCE test above supplies an
+;; explicit :DELEGATE; exercise the &KEY default (a fresh
+;; MAKE-TEMP-PATH-SOURCE) too.
+(it "recording-temp-path-source-defaults-to-a-fresh-temp-path-source"
+  (let ((source (make-recording-temp-path-source)))
+    (expect (equal #P"/tmp/" (make-pathname :name nil :type nil
+                                            :defaults (temp-path-next source)))
+            :to-be-truthy)
+    (expect (= (length (recording-temp-path-source-calls source)) 1) :to-be-truthy)))
 
 (it-each ((recording-temp-path-source-calls)
           (reset-recording-temp-path-source-calls))
