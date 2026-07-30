@@ -57,18 +57,18 @@
         (cons entry ""))))
 
 (defun %native-environment-get (name)
-  #+sbcl
-  (sb-ext:posix-getenv name)
-  #-sbcl
-  (declare (ignore name))
-  #-sbcl
-  nil)
+  (host-kit:getenv name))
 
 (defun %native-environment-entries ()
-  #+sbcl
-  (sb-ext:posix-environ)
-  #-sbcl
-  nil)
+  (host-kit:environment-variables))
+
+(defun %native-environment-set (name value)
+  (setf (host-kit:getenv name) value))
+
+(defun %native-environment-unset (name)
+  (let ((present (not (null (host-kit:getenv name)))))
+    (setf (host-kit:getenv name) nil)
+    present))
 
 (defun %native-environment-list ()
   (let ((entries nil))

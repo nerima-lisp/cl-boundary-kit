@@ -18,6 +18,14 @@
       inputs.paredit-cli.follows = "cl-weave/paredit-cli";
     };
 
+    # cl-boundary-kit's own real-boundary backend for host process
+    # interaction, adopted directly (no adapter layer) rather than
+    # hand-rolled per-boundary implementations.
+    cl-host-kit = {
+      url = "github:nerima-lisp/cl-host-kit/v0.2.1";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # crane for Common Lisp/ASDF: builds cl-weave-runtime, cl-prolog-runtime,
     # and cl-boundary-kit itself as lispDerivations instead of hand-rolled
     # pkgs.sbcl.buildASDFSystem calls.
@@ -38,6 +46,7 @@
       nixpkgs,
       cl-weave,
       cl-prolog,
+      cl-host-kit,
       cl-nix-forge,
       treefmt-nix,
       ...
@@ -71,6 +80,7 @@
       version = asdVersion ./cl-boundary-kit.asd;
       clWeaveVersion = asdVersion "${cl-weave}/cl-weave.asd";
       clPrologVersion = asdVersion "${cl-prolog}/cl-prolog.asd";
+      clHostKitVersion = asdVersion "${cl-host-kit}/cl-host-kit.asd";
 
       # treefmt drives `nix fmt` and the `checks.<system>.formatting` gate.
       # Scope is Nix only: nixfmt (RFC-style) is a zero-footgun, low-diff
@@ -138,6 +148,20 @@
             ];
             lispLibs = [ cl-weave-runtime ];
           };
+          # cl-boundary-kit's own real-boundary backend (env/host-info/args/
+          # system), adopted directly as an ASDF dependency rather than a
+          # hand-rolled per-boundary implementation. Built the same way as
+          # cl-weave-runtime/cl-prolog-runtime above, not via
+          # cl.lispDerivation: it is a precompiled dependency deps-sbcl/
+          # test-sbcl load, not a checkout ci-runner.lisp compiles fresh, so
+          # the ASDF_OUTPUT_TRANSLATIONS concern documented on
+          # CL-BOUNDARY-KIT below does not apply.
+          cl-host-kit-runtime = pkgs.sbcl.buildASDFSystem {
+            pname = "cl-host-kit";
+            version = clHostKitVersion;
+            src = cl-host-kit;
+            systems = [ "cl-host-kit" ];
+          };
           # Built via cl-nix-forge's lispDerivation rather than
           # pkgs.sbcl.buildASDFSystem. TEST-SBCL/DEPS-SBCL below stay on
           # buildASDFSystem/withPackages: cl.lispWithSystems bakes
@@ -149,6 +173,7 @@
             lispSystem = "cl-boundary-kit";
             inherit version;
             src = self;
+            lispLibs = [ cl-host-kit-runtime ];
           };
           # TEST-SBCL and DEPS-SBCL are identical: every check and app loads
           # CL-BOUNDARY-KIT's own sources fresh from the checkout (via
@@ -166,6 +191,7 @@
           deps-sbcl = pkgs.sbcl.withPackages (_: [
             cl-weave-runtime
             cl-prolog-runtime
+            cl-host-kit-runtime
           ]);
           test-sbcl = deps-sbcl;
           docs = mkDocs pkgs;

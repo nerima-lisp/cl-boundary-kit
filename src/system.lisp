@@ -8,22 +8,13 @@
   code)
 
 (defun %default-system-exit (code)
-  ;; Resolve the host exit entrypoint at call time via FIND-SYMBOL rather than a
-  ;; read-time UIOP: package reference, so this file still loads in environments
-  ;; that have not loaded ASDF/UIOP (for example the examples bootstrap, which
-  ;; loads the sources directly with a bare `sbcl --script`).
-  (let ((quit (and (find-package "UIOP")
-                   (find-symbol "QUIT" "UIOP"))))
-    (if quit
-        (funcall quit code)
-        (unsupported-operation 'system-exit
-                               "no host exit function is available"))))
+  (host-kit:quit code))
 
 (defun make-system-boundary (&key (exit-fn #'%default-system-exit))
   "Create a system boundary whose `system-exit` calls EXIT-FN.
 
 EXIT-FN receives the requested exit code. The default terminates the process
-through `uiop:quit`, so this is the only path that actually exits."
+through `cl-host-kit:quit`, so this is the only path that actually exits."
   (require-function exit-fn "EXIT-FN")
   (make-instance 'system-boundary :exit-fn exit-fn))
 

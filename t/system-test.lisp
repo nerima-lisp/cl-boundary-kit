@@ -9,19 +9,18 @@
     (expect (eq :exited (system-exit system 3)) :to-be-truthy)
     (expect (equal (list 3) requested) :to-be-truthy)))
 
-(it "make-system-boundary-uses-uiop-quit-by-default"
-  (let* ((quit (find-symbol "QUIT" "UIOP"))
-         (original (symbol-function quit))
-         (received nil))
+(it "make-system-boundary-uses-host-kit-quit-by-default"
+  (let ((original (symbol-function 'host-kit:quit))
+        (received nil))
     (unwind-protect
          (progn
-           (setf (symbol-function quit)
+           (setf (symbol-function 'host-kit:quit)
                  (lambda (code)
                    (setf received code)
                    :quit-requested))
            (expect (system-exit (make-system-boundary) 17) :to-be :quit-requested)
            (expect received :to-be 17))
-      (setf (symbol-function quit) original))))
+      (setf (symbol-function 'host-kit:quit) original))))
 
 (it "make-system-boundary-defaults-the-exit-code-to-zero"
   (let* ((requested '())
