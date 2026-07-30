@@ -22,15 +22,38 @@
   (function sb-thread:make-thread)
   "Function used to start a stdout or stderr capture thread.")
 
+(defparameter *%capturing-thread-termination-timeout-seconds* 1
+    "Maximum wait after forcibly stopping a library-owned reader thread.")
+
+
 (defun %start-capturing-thread (process accessor destination)
-  ;; Draining stdout/stderr must happen concurrently with waiting for the
-  ;; process, not after: a child that writes more than one OS pipe buffer
-  ;; combined across both streams blocks on write() until someone reads, so
-  ;; waiting for exit before reading deadlocks forever on large output.
+  "Start a reader thread only when DESTINATION requests captured output."
   (when (%capture-destination-p destination)
     (let ((stream (funcall accessor process)))
       (funcall *capturing-thread-maker* (lambda () (%slurp-stream stream))))))
 
-(defun %join-capturing-thread (thread)
+  (defun %join-capturing-thread (thread &key timeout)
+  "Return the captured output and whether joining THREAD exceeded TIMEOUT."
   (when thread
-    (sb-thread:join-thread thread)))
+    ;; SBCL treats a zero timeout as unbounded; preserve a nonblocking join.
+    (let ((effective-timeout (and timeout (max timeout 0.001))))
+      (multiple-value-bind (output status)
+          (sb-thread:join-thread thread :default "" :timeout effective-timeout)
+        (values output (eq status :timeout))))))
+
+  (progn
+  (defun %close-process-streams (process)
+    "Close the parent pipe ends without waiting for descendants."
+    (dolist (stream (list (sb-ext:process-input process)
+                          (sb-ext:process-output process)
+                          (sb-ext:process-error process)))
+      (when stream
+        (ignore-errors (close stream)))))
+  (defun %terminate-capturing-thread (thread)
+    "Stop a reader thread after its stream has been closed."
+    (when thread
+      (ignore-errors (sb-thread:terminate-thread thread))
+      (let ((output (%join-capturing-thread
+                     thread
+                     :timeout *%capturing-thread-termination-timeout-seconds*)))
+        (if (stringp output) output "")))))

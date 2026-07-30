@@ -67,24 +67,31 @@
 
 TIMEOUT defaults to *DEFAULT-PROCESS-TIMEOUT-SECONDS* so a native command
 execution is never left unbounded; pass an explicit :TIMEOUT NIL to wait for
-the child indefinitely instead."
+the child indefinitely instead.  TIMEOUT must otherwise be a non-negative
+real number."
   (%require-process-boundary process-boundary "PROCESS-BOUNDARY")
-  (let* ((call-keywords (%process-call-keywords arguments
-                                                input
-                                                directory
-                                                environment
-                                                environment-supplied-p
-                                                output
-                                                error-output
-                                                timeout))
-         (run (lambda ()
-                (%process-boundary-run-for-type (%process-boundary-type process-boundary)
-                                                process-boundary
-                                                command
-                                                call-keywords))))
-    (if (%recording-process-boundary-p process-boundary)
-        (%record-process-call-result process-boundary command call-keywords (funcall run))
-        (funcall run))))
+  (labels ((%validate-process-timeout (value)
+             (unless (or (null value)
+                         (and (realp value) (not (minusp value))))
+               (error "PROCESS-BOUNDARY-RUN timeout must be NIL or a non-negative real number, got ~S"
+                      value))
+             value))
+    (let* ((timeout (%validate-process-timeout timeout))
+           (call-keywords (%process-call-keywords arguments
+                                                  input
+                                                  directory
+                                                  environment
+                                                  environment-supplied-p
+                                                  output
+                                                  error-output
+                                                  timeout))
+           (result (%process-boundary-run-for-type (%process-boundary-type process-boundary)
+                                                   process-boundary
+                                                   command
+                                                   call-keywords)))
+      (if (%recording-process-boundary-p process-boundary)
+          (%record-process-call-result process-boundary command call-keywords result)
+          result))))
 
 (defun process-result-success-p (result)
   "Return true when RESULT -- a `process-boundary-run` result plist -- has an exit

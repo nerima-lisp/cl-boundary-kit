@@ -3,7 +3,6 @@
 ;;;; Process lifecycle and timeout management: deadlines, liveness checks, and
 ;;;; the SIGTERM/SIGKILL escalation that guarantees a timed-out child is always
 ;;;; terminated and reaped rather than left as an orphan.
-
 (in-package #:cl-boundary-kit)
 
 (defparameter *%process-kill-grace-seconds* 2
@@ -11,8 +10,14 @@
 
 (defun %deadline-seconds (timeout)
   (when timeout
-    (+ (get-internal-real-time)
-       (round (* timeout internal-time-units-per-second)))))
+    (+ (get-internal-real-time) (round (* timeout internal-time-units-per-second)))))
+
+(defun %deadline-remaining-seconds (deadline)
+  "Return the non-negative remaining time before DEADLINE, or NIL."
+  (when deadline
+    (/
+      (max 0 (- deadline (get-internal-real-time)))
+      (float internal-time-units-per-second))))
 
 (defun %process-alive-p (process)
   (sb-ext:process-alive-p process))
@@ -26,8 +31,8 @@
     (sb-ext:process-wait process)))
 
 (defun %kill-process-with-escalation (process)
-  ;; A child that traps or ignores SIGTERM would otherwise hang this call
-  ;; (and the timeout contract) forever; SIGKILL cannot be caught or ignored.
+  ;; A child that traps or ignores SIGTERM would otherwise hang this call (and
+  ;; the timeout contract) forever; SIGKILL cannot be caught or ignored.
   (sb-ext:process-kill process 15)
   (let ((grace-deadline (+ (get-internal-real-time)
                            (round (* *%process-kill-grace-seconds*
@@ -54,6 +59,3 @@
           (%kill-process-with-escalation process)
           (return t)
         do (sleep 0.01))))
-
-(defun %wait-for-process-with-timeout (process timeout)
-  (%wait-for-process-with-deadline process (%deadline-seconds timeout)))

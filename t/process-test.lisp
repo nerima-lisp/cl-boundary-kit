@@ -220,11 +220,32 @@
     (expect (= (length (recording-process-calls process)) 1) :to-be-truthy)
     (expect (= (length (recording-process-calls delegate)) 0) :to-be-truthy)))
 
-(it "process-boundary-forwards-timeout-to-custom-runner"
-  (with-process-boundary-runner (process (process-result :stdout (write-to-string timeout)))
-    (let ((result (process-boundary-run process "demo" :timeout +process-test-timeout+)))
-      (expect (equal result
-                 (process-result :stdout (write-to-string +process-test-timeout+))) :to-be-truthy))))
+(it "process-boundary-validates-timeout-before-consuming-test-results"
+  (let* ((first-result (process-result :stdout "first"))
+         (second-result (process-result :stdout "second"))
+         (process (make-test-process-boundary
+                   :results (list first-result second-result))))
+    (signals error
+      (process-boundary-run process "negative" :timeout -1))
+    (signals error
+      (process-boundary-run process "non-real" :timeout :bad))
+    (expect (null (recording-process-calls process)) :to-be-truthy)
+    (expect (equal (process-boundary-run process "valid" :timeout 0)
+                   first-result)
+            :to-be-truthy)))
+
+(progn
+  (it "process-boundary-forwards-timeout-to-custom-runner"
+    (with-process-boundary-runner (process (process-result :stdout (write-to-string timeout)))
+      (let ((result (process-boundary-run process "demo" :timeout +process-test-timeout+)))
+        (expect (equal result
+                       (process-result :stdout (write-to-string +process-test-timeout+))) :to-be-truthy))))
+
+  (it "process-boundary-forwards-an-explicit-nil-timeout-to-custom-runner"
+    (with-process-boundary-runner
+        (process (process-result :stdout (if timeout "bounded" "unbounded")))
+      (let ((result (process-boundary-run process "demo" :timeout nil)))
+        (expect (equal result (process-result :stdout "unbounded")) :to-be-truthy)))))
 
 (it "recording-process-boundary-propagates-errors-without-recording"
   (with-recording-process-runner (process (error "process failed"))

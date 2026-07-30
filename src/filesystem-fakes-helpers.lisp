@@ -21,9 +21,16 @@
        ;; truncating, so bytes beyond the new content's length survive from
        ;; the original file; :SUPERSEDE/:CREATE truncate. Match that so
        ;; make-test-filesystem doesn't diverge from make-filesystem here.
-       (let ((existing (%filesystem-entry-content entry)))
-         (if (> (length existing) (length content))
-             (concatenate 'string content (subseq existing (length content)))
+       (let* ((existing (%filesystem-entry-content entry))
+              (existing-length (length existing))
+              (content-length (length content)))
+         (if (> existing-length content-length)
+             (let ((resolved (make-string existing-length)))
+               (replace resolved content)
+               (replace resolved existing
+                        :start1 content-length
+                        :start2 content-length)
+               resolved)
              content)))
       ((:supersede :create nil)
        content)
