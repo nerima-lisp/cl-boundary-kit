@@ -74,8 +74,14 @@
             (with-open-file (pid-stream pid-path)
               (setf pid (read-line pid-stream nil nil))))
           (when (and pid (plusp (length pid)))
-            (uiop:run-program (list "/bin/kill" "-9" pid)
-                              :ignore-error-status t))
+            ;; Not /bin/kill: Nix's Linux build sandbox only bind-mounts
+            ;; /bin/sh, not a full FHS /bin, so spawning an external kill
+            ;; binary is unreliable here. SB-POSIX:KILL signals the PID
+            ;; directly with no external process or PATH lookup involved.
+            (require :sb-posix)
+            (ignore-errors
+              (funcall (read-from-string "sb-posix:kill")
+                       (parse-integer pid) 9)))
           (ignore-errors (delete-file pid-path)))))))
 
 (it "native-process-run-escalates-to-sigkill-when-the-subprocess-ignores-sigterm"
