@@ -2,6 +2,12 @@
 
 (require :sb-cover)
 
+;; CL-WEAVE:RUN-ALL is called directly below regardless of COVERAGE-P, and the
+;; coverage branch loads CL-BOUNDARY-KIT/TEST's sources with LOAD rather than
+;; ASDF:LOAD-SYSTEM, so ASDF's own dependency resolution never runs for it;
+;; load CL-WEAVE explicitly so its package exists either way.
+(asdf:load-system :cl-weave)
+
 ;; The test sources use CL-PROLOG/WEAVE (deftest-queries / assert-query).  This
 ;; runner loads test files directly rather than via the test system's
 ;; :depends-on, so the subsystem's package must be loaded explicitly here.
