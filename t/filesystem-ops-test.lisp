@@ -242,13 +242,14 @@
         (ignore-errors (uiop:delete-empty-directory base)))))
   (it "make-filesystem-directory-operations-normalize-relative-paths-without-trailing-slashes"
     (let ((path (format nil "cl-boundary-kit-relative-dir-test-~A" (gensym))))
-      (unwind-protect
-           (let ((fs (make-filesystem)))
-             (filesystem-make-directory fs path)
-             (expect (eq t (filesystem-directory-exists-p fs path)) :to-be-truthy)
-             (expect (eq t (filesystem-delete-directory fs path)) :to-be-truthy))
-        (ignore-errors
-          (uiop:delete-empty-directory (uiop:ensure-directory-pathname path))))))
+      (uiop:with-current-directory ((uiop:temporary-directory))
+        (unwind-protect
+             (let ((fs (make-filesystem)))
+               (filesystem-make-directory fs path)
+               (expect (eq t (filesystem-directory-exists-p fs path)) :to-be-truthy)
+               (expect (eq t (filesystem-delete-directory fs path)) :to-be-truthy))
+          (ignore-errors
+            (uiop:delete-empty-directory (uiop:ensure-directory-pathname path)))))))
   (it "make-filesystem-delete-directory-reports-missing-host-support"
     (let* ((base (uiop:ensure-directory-pathname
                   (merge-pathnames "cl-boundary-kit-dir-missing-host-support-test/"
