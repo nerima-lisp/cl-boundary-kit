@@ -49,13 +49,12 @@
 (defun %sorted-environment-entries (entries)
   (sort entries #'string< :key #'car))
 
-(defun %split-environment-entry-cps (entry kont)
+(defun %split-environment-entry (entry)
   (let ((separator (position #\= entry)))
     (if separator
-        (funcall kont
-                 (cons (subseq entry 0 separator)
-                       (subseq entry (1+ separator))))
-        (funcall kont (cons entry "")))))
+        (cons (subseq entry 0 separator)
+              (subseq entry (1+ separator)))
+        (cons entry ""))))
 
 (defun %native-environment-get (name)
   #+sbcl
@@ -75,10 +74,7 @@
   (let ((entries nil))
     (dolist (entry (%native-environment-entries)
              (%sorted-environment-entries entries))
-      (%split-environment-entry-cps
-       entry
-       (lambda (binding)
-         (push binding entries))))))
+      (push (%split-environment-entry entry) entries))))
 
 (defun %plist-ref-values (plist key default)
   (do ((rest plist (cddr rest)))
@@ -93,36 +89,34 @@
 but drops the present-p secondary value for callers that never need it."
   (nth-value 0 (%plist-ref-values plist key default)))
 
-(defun %normalize-environment-values-cps (initial-values kont)
+(defun %normalize-environment-values (initial-values)
   (cond
     ((null initial-values)
-     (funcall kont nil))
+     nil)
     ((every #'consp initial-values)
-     (funcall kont initial-values))
+     initial-values)
     (t
      (let ((entries nil))
        (loop for rest on initial-values by #'cddr
              do (when (null (cdr rest))
                   (error "INITIAL-VALUES must be an alist or plist: ~S" initial-values))
              do (push (cons (car rest) (cadr rest)) entries))
-       (funcall kont (nreverse entries))))))
+       (nreverse entries)))))
 
 (defun %sorted-environment-entries-from-table (table)
   (let ((entries nil))
     (maphash (lambda (name value) (push (cons name value) entries)) table)
     (%sorted-environment-entries entries)))
 
-(defun %seed-environment-bindings-cps (initial-values kont)
+(defun %seed-environment-bindings (initial-values)
   ;; A hash table gives O(1) get/set/seed regardless of how many bindings a
   ;; test environment carries, instead of an alist's O(n) ASSOC scan per
   ;; lookup and O(n^2) cost to seed N initial bindings one upsert at a time.
-  (%normalize-environment-values-cps
-   initial-values
-   (lambda (bindings)
-     (let ((table (make-hash-table :test 'equal)))
-       (dolist (binding bindings)
-         (setf (gethash (car binding) table) (cdr binding)))
-       (funcall kont table)))))
+  (let ((bindings (%normalize-environment-values initial-values)))
+    (let ((table (make-hash-table :test 'equal)))
+      (dolist (binding bindings)
+        (setf (gethash (car binding) table) (cdr binding)))
+      table)))
 
 (defun %environment-values (getter name)
   (multiple-value-list (funcall getter name)))

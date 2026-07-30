@@ -9,7 +9,7 @@
                                *compile-file-truename*
                                (error "Unable to determine the script location"))))
 
-(defparameter +local-test-dependencies+ '("cl-prolog" "cl-weave" "cl-log-kit" "cl-process-kit" "cl-json-kit"))
+(defparameter +local-test-dependencies+ '("cl-prolog" "cl-weave"))
 
 (defun parent-directory (directory)
   (uiop:ensure-directory-pathname (truename (merge-pathnames "../" directory))))

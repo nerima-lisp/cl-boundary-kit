@@ -13,7 +13,7 @@ It is a good fit when you want:
 - a small contract surface you can reason about
 
 It is not a good fit when you want a framework, dependency injection container,
-or application-specific adapter stack. Those remain out of scope.
+or application-specific integration layer. Those remain out of scope.
 
 ## How Do I Choose Between A Recording Boundary And A Test Boundary?
 
@@ -62,14 +62,13 @@ That is why `make-environment` without a `:set-fn` does not pretend mutation is
 supported, and why a network boundary without a transport function does not
 invent one.
 
-See [Compatibility](compatibility.md) for the verification scope around
-those guarantees.
+See [Verification](compatibility.md) for the checked workflows around those
+guarantees.
 
 ## What If Behavior Differs Across Lisp Implementations Or Platforms?
 
-Start by checking [Compatibility](compatibility.md). Only the
-implementation and verification scope documented there should be treated as a
-compatibility claim for `1.0.x`.
+Start by checking [Verification](compatibility.md) to identify the workflows
+the repository currently exercises.
 
 If a behavior covered by that verified contract fails, report it through
 [Support](support.md) with:
@@ -83,32 +82,18 @@ If the behavior difference exposes unsafe effect handling, leaks secrets or
 host state, or otherwise turns into a vulnerability, use the private reporting
 path in [Security](security.md) instead of the public support route.
 
-## How Will Deprecations Or Breaking Changes Be Communicated?
+## What Defines The Current Public API?
 
-The project treats deprecations and intentionally breaking changes as explicit
-public contract events, not implicit maintainer intent.
-
-Expect them to be called out in [Changelog](changelog.md). When a
-supported replacement exists, the changelog entry should include migration
-guidance instead of only naming the removal.
-
-For `1.0.x`, any intentionally breaking compatibility change should also update
-[Compatibility](compatibility.md) so the documented verification scope and
-change policy stay aligned with the release notes.
-
-## What Counts As The Stable Public Surface?
-
-For `1.0.x`, stability claims are intentionally narrow. The effective public
-contract is defined by:
+The current public API is defined by:
 
 - exported symbols documented across the [Guide](composition.md) pages
 - checked-in examples and cookbook snippets that are exercised by the test suite
-- compatibility notes in [Compatibility](compatibility.md)
-- contributor and maintainer policy in [Contributing](contributing.md) and
+- checked workflows in [Verification](compatibility.md)
+- contributor guidance in [Contributing](contributing.md) and
   [Governance](governance.md)
 
 If a behavior is not covered by those artifacts and executable verification, do
-not treat it as a compatibility promise.
+not treat it as documented API behavior.
 
-See [Stability Policy](stability-policy.md) for the full contract this FAQ
+See [Documentation Scope](stability-policy.md) for the scope this FAQ
 summarizes.

@@ -74,8 +74,8 @@ test.
 
     [:octicons-arrow-right-24: Architecture](architecture.md) ·
     [Running the Test Suite](testing.md) ·
-    [Compatibility](compatibility.md) ·
-    [Stability Policy](stability-policy.md)
+    [Verification](compatibility.md) ·
+    [Documentation Scope](stability-policy.md)
 
 </div>
 
@@ -126,7 +126,7 @@ at the repository root packages `cl-boundary-kit` as a Nix flake:
   ASDF source registry.
 - `nix run .#test` — the pinned checkout test runner (`run-tests.lisp`).
 - `nix flake check` — the checkout runner, a `cl-weave` machine-readable
-  report, and an 80% statement-coverage gate, as reproducible derivations for
+  report, and a 100% statement-coverage gate, as reproducible derivations for
   `x86_64-linux` and `aarch64-darwin`.
 - `nix build .#docs` — builds this documentation site with MkDocs (Material)
   in `--strict` mode, so broken links fail the build.
@@ -147,7 +147,7 @@ for vulnerability reporting. Do not put exploit details in a public issue.
 - Cookbook: [cookbook.md](cookbook.md)
 - FAQ: [faq.md](faq.md)
 - Architecture: [architecture.md](architecture.md)
-- Compatibility: [compatibility.md](compatibility.md)
+- Verification: [compatibility.md](compatibility.md)
 - Contributing: [contributing.md](contributing.md)
 - Governance: [governance.md](governance.md)
 - Code of Conduct: [code-of-conduct.md](code-of-conduct.md)

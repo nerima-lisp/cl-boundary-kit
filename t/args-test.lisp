@@ -36,10 +36,22 @@
           (rest arguments) nil)
     (expect (equal (list "app" "--flag" "value") (args-list args)) :to-be-truthy)))
 
-(it "make-args-defaults-to-the-host-argument-vector"
-  (let ((args (make-args)))
-    (expect (listp (args-list args)) :to-be-truthy)
-    (expect (integerp (args-count args)) :to-be-truthy)))
+
+  (it "make-args-defaults-to-the-host-argument-vector"
+    (let ((args (make-args)))
+      (expect (listp (args-list args)) :to-be-truthy)
+      (expect (integerp (args-count args)) :to-be-truthy)))
+
+  (it "make-args-falls-back-to-an-empty-list-when-host-argv-is-unbound"
+    (let* ((argv-symbol (find-symbol "*POSIX-ARGV*" "SB-EXT"))
+           (was-bound (boundp argv-symbol))
+           (saved-value (and was-bound (symbol-value argv-symbol))))
+      (unwind-protect
+           (progn
+             (sb-ext:without-package-locks (makunbound argv-symbol))
+             (expect (null (args-list (make-args))) :to-be-truthy))
+        (when was-bound
+          (sb-ext:without-package-locks (setf (symbol-value argv-symbol) saved-value))))))
 
 (it "make-test-args-rejects-non-string-arguments"
   (signals error
@@ -57,6 +69,10 @@
                    (list (boundary-call-plist :list '() :result (list "app" "--flag"))
                          (boundary-call-plist :count '() :result 2)
                          (boundary-call-plist :nth (list 1) :result "--flag"))) :to-be-truthy)))
+
+(it "make-recording-args-uses-an-empty-test-boundary-by-default"
+  (let ((args (make-recording-args)))
+    (expect (null (args-list args)) :to-be-truthy)))
 
 (it "make-recording-args-rejects-a-non-args-delegate"
   (signals error

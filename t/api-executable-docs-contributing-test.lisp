@@ -25,43 +25,4 @@
                                        "lisp"
                                        1)) :to-be-truthy))
 
-(define-document-search-tests
-  (contributing-local-setup-documents-documented-test-runner-expectation
-   :file "docs/src/contributing.md"
-   :contains ("documented REPL runner"
-              "`(asdf:load-system :cl-boundary-kit/test)`"
-              "`(cl-boundary-kit/test:run-tests)`"
-              "`0 failures`"
-              "stable verification path"))
-  (contributing-documents-the-code-of-conduct
-   :file "docs/src/contributing.md"
-   :contains ("code-of-conduct.md"
-              "## Communication Expectations"))
-  (contributing-documents-governance-expectations
-   :file "docs/src/contributing.md"
-   :contains ("governance.md"
-              "decision criteria"))
-  (contributing-documents-architecture-expectations
-   :file "docs/src/contributing.md"
-   :contains ("architecture.md"
-              "layering model"))
-  (contributing-documents-support-routing
-   :file "docs/src/contributing.md"
-   :contains ("support.md"
-              "security"))
-  (contributing-documents-faq-and-release-expectations
-   :file "docs/src/contributing.md"
-   :contains ("faq.md"
-              "release-process.md"))
-  (contributing-documents-documentation-contract-maintenance
-   :file "docs/src/contributing.md"
-   :contains ("CHANGELOG.md"
-              "deprecated, removed, or changed in a breaking way"
-              "migration guidance"
-              "compatibility.md"
-              "cookbook.md"
-              "supported usage pattern changes"
-              "verification scope"
-              "release evidence"
-              "compatibility, release, cookbook, and other policy documents stay"
-              "aligned with executable verification")))
+(define-document-search-tests (contributing-local-setup-documents-documented-test-runner-expectation :file "docs/src/contributing.md" :contains ("documented REPL runner" "`(asdf:load-system :cl-boundary-kit/test)`" "`(cl-boundary-kit/test:run-tests)`" "`0 failures`" "stable verification path")) (contributing-documents-the-code-of-conduct :file "docs/src/contributing.md" :contains ("code-of-conduct.md" "## Communication Expectations")) (contributing-documents-governance-expectations :file "docs/src/contributing.md" :contains ("governance.md" "decision criteria")) (contributing-documents-architecture-expectations :file "docs/src/contributing.md" :contains ("architecture.md" "layering model")) (contributing-documents-support-routing :file "docs/src/contributing.md" :contains ("support.md" "security")) (contributing-documents-faq-and-release-expectations :file "docs/src/contributing.md" :contains ("faq.md" "release-process.md")) (contributing-documents-documentation-contract-maintenance :file "docs/src/contributing.md" :contains ("compatibility.md" "cookbook.md" "supported usage pattern changes" "checked workflow" "release evidence" "verification, release, cookbook, and other documentation stays" "aligned with executable verification")))

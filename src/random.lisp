@@ -125,24 +125,41 @@ nonces, salts, and tokens while keeping them deterministic in tests."
     (dotimes (index count bytes)
       (setf (aref bytes index) (random-source-random source 256)))))
 
+
+
 (defun random-source-sample (source sequence count)
   "Return a list of COUNT distinct elements drawn from SEQUENCE without
 replacement, using SOURCE.
 
-COUNT must be an integer between 0 and the length of SEQUENCE. Implemented as a
-partial Fisher-Yates shuffle (only the first COUNT positions), so it is more
-efficient than a full shuffle when COUNT is small. Derived from
-`random-source-random`; a recording source records the underlying draws, and the
-input is not modified."
+COUNT must be an integer between 0 and the length of SEQUENCE. Uses a partial
+Fisher-Yates shuffle (only the first COUNT positions), so it is more efficient
+than a full shuffle when COUNT is small. Vector inputs use a sparse virtual
+swap table to avoid copying the entire input. Derived from
+`random-source-random`; a recording source records the underlying draws, and
+the input is not modified."
   (let ((length (length sequence)))
     (unless (and (integerp count) (<= 0 count length))
       (error "RANDOM-SOURCE-SAMPLE count must be an integer in [0, ~D]: ~S" length count))
-    (let ((vector (make-array length)))
-      (replace vector sequence)
-      (loop for index from 0 below count
-            for pick = (+ index (random-source-random source (- length index)))
-            do (rotatef (aref vector index) (aref vector pick)))
-      (loop for index from 0 below count collect (aref vector index)))))
+    (if (vectorp sequence)
+        (let ((swaps (make-hash-table)))
+          (labels ((value-at (index)
+                     (multiple-value-bind (value present-p) (gethash index swaps)
+                       (if present-p
+                           value
+                           (aref sequence index)))))
+            (loop for index from 0 below count
+                  for pick = (+ index (random-source-random source (- length index)))
+                  for at-index = (value-at index)
+                  for at-pick = (value-at pick)
+                  do (setf (gethash index swaps) at-pick
+                           (gethash pick swaps) at-index)
+                  collect at-pick)))
+        (let ((vector (make-array length)))
+          (replace vector sequence)
+          (loop for index from 0 below count
+                for pick = (+ index (random-source-random source (- length index)))
+                do (rotatef (aref vector index) (aref vector pick)))
+          (loop for index from 0 below count collect (aref vector index))))))
 
 (defun random-source-shuffle (source sequence)
   "Return a freshly shuffled copy of SEQUENCE using SOURCE.

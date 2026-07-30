@@ -20,7 +20,7 @@ Technical decisions are made from concrete evidence:
 - reproducible behavior
 - executable tests
 - checked-in examples
-- explicit compatibility notes
+- explicit verification notes
 
 When tradeoffs are unclear, the maintainer may decline or defer changes until a
 concrete boundary use case, regression test, or documentation contract justifies
@@ -33,7 +33,7 @@ artifacts below:
 
 - `README.md` for the project overview and entry point into the full documentation
 - the [Guide](composition.md) pages for the supported public API surface
-- [Compatibility](compatibility.md) for verification scope, non-claims, and change policy
+- [Verification](compatibility.md) for checked verification workflows
 - [Contributing](contributing.md) for contributor workflow and test expectations
 - [Support](support.md) for request routing and maintenance boundary
 - [Security](security.md) for private reporting expectations
@@ -49,8 +49,7 @@ The library is intentionally conservative:
 
 - small additions are preferred over broad framework-like abstractions
 - unsupported operations should fail explicitly instead of hiding host differences
-- compatibility claims should only be made after repository-level verification
-- intentionally breaking changes should be called out in [Changelog](changelog.md)
+- published documentation should be backed by repository-level verification
 
 ## Escalation Paths
 

@@ -36,11 +36,26 @@
     (expect (cl-boundary-kit::%network-plist-p '(:a 1 :b 2)) :to-be-truthy)
     (expect (cl-boundary-kit::%network-plist-p '(:a 1 :b)) :to-be nil)  ; odd
     (expect (cl-boundary-kit::%network-plist-p '(1 2)) :to-be nil)      ; bad key
+    ;; a complete key/value pair followed by a dotted, non-cons tail
+    (expect (cl-boundary-kit::%network-plist-p '(:a 1 . 2)) :to-be nil)
     (expect (cl-boundary-kit::%network-alist-p '((:a . 1))) :to-be-truthy)
     (expect (cl-boundary-kit::%network-alist-p '(1 2)) :to-be nil)      ; entry not a cons
     (expect (cl-boundary-kit::%network-alist-p '((1 . 2))) :to-be nil)  ; key not symbol/string
+    ;; valid entries followed by a dotted, non-cons tail
+    (expect (cl-boundary-kit::%network-alist-p '((:a . 1) . 2)) :to-be nil)
     (expect (cl-boundary-kit::%proper-list-p '(1 2 3)) :to-be-truthy)
     (expect (cl-boundary-kit::%proper-list-p '(1 . 2)) :to-be nil)))
+
+;;; %RECORD-NETWORK-CALL's TYPECASE fallback is unreachable through the public
+;;; NETWORK-BOUNDARY-REQUEST, which only calls it for test/recording
+;;; boundaries; call the private helper directly to exercise the fallback.
+(it "record-network-call-rejects-an-unsupported-boundary-type"
+  (signals-error-message-contains "Unsupported network boundary type"
+    (cl-boundary-kit::%record-network-call
+     (make-network-boundary :request-fn (lambda (request &key timeout)
+                                          (declare (ignore request timeout))
+                                          nil))
+     '(:method :get) nil nil)))
 
 (it "network-sensitive-field-p-classifies-key-kinds"
   (expect (cl-boundary-kit::%network-sensitive-field-p :authorization) :to-be-truthy)
@@ -66,13 +81,13 @@
     (expect (p '(:x)) :to-be-truthy)              ; single non-nil -> present
     (expect (p '(nil)) :to-be nil)))              ; single NIL -> absent
 
-(it "normalize-environment-values-cps-covers-empty-alist-and-plist-inputs"
-  (flet ((n (input) (cl-boundary-kit::%normalize-environment-values-cps input #'identity)))
+(it "normalize-environment-values-covers-empty-alist-and-plist-inputs"
+  (flet ((n (input) (cl-boundary-kit::%normalize-environment-values input)))
     (expect (n '()) :to-be nil)                                   ; empty
     (expect (equal (n '((:a . 1))) '((:a . 1))) :to-be-truthy)   ; already an alist
     (expect (equal (n '(:a 1 :b 2)) '((:a . 1) (:b . 2))) :to-be-truthy))  ; plist -> alist
   (signals-error-message-contains "INITIAL-VALUES must be an alist or plist"
-    (cl-boundary-kit::%normalize-environment-values-cps '(:a 1 :b) #'identity)))  ; odd
+    (cl-boundary-kit::%normalize-environment-values '(:a 1 :b))))  ; odd
 
 ;;; --- args-nth and random validation branches --------------------------
 
@@ -91,6 +106,31 @@
       (random-source-random source 0))
     (signals-error-message-contains "limit must be positive"
       (random-source-random source -5))))
+
+;;; --- process-calls guard -----------------------------------------------
+
+;; %PROCESS-CALLS's own type check is unreachable through RECORDING-PROCESS-CALLS
+;; / RESET-RECORDING-PROCESS-CALLS, which already guard on the same predicate
+;; via DEFINE-RECORDING-CALL-LOG's (SATISFIES ...) class-name before ever
+;; calling it; call the private helper directly to exercise its own guard.
+(it "process-calls-rejects-a-non-recording-process-boundary"
+  (signals-error-message-contains "Unsupported process boundary type"
+    (cl-boundary-kit::%process-calls (make-process-boundary))))
+
+;; %RECORD-PROCESS-CALL's own type check is likewise unreachable through
+;; PROCESS-BOUNDARY-RUN, which already guards on %RECORDING-PROCESS-BOUNDARY-P
+;; before ever calling it.
+(it "record-process-call-rejects-a-non-recording-process-boundary"
+  (signals-error-message-contains "Unsupported process boundary type"
+    (cl-boundary-kit::%record-process-call (make-process-boundary) "noop")))
+
+;; %PROCESS-BOUNDARY-RUN-FOR-TYPE's (T) method is unreachable through
+;; PROCESS-BOUNDARY-RUN, which already validates the boundary type via
+;; %REQUIRE-PROCESS-BOUNDARY before ever dispatching on it.
+(it "process-boundary-run-for-type-rejects-an-unrecognized-boundary-type"
+  (signals-error-message-contains "Unsupported process boundary type"
+    (cl-boundary-kit::%process-boundary-run-for-type
+     :bad (make-process-boundary) "noop" nil)))
 
 ;;; --- test-filesystem entry helpers ------------------------------------
 

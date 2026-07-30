@@ -1,9 +1,7 @@
 # Roadmap
 
-The codebase is intentionally narrow. As of `1.0.0` the exported API is a
-stable contract under the [Stability Policy](stability-policy.md), so the goal
-of subsequent `1.x` work is usability and adoption quality rather than surface
-growth.
+The codebase is intentionally narrow. The goal of future work is usability and
+adoption quality rather than surface growth.
 
 ## Status Semantics
 
@@ -16,22 +14,20 @@ growth.
 
 ## Near-Term
 
-- Keep the exported `1.x` API stable and intentional; a new export has to
-  earn its place against the non-goals below.
+- Keep the exported API intentional; a new export has to earn its place against
+  the non-goals below.
 - Preserve parity between examples, README snippets, and regression tests.
 - Keep the SBCL checkout flow and `run-tests.lisp` green, and keep the
   documented REPL test-runner contract green from a fresh process.
 - Tighten public OSS metadata and policy documents only when they remain backed
   by executable verification in this repository.
-- Add richer process and network adapters only when a concrete need appears.
 
 ## Longer-Term
 
-- Add more host-agnostic adapters only when they stay small and explicit.
-- Keep the boundary protocols stable before adding any new abstraction layer.
+- Keep the boundary protocols focused before adding any new abstraction layer.
 - Expand [Cookbook](cookbook.md) only when it explains a real usage pattern
   better than the existing examples.
-- Add implementation compatibility claims only after they are exercised by real
+- Add documented workflows only after they are exercised by real
   repository-level verification, not by assumption.
 
 ## Non-Goals

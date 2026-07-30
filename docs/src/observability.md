@@ -3,7 +3,6 @@
 ## Logging
 
 - `make-logger`
-- `make-log-kit-sink-fn`
 - `logger-log`
 - `logger-debug`
 - `logger-info`
@@ -29,20 +28,9 @@ for deterministic tests.
 `make-logger` rejects non-function `:sink-fn` and `:timestamp-fn` values, and
 recording loggers require a `logger` delegate.
 
-`make-log-kit-sink-fn` adapts a [`cl-log-kit`](https://github.com/nerima-lisp/cl-log-kit)
-`log-kit:logger` into a `:sink-fn` for `make-logger`, so a boundary logger's real
-destination can be genuine structured logging (JSON or text, level-filtered,
-stream-backed) while `make-test-logger`/`make-recording-logger` remain the test
-doubles:
-
-```lisp
-(make-logger
- :sink-fn (make-log-kit-sink-fn
-           (log-kit:make-logger :handler (make-instance 'log-kit:json-handler))))
-```
-
-This system's `:debug`/`:info`/`:warn`/`:error` levels map onto `cl-log-kit`'s
-matching level constants; any other level passes through unchanged.
+For structured logging, call the application's logging system directly from
+the application boundary. `cl-boundary-kit` does not translate external event
+formats or log levels.
 
 See [`examples/recording-logger.lisp`](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/examples/recording-logger.lisp)
 and [`examples/test-logger.lisp`](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/examples/test-logger.lisp).

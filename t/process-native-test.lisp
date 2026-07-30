@@ -134,26 +134,27 @@
   (let* ((process (make-process-boundary))
          (runtime (namestring sb-ext:*runtime-pathname*))
          (call-count 0)
-         (original (symbol-function 'sb-thread:make-thread))
          (start (get-internal-real-time)))
-    (unwind-protect
-        (progn
-          (sb-ext:without-package-locks
-            (setf (symbol-function 'sb-thread:make-thread)
-                  (lambda (function &rest args)
-                    (incf call-count)
-                    (if (= call-count 2)
-                        (error "simulated capture-thread spawn failure")
-                        (apply original function args)))))
-          (signals error
-            (process-boundary-run process runtime
-                                  :arguments (list "--non-interactive" "--no-sysinit" "--no-userinit"
-                                                   "--eval" "(sleep 5)"))))
-      (sb-ext:without-package-locks
-        (setf (symbol-function 'sb-thread:make-thread) original)))
-    ;; Well under the child's 5s sleep: proves the fix didn't block waiting
-    ;; for the child's natural lifetime to end.
-    (expect (< (/ (- (get-internal-real-time) start) internal-time-units-per-second) 2)
+    (let ((cl-boundary-kit::*capturing-thread-maker*
+            (lambda (function &rest args)
+              (if (= (incf call-count) 2)
+                  (error "simulated capture-thread spawn failure")
+                  (apply (function sb-thread:make-thread) function args)))))
+      (signals error
+        (process-boundary-run
+         process
+         runtime
+         :arguments
+         (list "--non-interactive"
+               "--no-sysinit"
+               "--no-userinit"
+               "--eval"
+               "(sleep 5)"))))
+    ;; Well under the five seconds the child would otherwise stay alive.
+    ;; This also proves the early-cleanup path reaped the child.
+    (expect (< (/ (- (get-internal-real-time) start)
+                  internal-time-units-per-second)
+               2)
             :to-be-truthy)))
 
 (it "process-result-success-p-reads-the-exit-code"
@@ -188,14 +189,29 @@
   (signals-error-message-contains "Invalid process environment entry"
     (cl-boundary-kit::%process-environment-entry-string 42)))
 
-(it "capture-destination-p-detects-string-and-nil-capture-requests"
+(it "capture-destination-p-detects-capture-and-stream-output-destinations"
   (expect (cl-boundary-kit::%capture-destination-p nil) :to-be-truthy)
   (expect (cl-boundary-kit::%capture-destination-p :string) :to-be-truthy)
   (expect (cl-boundary-kit::%capture-destination-p *standard-output*) :to-be nil)
   ;; %process-output-option maps both capture requests to :STREAM and passes
   ;; an explicit stream through unchanged.
   (expect (cl-boundary-kit::%process-output-option :string) :to-be :stream)
-  (expect (cl-boundary-kit::%process-output-option :inherit) :to-be :inherit))
+  (expect (cl-boundary-kit::%process-output-option :inherit) :to-be :inherit)
+  (let* ((process (make-process-boundary))
+         (runtime (namestring sb-ext:*runtime-pathname*))
+         (output (make-string-output-stream))
+         (error-output (make-string-output-stream))
+         (result (process-boundary-run
+                  process runtime
+                  :arguments (list "--noinform" "--non-interactive" "--no-sysinit" "--no-userinit" "--eval" "(progn (format t \"out\") (format *error-output* \"err\"))")
+                  :timeout nil
+                  :output output
+                  :error-output error-output)))
+    (expect (eql 0 (getf result :exit-code)) :to-be-truthy)
+    (expect (null (getf result :stdout)) :to-be-truthy)
+    (expect (null (getf result :stderr)) :to-be-truthy)
+    (expect (string= "out" (get-output-stream-string output)) :to-be-truthy)
+    (expect (string= "err" (get-output-stream-string error-output)) :to-be-truthy)))
 
 (it "native-process-run-accepts-a-working-directory-and-input-stream"
   (let* ((process (make-process-boundary))

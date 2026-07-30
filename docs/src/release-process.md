@@ -1,6 +1,6 @@
-# Release Process
+# Release Evidence
 
-`cl-boundary-kit` should only make compatibility claims that can be backed by
+`cl-boundary-kit` should only publish release evidence that is backed by
 the checked-in verification in this repository. A release is therefore a
 documentation and evidence exercise, not just a version bump.
 
@@ -9,14 +9,12 @@ documentation and evidence exercise, not just a version bump.
 1. Confirm the intended scope still fits [Governance](governance.md) and
    the non-goals in [Design Non-Goals](design-notes.md).
 2. Update `CHANGELOG.md` so the release notes describe every intentional public
-   change, explicitly call out deprecations or removals, include migration
-   guidance when a supported replacement exists, and remove any stale
-   `Unreleased` placeholders.
+   change and remove any stale `Unreleased` placeholders.
 3. Reconcile [Roadmap](roadmap.md) with the release scope so shipped items are removed,
    narrowed, or rewritten as future work instead of being left as if they were
    still merely planned.
 4. Update `README.md`, the relevant [Guide](composition.md) pages, [Cookbook](cookbook.md),
-   [Compatibility](compatibility.md), and `examples/*.lisp` for any public
+   [Verification](compatibility.md), and `examples/*.lisp` for any public
    contract change.
 5. Run `sbcl --script run-tests.lisp` from a clean checkout state and confirm
    the executable documentation still matches reality.
@@ -43,27 +41,9 @@ documentation and evidence exercise, not just a version bump.
    `CHANGELOG.md` section as release notes, and publishes a GitHub Release. Push
    the tag only from a commit whose CI run is green.
 
-## Versioning Expectations
+## Evidence Required Before Publishing
 
-- `1.0.x` should keep the documented exported API stable: a patch release
-  fixes behavior that already contradicted the documented contract, and never
-  changes the contract itself.
-- Additive changes -- new exports, new protocols, new keyword arguments whose
-  defaults preserve every existing call site -- belong in a minor `1.x.0`
-  release.
-- Removing, renaming, or breaking a documented export requires a major release,
-  and must be preceded by a release that deprecates it while it still works.
-- Intentionally breaking changes must update `CHANGELOG.md` and
-  [Compatibility](compatibility.md) in the same change.
-- Deprecations and removals should never appear as silent release-note drift:
-  they belong in `CHANGELOG.md` with replacement or migration guidance when
-  the project has a supported next step to recommend.
-- New helpers should not be described as supported unless they are exercised by
-  repository-level verification.
-
-## Evidence Required Before Claiming Compatibility
-
-Compatibility statements should be tied to what the repository actually proves:
+Published documentation should be tied to what the repository actually proves:
 
 - the checkout installation flow
 - the documented REPL test-runner path

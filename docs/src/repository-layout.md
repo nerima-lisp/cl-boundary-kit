@@ -29,7 +29,7 @@ record the parts specific to this repository.
 - [`cookbook.md`](cookbook.md) pattern-oriented usage guide for supported flows
 - [`faq.md`](faq.md) user-facing decision points and contract clarifications
 - [`architecture.md`](architecture.md) layering model and design constraints
-- [`compatibility.md`](compatibility.md) current verification scope and non-claims
+- [`compatibility.md`](compatibility.md) checked verification workflows
 - [`contributing.md`](contributing.md) change workflow and test expectations
 - [`governance.md`](governance.md) maintainer decision model and contract surface
 - [`code-of-conduct.md`](code-of-conduct.md) contributor behavior and reporting expectations

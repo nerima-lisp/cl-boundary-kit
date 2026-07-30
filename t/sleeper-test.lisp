@@ -12,6 +12,12 @@
   (signals error
     (make-sleeper :sleep-fn :bad)))
 
+;; The test above supplies an explicit :SLEEP-FN; exercise the &KEY default
+;; (CL:SLEEP itself) too, with a zero duration so the test stays instant.
+(it "make-sleeper-defaults-to-cl-sleep"
+  (let ((sleeper (make-sleeper)))
+    (expect (= 0 (sleeper-sleep sleeper 0)) :to-be-truthy)))
+
 (it "test-sleeper-returns-the-requested-seconds-without-blocking"
   (let ((sleeper (make-test-sleeper)))
     (expect (= 5 (sleeper-sleep sleeper 5)) :to-be-truthy)

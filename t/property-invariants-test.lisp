@@ -75,7 +75,7 @@
 (it-property "native-filesystem-round-trips-arbitrary-utf8-content"
     ((content (gen-string :min-length 0 :max-length 48
                           :alphabet "aeiouzZ09
-	caf\U000000E9\U000003BB\U0001F600\U00002603")))
+	café λ 😀 ☃")))
   (let* ((directory (merge-pathnames #P"cl-boundary-kit-property/"
                                      (uiop:temporary-directory)))
          (path (merge-pathnames #P"content.txt" directory))

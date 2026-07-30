@@ -245,6 +245,15 @@
   (signals error
     (make-recording-process-boundary :delegate :bad)))
 
+;; Every other test supplies an explicit :DELEGATE; exercise the &KEY default
+;; (a fresh MAKE-PROCESS-BOUNDARY) too.
+(it "make-recording-process-boundary-defaults-to-a-fresh-process-boundary"
+  (let ((*native-process-search-path-p* t))
+    (let* ((process (make-recording-process-boundary))
+           (result (process-boundary-run process "sh" :arguments (list "-c" "printf hi"))))
+      (expect (string= (getf result :stdout) "hi") :to-be-truthy)
+      (expect (= (length (recording-process-calls process)) 1) :to-be-truthy))))
+
 (it-each ((recording-process-calls)
           (reset-recording-process-calls))
     "~A signals for unsupported boundary types"

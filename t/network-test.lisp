@@ -224,6 +224,13 @@
   (signals error
     (make-recording-network-boundary)))
 
+;; NETWORK-BOUNDARY-REQUEST only type-checks for the TEST/RECORDING kinds
+;; before dispatching; anything else -- including a non-boundary argument --
+;; falls straight through to %NETWORK-BOUNDARY-REQUEST's own (T) method.
+(it "network-boundary-request-rejects-a-non-network-boundary"
+  (signals-error-message-contains "Unsupported network boundary type"
+    (network-boundary-request :bad '(:method :get))))
+
 ;;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
 ;;; double-record every call -- once on the wrapper, once on the delegate's
 ;;; own history -- because the recording dispatch recursed through the
@@ -277,6 +284,18 @@
     (expect (null (recording-network-calls network)) :to-be-truthy)
     (network-boundary-request network '(:method :get))
     (expect (= (length (recording-network-calls network)) 1) :to-be-truthy)))
+
+;; %NETWORK-CALLS is a type-dispatched generic with a separate SETF method per
+;; boundary class; the test above only exercises TEST-NETWORK-BOUNDARY's, so
+;; drive the same reset through an actual RECORDING-NETWORK-BOUNDARY too.
+(it "reset-recording-network-calls-clears-history-on-a-recording-boundary"
+  (with-network-boundary (network make-recording-network-boundary
+                                  :delegate (make-test-network-boundary
+                                             :responses (list "ok" "ok2")))
+    (network-boundary-request network '(:method :get))
+    (expect (= (length (recording-network-calls network)) 1) :to-be-truthy)
+    (expect (eq (reset-recording-network-calls network) network) :to-be-truthy)
+    (expect (null (recording-network-calls network)) :to-be-truthy)))
 
 ;;; Regression: %RECORD-NETWORK-CALL built its call record by hand instead of
 ;;; going through the shared %RECORD-CALL macro, so it never got the

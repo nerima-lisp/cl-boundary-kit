@@ -30,6 +30,7 @@ coverage.dat
 /.deps/
 /tmp/
 /.worktrees/
+.worktrees/
 /.paredit.cleanup/
 
 # --- Editor and OS noise ---

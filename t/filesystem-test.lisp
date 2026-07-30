@@ -41,7 +41,7 @@
                                      (uiop:temporary-directory)))
          (path (merge-pathnames #P"multibyte.txt" directory))
          (fs (make-filesystem))
-         (content "caf\U000000E9 \U000003BB \U0001F600 boundary"))
+         (content "café λ 😀 boundary"))
     (ensure-directories-exist directory)
     (unwind-protect
          (progn
@@ -137,7 +137,14 @@
          (fs (make-test-filesystem :initial-files (list path "plist"))))
     (expect (string= (filesystem-read-file fs path) "plist") :to-be-truthy))
   (signals error
-    (make-test-filesystem :initial-files '(:bad)))
+    (make-test-filesystem :initial-files (quote (:bad))))
+  ;; %NORMALIZE-TEST-FILES-CPS only dispatches to %NORMALIZE-TEST-FILES-ALIST-CPS
+  ;; once every element already satisfies CONSP, so no public entry point can
+  ;; reach %SPLIT-TEST-FILE-BINDING-CPS's own defensive non-cons check; call
+  ;; the private helper directly to exercise it.
+  (signals-error-message-contains "INITIAL-FILES entry must be a cons"
+      (cl-boundary-kit::%split-test-file-binding-cps :bad (lambda (path content)
+                                                             (declare (ignore path content)))))
   (signals error
     (filesystem-read-file (make-test-filesystem) #P"/tmp/missing.txt"))
   (signals error
@@ -145,6 +152,11 @@
                            #P"/tmp/missing.txt"
                            "hello"
                            :if-does-not-exist :error))
+  (signals error
+    (filesystem-store-file (make-test-filesystem :initial-files (list #P"/tmp/unsupported.txt" "old"))
+                           #P"/tmp/unsupported.txt"
+                           "new"
+                           :if-exists :unsupported))
   (signals error
     (filesystem-store-file (make-test-filesystem :initial-files (list #P"/tmp/out.txt" "old"))
                            #P"/tmp/out.txt"
@@ -298,7 +310,9 @@
 
 (it "recording-filesystem-calls-rejects-a-non-filesystem-argument"
   (signals-error-message-contains "must be a filesystem"
-    (recording-filesystem-calls 42)))
+    (recording-filesystem-calls 42))
+  (signals-error-message-contains "must be a filesystem"
+    (recording-filesystem-calls nil)))
 
 (it "filesystem-store-file-lines-rejects-non-list-lines"
   (signals-error-message-contains "lines must be a list of strings"

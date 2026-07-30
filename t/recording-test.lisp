@@ -2,6 +2,14 @@
 
 (in-package #:cl-boundary-kit/test)
 
+;; Every other MAKE-RECORDING-BOUNDARY test below supplies an explicit
+;; :HANDLER; exercise the &KEY default (an ignore-everything, return-NIL
+;; handler) too.
+(it "recording-boundary-defaults-to-a-handler-that-returns-nil"
+  (let ((boundary (make-recording-boundary)))
+    (expect (null (recording-boundary-invoke boundary :ping 1 2)) :to-be-truthy)
+    (expect (= (length (recording-boundary-calls boundary)) 1) :to-be-truthy)))
+
 (it "recording-boundary-invokes-handler"
   (let ((boundary (make-recording-boundary
                    :handler (lambda (operation &rest args)

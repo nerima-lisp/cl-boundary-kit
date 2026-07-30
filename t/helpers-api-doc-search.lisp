@@ -16,33 +16,8 @@
                   "support.md"
                   "normal usage question"
                   "vulnerability"))
-      (support-document-exists-and-defines-routing
-       :file "docs/src/support.md"
-       :exists t
-       :contains ("# Support"
-                  "## What To Use"
-                  "security.md"
-                  "code-of-conduct.md"
-                  "README.md"
-                  "compatibility.md"
-                  "changelog.md"
-                  "governance.md"
-                  "cookbook.md"
-                  "faq.md"
-                  "harassment"
-                  "deprecated, removed, or changed in a breaking way"
-                  "migration guidance"))
-      (governance-document-exists-and-defines-contract-surface
-       :file "docs/src/governance.md"
-       :exists t
-       :contains ("# Governance"
-                  "## Maintainer Role"
-                  "## Decision Process"
-                  "README.md"
-                  "compatibility.md"
-                  "examples/*.lisp"
-                  "checked-in examples"
-                  "changelog.md"))
+      (support-document-exists-and-defines-routing :file "docs/src/support.md" :exists t :contains ("# Support" "## What To Use" "security.md" "code-of-conduct.md" "README.md" "compatibility.md" "changelog.md" "governance.md" "cookbook.md" "faq.md" "harassment" "verification guidance" "current documented API"))
+      (governance-document-exists-and-defines-contract-surface :file "docs/src/governance.md" :exists t :contains ("# Governance" "## Maintainer Role" "## Decision Process" "README.md" "compatibility.md" "examples/*.lisp" "checked-in examples" "verification notes"))
       (architecture-document-exists-and-defines-layering
        :file "docs/src/architecture.md"
        :exists t
@@ -70,67 +45,10 @@
                   "assert-recorded-call-count"
                   "assert-recorded-call-sequence"
                   "unsupported-boundary-operation"))
-      (faq-document-exists-and-defines-decision-points
-       :file "docs/src/faq.md"
-       :exists t
-       :contains ("# FAQ"
-                  "## When Should I Use This Library?"
-                  "## How Do I Choose Between A Recording Boundary And A Test Boundary?"
-                  "## How Do I Preserve Explicit `nil` Values?"
-                  "## Why Do Unsupported Operations Signal Instead Of Falling Back?"
-                  "## What If Behavior Differs Across Lisp Implementations Or Platforms?"
-                  "## How Will Deprecations Or Breaking Changes Be Communicated?"
-                  "cookbook.md"
-                  "compatibility.md"
-                  "changelog.md"
-                  "support.md"
-                  "contributing.md"
-                  "governance.md"
-                  "security.md"))
-      (faq-documents-the-stable-public-surface-contract
-       :file "docs/src/faq.md"
-       :contains ("## What Counts As The Stable Public Surface?"
-                  "contract is defined by:"
-                  "exported symbols documented across the [Guide](composition.md) pages"
-                  "checked-in examples and cookbook snippets"
-                  "compatibility.md"
-                  "contributing.md"
-                  "governance.md"
-                  "executable verification"
-                  "not treat it as a compatibility promise"))
-      (release-document-exists-and-defines-evidence-based-checklist
-       :file "docs/src/release-process.md"
-       :exists t
-       :contains ("# Release Process"
-                  "## Release Checklist"
-                  "CHANGELOG.md"
-                  "roadmap.md"
-                  "README.md"
-                  "cookbook.md"
-                  "compatibility.md"
-                  "`sbcl --script run-tests.lisp`"
-                  "t/api-test.lisp"
-                  "t/api-doc-claims-test.lisp"
-                  "t/api-doc-links-test.lisp"
-                  "t/api-executable-docs-test.lisp"
-                  "t/examples-test.lisp"
-                  "security.md"
-                  "deprecations or removals"
-                  "migration guidance"))
-      (compatibility-document-exists-and-defines-verification-scope
-       :file "docs/src/compatibility.md"
-       :exists t
-       :contains ("# Compatibility"
-                  "## Verification Scope"
-                  "`sbcl --script run-tests.lisp`"
-                  "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)`"
-                  "`0 failures`"
-                  "documented REPL runner"
-                  "stable verification path"
-                  "Other Common Lisp implementations may work"
-                  "support.md"
-                  "security.md"
-                  "## Change Policy"))
+      (faq-document-exists-and-defines-decision-points :file "docs/src/faq.md" :exists t :contains ("# FAQ" "## When Should I Use This Library?" "## How Do I Choose Between A Recording Boundary And A Test Boundary?" "## How Do I Preserve Explicit `nil` Values?" "## Why Do Unsupported Operations Signal Instead Of Falling Back?" "## What If Behavior Differs Across Lisp Implementations Or Platforms?" "## What Defines The Current Public API?" "cookbook.md" "compatibility.md" "support.md" "contributing.md" "governance.md" "security.md"))
+      (faq-documents-the-stable-public-surface-contract :file "docs/src/faq.md" :contains ("## What Defines The Current Public API?" "current public API is defined by:" "exported symbols documented across the [Guide](composition.md) pages" "checked-in examples and cookbook snippets" "compatibility.md" "contributing.md" "governance.md" "executable verification" "not treat it as documented API behavior"))
+      (release-document-exists-and-defines-evidence-based-checklist :file "docs/src/release-process.md" :exists t :contains ("# Release Evidence" "## Release Checklist" "CHANGELOG.md" "roadmap.md" "README.md" "cookbook.md" "compatibility.md" "`sbcl --script run-tests.lisp`" "t/api-test.lisp" "t/api-doc-claims-test.lisp" "t/api-doc-links-test.lisp" "t/api-executable-docs-test.lisp" "t/examples-test.lisp" "security.md" "## Evidence Required Before Publishing" "checked-in verification"))
+      (compatibility-document-exists-and-defines-verification-scope :file "docs/src/compatibility.md" :exists t :contains ("# Verification" "## Checked Workflows" "`sbcl --script run-tests.lisp`" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)`" "`0 failures`" "documented REPL runner" "stable verification path" "Hosts outside the emitted flake systems" "support.md" "security.md" "100% coverage"))
       (security-policy-documents-supported-versions-and-reporting-process
        :file "docs/src/security.md"
        :exists t
@@ -148,16 +66,7 @@
        :exists t
        :contains ("MIT License"
                   "Permission is hereby granted, free of charge"))
-      (roadmap-documents-verification-driven-adoption-constraints
-       :file "docs/src/roadmap.md"
-       :exists t
-       :contains ("## Status Semantics"
-                  "directional, not release commitments"
-                  "changelog.md"
-                  "documented REPL test-runner contract"
-                  "executable verification"
-                  "cookbook.md"
-                  "implementation compatibility claims only after they are exercised"))
+      (roadmap-documents-verification-driven-adoption-constraints :file "docs/src/roadmap.md" :contains ("## Status Semantics" "directional, not release commitments" "changelog.md" "documented REPL test-runner contract" "executable verification" "cookbook.md" "documented workflows only after they are exercised"))
       (roadmap-changelog-and-release-documents-separate-facts-from-direction
        :file "docs/src/roadmap.md"
        :contains ("directional, not release commitments"
@@ -223,25 +132,12 @@
       (readme-links-the-governance-documents
        :file "docs/src/repository-layout.md"
        :contains ("contributing.md"))
-      (readme-contributing-and-governance-sections-document-contract-maintenance
-       :file "docs/src/contributing.md"
-       :contains ("supported public contract"
-                  "executable tests"
-                  "relevant examples"
-                  "README.md"
-                  "CHANGELOG.md"
-                  "migration guidance"))
+      (readme-contributing-and-governance-sections-document-contract-maintenance :file "docs/src/contributing.md" :contains ("documented public behavior" "executable tests" "relevant examples" "README.md" "checked workflow" "release evidence"))
       (readme-links-the-release-process-document
        :file "docs/src/contributing.md"
        :contains ("release-process.md"
                   "executable verification"))
-      (readme-compatibility-section-links-the-compatibility-document
-       :haystack (concatenate 'string
-                              (repository-file-string "docs/src/contributing.md")
-                              (repository-file-string "docs/src/compatibility.md"))
-       :contains ("compatibility.md"
-                  "executable verification"
-                  "unverified implementation or platform"))))
+      (readme-compatibility-section-links-the-compatibility-document :haystack (concatenate (quote string) (repository-file-string "docs/src/contributing.md") (repository-file-string "docs/src/compatibility.md")) :contains ("compatibility.md" "executable verification" "Hosts outside the emitted flake systems"))))
 
   (defmacro document-search-shared-cases ()
     `',*document-search-shared-cases*)
