@@ -14,20 +14,14 @@ tree and load it the same way.
 ## Nix
 
 The [flake.nix](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/flake.nix)
-at the repository root packages `cl-boundary-kit` as a Nix flake and pins
-every test dependency (SBCL, [`cl-weave`](https://github.com/nerima-lisp/cl-weave),
-[`cl-prolog`](https://github.com/nerima-lisp/cl-prolog),
-[`cl-log-kit`](https://github.com/nerima-lisp/cl-log-kit),
-[`cl-process-kit`](https://github.com/nerima-lisp/cl-process-kit), and
-[`cl-json-kit`](https://github.com/nerima-lisp/cl-json-kit)) so a checkout
-does not require Quicklisp:
+at the repository root packages `cl-boundary-kit` as a Nix flake and pins the
+test environment, so a checkout does not require Quicklisp:
 
 ```sh
 nix run .#test
 ```
 
 See [Running the Test Suite](testing.md) for the full set of verification
-paths, and [Compatibility](compatibility.md) for what is and is not a
-supported installation target.
+paths.
 
 Continue with [Quick Start](quick-start.md) → [Core Concepts](core-concepts.md).

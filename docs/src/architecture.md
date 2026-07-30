@@ -58,10 +58,6 @@ These principles matter more than adding new convenience wrappers.
   `src/core-utilities.lisp` and `src/recording-boundary.lisp` hold the generic
   call-recording utilities and delegate-method macros every subsystem
   boundary builds on
-- `src/logging-kit-adapter.lisp`, `src/process-kit-adapter.lisp` (loaded via
-  the separate `cl-boundary-kit/process-kit` system), and `src/json-adapter.lisp`
-  (loaded via the separate `cl-boundary-kit/json` system) bridge to sibling
-  nerima-lisp libraries without pulling their dependencies into every consumer
 - `src/testing.lisp`, `src/testing-helpers.lisp`, `src/testing-queries.lisp`,
   and `src/testing-events.lisp` expose lightweight test assertions and
   recorded-call/event query helpers
@@ -79,7 +75,7 @@ Architecture changes should be argued from:
 - a concrete boundary use case
 - an executable regression test
 - the public contract documents in the [Guide](composition.md) pages,
-  [Compatibility](compatibility.md), and [Governance](governance.md)
+  [Verification](compatibility.md), and [Governance](governance.md)
 
 Broad framework concerns, hidden host fallbacks, and scope growth without a
 boundary-specific justification are out of scope.

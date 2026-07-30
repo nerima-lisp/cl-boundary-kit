@@ -1,7 +1,7 @@
 # Design Non-Goals
 
 - CLI framework
-- app-specific adapters
+- application-specific integration layers
 - full dependency injection container
 - full mocking framework
 - generic utility package

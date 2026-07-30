@@ -3,10 +3,8 @@
 `cl-boundary-kit` is intentionally small. Changes should keep the API explicit
 and the dependency surface minimal.
 
-Changes to the supported public contract should update the executable tests,
-relevant examples, and `README.md` in the same change. Deprecations or
-intentionally breaking changes should also update `CHANGELOG.md` with
-migration guidance when a supported replacement exists.
+Changes to documented public behavior should update the executable tests,
+relevant examples, and `README.md` in the same change.
 
 ## Workflow
 
@@ -34,7 +32,7 @@ nix flake check --print-build-logs
 ```
 
 This runs the canonical checkout test runner, the `cl-weave` machine-report
-check, and the coverage check. The latter enforces at least 80% statement
+check, and the coverage check. The latter enforces 100% statement
 coverage. CI preserves `report.json`, `coverage.dat`, `coverage-summary.txt`,
 and `coverage-html/` from the report and coverage derivations as build
 artifacts. On macOS and other non-Linux hosts, treat direct SBCL execution as
@@ -48,9 +46,8 @@ To load the library itself with ASDF from a local checkout:
 (asdf:load-system :cl-boundary-kit)
 ```
 
-Direct SBCL test execution is also available when `cl-prolog`, `cl-weave`,
-`cl-log-kit`, `cl-process-kit`, and `cl-json-kit` are already discoverable by
-ASDF:
+Direct SBCL test execution is also available when the test dependencies are
+discoverable by ASDF:
 
 ```sh
 sbcl --script run-tests.lisp
@@ -80,16 +77,11 @@ before submitting a change.
 - Update the relevant `docs/src` Guide page when the public API changes.
 - Update `docs/src/examples.md` when example files are added, removed, or renamed.
 - Update examples when a public API changes.
-- Update `CHANGELOG.md` in the same change when behavior is intentionally
-  deprecated, removed, or changed in a breaking way.
-- When a supported replacement exists, include concrete migration guidance in
-  `CHANGELOG.md` instead of only naming the deprecation or removal.
-- Update [Compatibility](compatibility.md) and [Release Process](release-process.md) when a change alters supported
-  verification scope or release evidence.
+- Update [Verification](compatibility.md) and [Release Evidence](release-process.md)
+  when a change alters a checked workflow or release evidence.
 - Update [Cookbook](cookbook.md) when a supported usage pattern changes or a new pattern
   becomes part of the public contract.
-- Update [FAQ](faq.md) when a change alters user-facing boundary selection guidance or
-  compatibility expectations.
+- Update [FAQ](faq.md) when a change alters user-facing boundary selection guidance.
 - Update [Architecture](architecture.md) when subsystem responsibilities or layering constraints change.
 
 ## Test Expectations
@@ -98,14 +90,11 @@ Every exported subsystem should have at least one regression test. Prefer
 tests that demonstrate observable behavior over tests that only inspect
 implementation details. The test suite also checks that the `docs/src` Guide
 pages document the current exported API surface and the checked-in example
-files, and that compatibility, release, cookbook, and other policy documents stay
+files, and that verification, release, cookbook, and other documentation stays
 aligned with executable verification, so documentation drift should be fixed in
 the same change as the behavior. The checked-in `examples/*.lisp` files are
 also expected to run from a fresh SBCL process after loading the checkout
-through ASDF. Deprecations, removals, and intentionally breaking changes are
-part of that documentation contract: if they are introduced, the same change
-should update the changelog and any migration-facing policy text that the tests
-cover.
+through ASDF.
 
 Use `cl-weave` for new test cases and machine-readable evidence. Where an
 invariant spans multiple boundary implementations, prefer extending the
@@ -124,10 +113,7 @@ Design-level changes should also stay aligned with the layering model in
 [Architecture](architecture.md) so protocol boundaries, shared utilities,
 and test evidence do not drift apart.
 Maintainers preparing a release should also follow [Release Process](release-process.md)
-so changelog updates, compatibility claims, and executable verification stay in
-sync. If a change introduces a supported migration path, that release-facing
-documentation should explain it concretely instead of forcing users to infer it
-from diffs.
+so release evidence and executable verification stay in sync.
 Direct usage questions and support requests to the paths documented in
 [Support](support.md) so bug reports, design discussion, and security
 reports stay separated.

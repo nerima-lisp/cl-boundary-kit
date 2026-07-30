@@ -3,7 +3,6 @@
 ## Process
 
 - `make-process-boundary`
-- `process-kit-run-fn`
 - `make-test-process-boundary`
 - `process-boundary-run`
 - `process-result-success-p`
@@ -42,20 +41,9 @@ call, and signals when the queue is exhausted.
 Both constructors validate their collaborators up front: `:run-fn` must be a
 function, and recording wrappers require a `process-boundary` delegate.
 
-`process-kit-run-fn` is a `:run-fn` backed by
-[`cl-process-kit`](https://github.com/nerima-lisp/cl-process-kit), a
-dependency-light process execution toolkit with process-group timeout and
-SIGTERM/SIGKILL escalation, in place of this system's own hand-rolled
-`sb-ext:run-program` loop:
-
-```lisp
-(make-process-boundary :run-fn #'process-kit-run-fn)
-```
-
-It returns the same `:command`/`:stdout`/`:stderr`/`:exit-code`/`:timed-out`
-result shape as the default runner, so `process-result-success-p`,
-`process-result-check`, and recording/test process boundaries work
-unchanged regardless of which runner is plugged in.
+Applications that need a process implementation call it directly.
+`cl-boundary-kit` does not provide a runner or convert
+its command and result formats.
 
 See [`examples/recording-process.lisp`](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/examples/recording-process.lisp)
 and [`examples/test-process.lisp`](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/examples/test-process.lisp).
@@ -116,22 +104,3 @@ resolver, defaulting to an empty `make-test-dns-resolver`, and exposes the
 history through `recording-dns-calls`.
 
 See [`examples/test-dns.lisp`](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/examples/test-dns.lisp).
-
-## JSON
-
-- `recording-calls-to-json`
-
-`recording-calls-to-json` serializes the call-history plists that any
-`recording-*-calls` reader returns as a JSON array of
-`{operation, arguments, result}` objects, for logging, snapshotting, or diffing
-boundary interactions. It is provided by the optional `cl-boundary-kit/json`
-system, which pulls in
-[`cl-json-kit`](https://github.com/nerima-lisp/cl-json-kit), a dependency-free
-JSON reader/writer, so the core stays dependency-light:
-
-```lisp
-(recording-calls-to-json (recording-boundary-calls boundary) :pretty t)
-```
-
-An empty argument list serializes as `[]` and a `nil` result as `null`; pass
-`:pretty t` to indent the output.
