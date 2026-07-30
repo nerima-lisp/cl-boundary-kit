@@ -168,15 +168,17 @@
               coverage ? false,
             }:
             pkgs.runCommand name
-              ({
-                nativeBuildInputs = [
-                  pkgs.coreutils
-                  (if coverage then pkgs.sbcl else testSbcl)
-                ];
-              }
-              // pkgs.lib.optionalAttrs coverage {
-                CL_SOURCE_REGISTRY = sourceRegistry;
-              })
+              (
+                {
+                  nativeBuildInputs = [
+                    pkgs.coreutils
+                    (if coverage then pkgs.sbcl else testSbcl)
+                  ];
+                }
+                // pkgs.lib.optionalAttrs coverage {
+                  CL_SOURCE_REGISTRY = sourceRegistry;
+                }
+              )
               ''
                 export HOME="$TMPDIR/home"
                 mkdir -p "$HOME" "$out"
