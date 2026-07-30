@@ -123,6 +123,24 @@
                    (recording-boundary-invoke boundary :ping 1 2))))
     (expect (= 5 (length (benchmark-result-samples result))) :to-be-truthy)))
 
+(it
+  "test-filesystem-append-is-benchmarkable"
+  (let* ((filesystem (make-test-filesystem))
+         (path "benchmark-append.txt")
+         (append-count 0)
+         (result
+        (benchmark
+          (:warmup 1 :samples 5 :iterations 20)
+          (progn
+            (incf append-count)
+            (filesystem-append-file filesystem path "x")))))
+    (expect (= 5 (length (benchmark-result-samples result))) :to-be-truthy)
+    (expect
+      (string=
+        (filesystem-read-file filesystem path)
+        (make-string append-count :initial-element #\x))
+      :to-be-truthy)))
+
 ;;; Security (generative): the Prolog parser must bound *every* untrusted input.
 ;;; For arbitrarily deep nesting it either parses within the configured limits
 ;;; or rejects with a catchable, bounded `prolog-parser-resource-error` -- never

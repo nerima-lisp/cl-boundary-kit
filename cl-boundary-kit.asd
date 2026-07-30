@@ -10,7 +10,6 @@
   :bug-tracker "https://github.com/nerima-lisp/cl-boundary-kit/issues"
   :source-control (:git "https://github.com/nerima-lisp/cl-boundary-kit")
   :depends-on (:asdf)
-  :in-order-to ((test-op (test-op "cl-boundary-kit/test")))
   :pathname "src"
   :serial t
   :components ((:file "package")
@@ -46,6 +45,7 @@
     (:file "sleeper")
     (:file "console")
     (:file "console-methods" :depends-on ("console"))
+    (:file "system-data")
     (:file "system")
     (:file "kv")
     (:file "lock")
@@ -86,81 +86,86 @@
     (:file "testing" :depends-on ("testing-queries"))
     (:file "testing-events")))
 
-(asdf:defsystem "cl-boundary-kit/test"
-  :description "Test system for cl-boundary-kit"
-  :long-description "Regression tests for the cl-boundary-kit public API, documentation contracts, examples, and the documented checkout test runner."
-  :version "1.0.0"
-  :author "takeokunn <bararararatty@gmail.com>"
-  :maintainer "takeokunn <bararararatty@gmail.com>"
-  :license "MIT"
-  :homepage "https://github.com/nerima-lisp/cl-boundary-kit"
-  :bug-tracker "https://github.com/nerima-lisp/cl-boundary-kit/issues"
-  :source-control (:git "https://github.com/nerima-lisp/cl-boundary-kit")
-  :depends-on (:cl-boundary-kit :cl-prolog :cl-prolog/weave :cl-weave)
-  :perform (test-op
-    (operation component)
-    (declare (ignore operation component))
-    (uiop:symbol-call :cl-boundary-kit/test :run-tests))
-  :pathname "t"
-  :serial t
-  :components ((:file "package")
-    (:file "helpers-matchers")
-    (:file "helpers-test-macros")
-    (:file "core-utilities-test")
-    (:file "prolog-boundary-invariants-test")
-    (:file "prolog-advanced-test")
-    (:file "filesystem-test")
-    (:file "filesystem-recording-test")
-    (:file "filesystem-ops-test")
-    (:file "env-test")
-    (:file "env-native-test")
-    (:file "env-recording-test")
-    (:file "clock-test")
-    (:file "random-test")
-    (:file "uuid-test")
-    (:file "temp-path-test")
-    (:file "args-test")
-    (:file "host-info-test")
-    (:file "sleeper-test")
-    (:file "console-test")
-    (:file "system-test")
-    (:file "kv-test")
-    (:file "lock-test")
-    (:file "semaphore-test")
-    (:file "working-directory-test")
-    (:file "dns-test")
-    (:file "secret-test")
-    (:file "feature-flags-test")
-    (:file "cache-test")
-    (:file "rate-limiter-test")
-    (:file "scheduler-test")
-    (:file "process-test")
-    (:file "process-native-test")
-    (:file "network-test")
-    (:file "logging-test")
-    (:file "metrics-test")
-    (:file "publisher-test")
-    (:file "subscriber-test")
-    (:file "notifier-test")
-    (:file "context-test")
-    (:file "recording-test")
-    (:file "property-invariants-test")
-    (:file "testing-helpers-test")
-    (:file "helpers-examples")
-    (:file "helpers-api-doc")
-    (:file "helpers-api-markdown")
-    (:file "helpers-api-doc-search")
-    (:file "helpers-api-fresh-sbcl")
-    (:file "helpers-api-regression")
-    (:file "api-test")
-    (:file "api-doc-claims-foundation-test")
-    (:file "api-doc-claims-readme-test")
-    (:file "api-doc-links-foundation-test")
-    (:file "api-doc-links-documents-test")
-    (:file "api-doc-links-readme-test")
-    (:file "api-executable-docs-readme-test")
-    (:file "api-executable-docs-contributing-test")
-    (:file "api-executable-docs-cookbook-test")
-    (:file "coverage-completion-test")
-    (:file "examples-test")
-    (:file "examples-runtime-test")))
+(progn
+  (asdf:defsystem "cl-boundary-kit/test-base"
+    :description "Non-Prolog test support and regression tests for cl-boundary-kit"
+    :depends-on (:cl-boundary-kit :cl-weave)
+    :pathname "t"
+    :serial t
+    :components ((:file "package")
+      (:file "helpers-matchers")
+      (:file "helpers-test-macros")
+      (:file "core-utilities-test")
+      (:file "filesystem-test")
+      (:file "filesystem-recording-test")
+      (:file "filesystem-ops-test")
+      (:file "env-test")
+      (:file "env-native-test")
+      (:file "env-recording-test")
+      (:file "clock-test")
+      (:file "random-test")
+      (:file "uuid-test")
+      (:file "temp-path-test")
+      (:file "args-test")
+      (:file "host-info-test")
+      (:file "sleeper-test")
+      (:file "console-test")
+      (:file "system-test")
+      (:file "kv-test")
+      (:file "lock-test")
+      (:file "semaphore-test")
+      (:file "working-directory-test")
+      (:file "dns-test")
+      (:file "secret-test")
+      (:file "feature-flags-test")
+      (:file "cache-test")
+      (:file "rate-limiter-test")
+      (:file "scheduler-test")
+      (:file "process-test")
+      (:file "process-native-test")
+      (:file "network-test")
+      (:file "logging-test")
+      (:file "metrics-test")
+      (:file "publisher-test")
+      (:file "subscriber-test")
+      (:file "notifier-test")
+      (:file "context-test")
+      (:file "recording-test")
+      (:file "testing-helpers-test")
+      (:file "helpers-examples")
+      (:file "helpers-api-doc")
+      (:file "helpers-api-markdown")
+      (:file "helpers-api-doc-search")
+      (:file "helpers-api-fresh-sbcl")
+      (:file "helpers-api-regression")
+      (:file "api-test")
+      (:file "api-doc-claims-foundation-test")
+      (:file "api-doc-claims-readme-test")
+      (:file "api-doc-links-foundation-test")
+      (:file "api-doc-links-documents-test")
+      (:file "api-doc-links-readme-test")
+      (:file "api-executable-docs-readme-test")
+      (:file "api-executable-docs-contributing-test")
+      (:file "api-executable-docs-cookbook-test")
+      (:file "coverage-completion-test")
+      (:file "examples-test")
+      (:file "examples-runtime-test")))
+  (asdf:defsystem "cl-boundary-kit/test-prolog"
+    :description "Prolog-backed test suite for cl-boundary-kit"
+    :depends-on (:cl-boundary-kit/test-base :cl-prolog :cl-prolog/weave)
+    :pathname "t"
+    :serial t
+    :components ((:file "prolog-boundary-invariants-test")
+      (:file "prolog-advanced-test")
+      (:file "property-invariants-test")))
+  (asdf:defsystem "cl-boundary-kit/test"
+    :description "Test system for cl-boundary-kit"
+    :long-description "Regression tests for the cl-boundary-kit public API, documentation contracts, examples, and the documented checkout test runner."
+    :version "1.0.0"
+    :author "takeokunn <bararararatty@gmail.com>"
+    :maintainer "takeokunn <bararararatty@gmail.com>"
+    :license "MIT"
+    :homepage "https://github.com/nerima-lisp/cl-boundary-kit"
+    :bug-tracker "https://github.com/nerima-lisp/cl-boundary-kit/issues"
+    :source-control (:git "https://github.com/nerima-lisp/cl-boundary-kit")
+    :depends-on (:cl-boundary-kit/test-base :cl-boundary-kit/test-prolog)))

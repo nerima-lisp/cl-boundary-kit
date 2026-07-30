@@ -64,6 +64,14 @@
   ;; the non-symbol/non-string arm returns NIL
   (expect (cl-boundary-kit::%network-sensitive-field-p 42) :to-be nil))
 
+(it "copy-boundary-value-defensively-copies-bit-vectors"
+  (let* ((original (make-array 3
+                               :element-type 'bit
+                               :initial-contents '(1 0 1)))
+         (copy (cl-boundary-kit::%copy-boundary-value original)))
+    (setf (sbit original 0) 0)
+    (expect (equalp copy #*101) :to-be-truthy)))
+
 ;;; --- environment value/presence extraction and normalization ----------
 
 (it "environment-value-from-call-covers-every-arm"
@@ -190,3 +198,178 @@
     (make-test-rate-limiter :capacity :not-real))
   (signals-error-message-contains "refill rate must be a non-negative real number"
     (make-test-rate-limiter :refill-rate :not-real)))
+
+;;; --- network and system dispatch completion ----------------------------
+
+(it "network-call-storage-supports-known-boundaries-and-rejects-others"
+  (let ((test-boundary (make-test-network-boundary :responses '()))
+        (recording-boundary
+          (make-recording-network-boundary
+           :delegate (make-test-network-boundary :responses '()))))
+    (setf (cl-boundary-kit::%network-calls test-boundary) '(:test-call)
+          (cl-boundary-kit::%network-calls recording-boundary) '(:recording-call))
+    (with-soft-assertions
+      (expect (cl-boundary-kit::%network-calls test-boundary)
+              :to-equal '(:test-call))
+      (expect (cl-boundary-kit::%network-calls recording-boundary)
+              :to-equal '(:recording-call))))
+  (signals-error-message-contains "Unsupported network boundary type"
+    (cl-boundary-kit::%network-calls :unsupported))
+  (signals-error-message-contains "Unsupported network boundary type"
+    (setf (cl-boundary-kit::%network-calls :unsupported) '())))
+
+(it "network-request-native-and-unsupported-dispatches-use-the-correct-method"
+  (let* ((captured-request nil)
+         (captured-timeout nil)
+         (boundary
+           (make-network-boundary
+            :request-fn (lambda (request &key timeout)
+                          (setf captured-request request
+                                captured-timeout timeout)
+                          :response))))
+    (expect (network-boundary-request boundary '(:method :get) :timeout 7)
+            :to-be :response)
+    (with-soft-assertions
+      (expect captured-request :to-equal '(:method :get))
+      (expect captured-timeout :to-be 7)))
+  (signals-error-message-contains "Unsupported network boundary type"
+    (cl-boundary-kit::%network-boundary-request
+     :unsupported '(:method :get) nil)))
+
+(it "system-exit-uses-native-custom-exit-functions"
+  (let* ((exit-codes '())
+         (system
+           (make-system-boundary
+            :exit-fn (lambda (code)
+                       (push code exit-codes)
+                       code))))
+    (with-soft-assertions
+      (expect (system-exit system) :to-be 0)
+      (expect (system-exit system 4) :to-be 4)
+      (expect exit-codes :to-equal '(4 0)))))
+
+(it "recording-system-exit-validates-before-recording"
+  (let ((system (make-recording-system-boundary)))
+    (signals-error-message-contains "SYSTEM-EXIT code must be a non-negative integer"
+      (system-exit system -1))
+    (with-soft-assertions
+      (expect (recording-system-calls system) :to-equal '())
+      (expect (system-exit system 2) :to-be 2)
+      (expect (recording-system-calls system)
+              :to-equal (list (boundary-call-plist :exit (list 2) :result 2))))))
+
+(it "test-system-exit-codes-rejects-native-system-boundaries"
+  (signals-error-message-contains "Unsupported system boundary type"
+    (test-system-exit-codes
+     (make-system-boundary :exit-fn (lambda (code) code)))))
+
+(it "network-call-log-accessor-updates-recording-boundaries"
+  (let ((boundary
+          (make-recording-network-boundary
+           :delegate
+           (make-network-boundary
+            :request-fn (lambda (&rest arguments)
+                          (declare (ignore arguments))
+                          nil)))))
+    (setf (cl-boundary-kit::%network-calls boundary) (list :recorded-call))
+    (expect (equal (cl-boundary-kit::%network-calls boundary)
+                   (list :recorded-call))
+            :to-be-truthy)))
+
+;;; --- requested public API completion -----------------------------------
+
+(it "recorded-call-query-functions-distinguish-supplied-nil-filters"
+  (let* ((get-b-nil (boundary-call-plist :get '("b") :result nil))
+         (get-a-one (boundary-call-plist :get '("a") :result 1))
+         (get-a-nil (boundary-call-plist :get '("a") :result nil))
+         (calls (list get-b-nil get-a-one get-a-nil
+                      (boundary-call-plist :set '("a" 1) :result :stored))))
+    (with-soft-assertions
+      (expect (filter-recorded-calls calls :get)
+              :to-equal (list get-b-nil get-a-one get-a-nil))
+      (expect (filter-recorded-calls calls :get :arguments '("a"))
+              :to-equal (list get-a-one get-a-nil))
+      (expect (filter-recorded-calls calls :get :result nil)
+              :to-equal (list get-b-nil get-a-nil))
+      (expect (filter-recorded-calls calls :get :arguments '("a") :result nil)
+              :to-equal (list get-a-nil))
+      (expect (count-recorded-calls calls :get) :to-be 3)
+      (expect (count-recorded-calls calls :get :arguments '("a")) :to-be 2)
+      (expect (count-recorded-calls calls :get :result nil) :to-be 2)
+      (expect (count-recorded-calls calls :get :arguments '("a") :result nil) :to-be 1)
+      (expect (find-recorded-call calls :get) :to-equal get-b-nil)
+      (expect (find-recorded-call calls :get :arguments '("a")) :to-equal get-a-one)
+      (expect (find-recorded-call calls :get :result nil) :to-equal get-b-nil)
+      (expect (find-recorded-call calls :get :arguments '("a") :result nil)
+              :to-equal get-a-nil))))
+
+(it "sequential-temp-path-source-defaults-and-validates-constructor-arguments"
+  (expect (temp-path-next (make-sequential-temp-path-source))
+          :to-equal #P"/tmp/tmp-00000000")
+  (signals error (make-sequential-temp-path-source :directory 42))
+  (signals error (make-sequential-temp-path-source :prefix 42))
+  (signals error (make-sequential-temp-path-source :suffix 42))
+  (signals error (make-sequential-temp-path-source :start -1))
+  (signals error (make-sequential-temp-path-source :start 1.5)))
+
+(it "test-filesystem-rejects-unsupported-existing-write-mode"
+  (let ((filesystem
+          (make-test-filesystem :initial-files (list #P"/tmp/existing.txt" "old"))))
+    (signals-error-message-contains "does not implement :IF-EXISTS :RENAME"
+      (filesystem-store-file filesystem #P"/tmp/existing.txt" "new" :if-exists :rename))))
+
+(it "native-process-boundary-distinguishes-omitted-and-explicit-nil-environment"
+  (let* ((received-calls '())
+         (process
+           (make-process-boundary
+            :run-fn (lambda (command &rest keywords)
+                      (push (list command keywords) received-calls)
+                      :completed))))
+    (process-boundary-run process "inherit")
+    (process-boundary-run process "empty" :environment nil)
+    (let ((explicit-environment (first received-calls))
+          (omitted-environment (second received-calls)))
+      (with-soft-assertions
+        (expect (member :environment (second omitted-environment)) :to-be nil)
+        (expect (member :environment (second explicit-environment)) :to-be-truthy)
+        (expect (getf (second explicit-environment) :environment) :to-be nil)))))
+
+(it "deterministic-random-source-normalizes-valid-seeds-by-modulus"
+  (let ((wrapped-seed (make-deterministic-random-source :seed 8 :modulus 5))
+        (canonical-seed (make-deterministic-random-source :seed 3 :modulus 5)))
+    (with-soft-assertions
+      (expect (random-source-random wrapped-seed 5)
+              :to-be (random-source-random canonical-seed 5))
+      (expect (random-source-random wrapped-seed 5)
+              :to-be (random-source-random canonical-seed 5)))))
+(it "testing-query-helpers-handle-empty-histories-and-reject-symbol-indices"
+  (with-soft-assertions
+    (expect (recorded-call-operations (list)) :to-equal (list))
+    (expect (recorded-call-results (list)) :to-equal (list))
+    (expect (nth-recorded-call (list) 0) :to-be nil)
+    (expect (last-recorded-call (list)) :to-be nil)
+    (expect (filter-recorded-calls (list) :get) :to-equal (list))
+    (expect (count-recorded-calls (list) :get) :to-be 0)
+    (expect (find-recorded-call (list) :get) :to-be nil))
+  (signals-error-message-contains "NTH-RECORDED-CALL index must be a non-negative integer"
+    (nth-recorded-call (list) :zero)))
+
+(it "system-exit-validates-before-native-or-test-side-effects"
+  (let ((native-exit-codes (list))
+        (test-system (make-test-system-boundary)))
+    (let ((native-system
+            (make-system-boundary
+             :exit-fn (lambda (code)
+                        (push code native-exit-codes)
+                        code))))
+      (signals-error-message-contains "SYSTEM-EXIT code must be a non-negative integer"
+        (system-exit native-system :invalid))
+      (signals-error-message-contains "SYSTEM-EXIT code must be a non-negative integer"
+        (system-exit test-system :invalid))
+      (with-soft-assertions
+        (expect native-exit-codes :to-equal (list))
+        (expect (test-system-exit-codes test-system) :to-equal (list))
+        (expect (system-exit native-system 3) :to-be 3)
+        (expect (system-exit test-system 4) :to-be 4)
+        (expect native-exit-codes :to-equal (list 3))
+        (expect (test-system-exit-codes test-system) :to-equal (list 4))))))

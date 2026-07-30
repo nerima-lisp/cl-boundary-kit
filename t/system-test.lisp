@@ -3,11 +3,25 @@
 (in-package #:cl-boundary-kit/test)
 
 (it "make-system-boundary-invokes-its-exit-function-with-the-code"
-  (let* ((requested '())
+  (let* ((requested (list))
          (system (make-system-boundary
                   :exit-fn (lambda (code) (push code requested) :exited))))
     (expect (eq :exited (system-exit system 3)) :to-be-truthy)
-    (expect (equal '(3) requested) :to-be-truthy)))
+    (expect (equal (list 3) requested) :to-be-truthy)))
+
+(it "make-system-boundary-uses-uiop-quit-by-default"
+  (let* ((quit (find-symbol "QUIT" "UIOP"))
+         (original (symbol-function quit))
+         (received nil))
+    (unwind-protect
+         (progn
+           (setf (symbol-function quit)
+                 (lambda (code)
+                   (setf received code)
+                   :quit-requested))
+           (expect (system-exit (make-system-boundary) 17) :to-be :quit-requested)
+           (expect received :to-be 17))
+      (setf (symbol-function quit) original))))
 
 (it "make-system-boundary-defaults-the-exit-code-to-zero"
   (let* ((requested '())
@@ -95,4 +109,26 @@
     (system (make-recording-system-boundary))
     (recording-system-calls reset-recording-system-calls)
   (system-exit system 0))
+(it "recording-system-boundary-records-delegate-results-only-after-successful-validation"
+  (let* ((delegated-codes (list))
+         (delegate (make-system-boundary
+                    :exit-fn (lambda (code)
+                               (push code delegated-codes)
+                               :delegated)))
+         (system (make-recording-system-boundary :delegate delegate)))
+    (signals-error-message-contains "SYSTEM-EXIT code must be a non-negative integer"
+      (system-exit system :invalid))
+    (with-soft-assertions
+      (expect delegated-codes :to-equal (list))
+      (expect (recording-system-calls system) :to-equal (list))
+      (expect (system-exit system 9) :to-be :delegated)
+      (expect delegated-codes :to-equal (list 9))
+      (expect (recording-system-calls system)
+              :to-equal (list (boundary-call-plist :exit (list 9) :result :delegated))))))
 
+(it "native-system-boundary-rejects-invalid-codes-before-calling-exit-function"
+  (let* ((called (list))
+        (system (make-system-boundary :exit-fn (lambda (code) (push code called)))))
+    (signals-error-message-contains "SYSTEM-EXIT code must be a non-negative integer"
+      (system-exit system :invalid))
+    (expect called :to-equal (list))))

@@ -260,3 +260,22 @@
     (expect (equal (list :selected) (random-source-sample source input 1))
             :to-be-truthy)
     (expect (eq :selected (aref input 99999)) :to-be-truthy)))
+
+(it "random-source-random-rejects-non-real-limits-before-delegation"
+  (dolist (source
+           (list (make-random-source :state (make-random-state t))
+                 (make-deterministic-random-source :seed 1)
+                 (make-test-random-source :values (list 1))
+                 (make-recording-random-source
+                  :delegate (make-test-random-source :values (list 1)))))
+    (signals error
+      (random-source-random source :not-a-real))))
+
+(it "test-random-source-does-not-consume-an-invalid-queued-value"
+  (let ((source (make-test-random-source :values (list 1.5d0 1))))
+    (signals error
+      (random-source-random source 10))
+    (signals error
+      (random-source-random source 10))
+    (expect (= 1.5d0 (random-source-random source 2.0d0)) :to-be-truthy)
+    (expect (= 1 (random-source-random source 10)) :to-be-truthy)))

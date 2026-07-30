@@ -210,12 +210,42 @@
 ;;; positioned at the start without truncating, so bytes beyond the new
 ;;; content's length survive; the fake must match so tests written against it
 ;;; do not diverge from MAKE-FILESYSTEM in production.
-(it "test-filesystem-overwrite-preserves-trailing-content-like-the-real-filesystem"
-  (let ((fs (make-test-filesystem :initial-files (list #P"/tmp/ov.txt" "hello world"))))
-    (expect (filesystem-store-file fs #P"/tmp/ov.txt" "hi" :if-exists :overwrite)
-            :to-be-truthy)
-    (expect (string= (filesystem-read-file fs #P"/tmp/ov.txt") "hillo world")
-            :to-be-truthy)))
+(progn
+  (it "test-filesystem-overwrite-preserves-trailing-content-like-the-real-filesystem"
+    (let* ((path "/tmp/ov.txt")
+           (content (copy-seq "hi"))
+           (fs (make-test-filesystem :initial-files (list path "hello world"))))
+      (expect (filesystem-store-file fs path content :if-exists :overwrite)
+              :to-be-truthy)
+      (expect (string= content "hi") :to-be-truthy)
+      (expect (string= (filesystem-read-file fs path) "hillo world")
+              :to-be-truthy)))
+  (it "test-filesystem-overwrite-replaces-same-length-content"
+    (let* ((path "/tmp/overwrite-same.txt")
+           (fs (make-test-filesystem :initial-files (list path "hello"))))
+      (expect (filesystem-store-file fs path "there" :if-exists :overwrite)
+              :to-be-truthy)
+      (expect (string= (filesystem-read-file fs path) "there")
+              :to-be-truthy)))
+  (it "test-filesystem-overwrite-replaces-with-longer-content"
+    (let* ((path "/tmp/overwrite-long.txt")
+           (fs (make-test-filesystem :initial-files (list path "short"))))
+      (expect (filesystem-store-file fs path "a longer replacement" :if-exists :overwrite)
+              :to-be-truthy)
+      (expect (string= (filesystem-read-file fs path) "a longer replacement")
+              :to-be-truthy)))
+  (it "test-filesystem-overwrite-handles-large-existing-content"
+    (let* ((path "/tmp/overwrite-large.txt")
+           (existing (make-string (* 16 1024) :initial-element (code-char 97)))
+           (fs (make-test-filesystem :initial-files (list path existing))))
+      (expect (filesystem-store-file fs path "xy" :if-exists :overwrite)
+              :to-be-truthy)
+      (let ((read-back (filesystem-read-file fs path)))
+        (expect (= (length read-back) (length existing)) :to-be-truthy)
+        (expect (char= (char read-back 0) (code-char 120)) :to-be-truthy)
+        (expect (char= (char read-back 1) (code-char 121)) :to-be-truthy)
+        (expect (char= (char read-back (1- (length read-back))) (code-char 97))
+                :to-be-truthy)))))
 
 ;;; Regression: FILESYSTEM-STORE-FILE's unknown-option check used PLIST-REMOVE-KEYS,
 ;;; which pushed VALUE before KEY and so returned keys/values transposed. The
@@ -314,6 +344,38 @@
   (signals-error-message-contains "must be a filesystem"
     (recording-filesystem-calls nil)))
 
+(it "filesystem-read-file-rejects-a-list-without-a-type"
+  (signals-error-message-contains "FILESYSTEM must be a filesystem"
+    (filesystem-read-file '() #P"/tmp/x.txt")))
+
 (it "filesystem-store-file-lines-rejects-non-list-lines"
-  (signals-error-message-contains "lines must be a list of strings"
-    (filesystem-store-file-lines (make-test-filesystem) "/tmp/x.txt" 42)))
+    (signals-error-message-contains "lines must be a list of strings"
+      (filesystem-store-file-lines (make-test-filesystem) "/tmp/x.txt" 42)))
+
+  (it "custom-filesystem-collaborators-run-without-recording"
+    (let ((filesystem
+            (make-filesystem
+             :read-file-fn (lambda (path &key external-format)
+                             (declare (ignore path external-format))
+                             "custom"))))
+      (expect (string= "custom"
+                       (filesystem-read-file filesystem #P"/unreadable/path.txt"))
+              :to-be-truthy)))
+
+  (it "reset-recording-filesystem-calls-clears-test-filesystem-history"
+    (let ((filesystem (make-test-filesystem :initial-files (list #P"entry.txt" "value"))))
+      (filesystem-read-file filesystem #P"entry.txt")
+      (expect (= 1 (length (recording-filesystem-calls filesystem))) :to-be-truthy)
+      (expect (eq filesystem (reset-recording-filesystem-calls filesystem)) :to-be-truthy)
+      (assert-no-recorded-calls filesystem)))
+
+  (it "recording-temp-path-source-does-not-record-a-failed-delegate-call"
+    (let ((source (make-recording-temp-path-source
+                   :delegate (make-test-temp-path-source))))
+      (signals error
+        (temp-path-next source))
+      (expect (null (recording-temp-path-source-calls source)) :to-be-truthy)))
+
+  (it "test-temp-path-source-normalizes-a-string-path-without-touching-the-filesystem"
+    (let ((source (make-test-temp-path-source :paths (list "/virtual/result.tmp"))))
+      (expect (equal #P"/virtual/result.tmp" (temp-path-next source)) :to-be-truthy)))
