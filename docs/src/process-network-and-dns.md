@@ -32,9 +32,10 @@ explicit empty `:environment '()` gives the child none of it; omitting
 process calls require absolute program paths unless callers explicitly bind it
 to `t` for trusted convenience.
 `:timeout` defaults to `*default-process-timeout-seconds*` (60), so a native
-command execution is never left unbounded; a child that runs past the deadline
-is SIGTERM-then-SIGKILL escalated. Pass an explicit `:timeout nil` to wait for
-a child indefinitely instead.
+command execution is never left unbounded. The deadline covers both process
+completion and captured stdout/stderr; a child that runs past it is
+SIGTERM-then-SIGKILL escalated. Pass an explicit `:timeout nil` to wait for a
+child indefinitely instead.
 `make-test-process-boundary` is a queue-backed fake for deterministic tests:
 each `process-boundary-run` call consumes one precomputed result, records the
 call, and signals when the queue is exhausted.
@@ -44,6 +45,7 @@ function, and recording wrappers require a `process-boundary` delegate.
 Applications that need a process implementation call it directly.
 `cl-boundary-kit` does not provide a runner or convert
 its command and result formats.
+
 
 See [`examples/recording-process.lisp`](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/examples/recording-process.lisp)
 and [`examples/test-process.lisp`](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/examples/test-process.lisp).

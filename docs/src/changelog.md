@@ -14,7 +14,13 @@ called out explicitly here. When a supported replacement exists, include
 migration guidance so consumers can move without inferring policy from code
 diffs alone.
 
-Nothing is queued for the next release yet.
+### Removed (breaking)
+
+- Removed the optional `cl-boundary-kit/process-kit` and
+  `cl-boundary-kit/json` systems and the `make-log-kit-sink-fn`,
+  `process-kit-run-fn`, and `recording-calls-to-json` exports. Wire process,
+  logging, and JSON libraries through the existing injected boundary functions
+  at the application edge instead.
 
 ## [1.0.0] - 2026-07-26
 First stable release.

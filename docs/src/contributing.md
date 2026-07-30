@@ -16,27 +16,29 @@ relevant examples, and `README.md` in the same change.
 
 ## Local Setup
 
-On Linux, the reproducible setup is provided by the Nix flake. Run the test app
-without installing Quicklisp or the test dependencies separately:
+On a supported Nix host, the reproducible setup is provided by the Nix flake.
+Run the test app without installing Quicklisp or the test dependencies separately:
 
 ```sh
 nix run .#test
 ```
 
-The runnable flake app and check set are intentionally `x86_64-linux` only so
-they match the Ubuntu CI environment. Before submitting a change from a Linux
-host, run the complete check set:
+The runnable flake app and check set are emitted for `x86_64-linux` and
+`aarch64-darwin`; Ubuntu CI is the canonical Linux verification path. Before
+submitting a change from a supported Nix host, run the complete check set:
 
 ```sh
 nix flake check --print-build-logs
 ```
 
 This runs the canonical checkout test runner, the `cl-weave` machine-report
-check, and the coverage check. The latter enforces 100% statement
+check, and the coverage check. The latter enforces 100% expression
 coverage. CI preserves `report.json`, `coverage.dat`, `coverage-summary.txt`,
 and `coverage-html/` from the report and coverage derivations as build
-artifacts. On macOS and other non-Linux hosts, treat direct SBCL execution as
-the stable verification path and use Ubuntu CI for the Linux-only Nix outputs.
+artifacts. The runner limits each test to 30 seconds; Nix checks have a
+300-second outer limit and force termination after a further 30-second grace
+period. On hosts outside the emitted flake systems, use direct SBCL execution
+and rely on Ubuntu CI for the canonical Linux verification.
 
 To load the library itself with ASDF from a local checkout:
 
