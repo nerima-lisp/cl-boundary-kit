@@ -75,6 +75,18 @@ sub ignored_sb_cover_artifacts {
         next unless defined $line_html;
         next unless $line_html =~ m{class=['"]state-2['"]};
         my $line = decoded_text_content($line_html);
+
+        # CORE.LISP's file-wide speed declaim has three OPTIMIZE clauses on
+        # one line; SB-COVER counts each clause as its own uncovered
+        # expression beyond the DECLAIM form itself, so the generic
+        # single-count DECLAIM match below leaves three phantom gaps that no
+        # test can ever close.
+        if ($source eq 'core.lisp'
+            && $line =~ /^\s*\(declaim\s+\(optimize\s+\(speed\s+3\)\s+\(safety\s+1\)\s+\(debug\s+0\)\)\)/i) {
+            $ignored += 4;
+            next;
+        }
+
         if ($line =~ /^\s*\(\s*([a-z][a-z0-9-]*)\b/i) {
             my $keyword = lc $1;
             if ($load_time_declaration{$keyword}) {
