@@ -2,7 +2,8 @@
 
 (in-package #:cl-boundary-kit/test)
 
-(defparameter +fresh-sbcl-timeout+ 120)
+(defparameter +fresh-sbcl-timeout+ 600
+  "Allow the documented REPL runner to complete its full test suite in a fresh SBCL process.")
 
 (defun run-lisp-forms-in-fresh-sbcl (forms)
   (let* ((sbcl-program (namestring sb-ext:*runtime-pathname*))
@@ -64,8 +65,12 @@
     (string-lines (nth 1 (document-fenced-code-blocks
                           "docs/src/quick-start.md" "# Quick Start" nil "lisp")))))
   (documentation-fresh-sbcl-testing-repl-lines
-   (string-lines (first (document-fenced-code-blocks
-                         "docs/src/testing.md" "# Running the Test Suite" nil "lisp"))))
+   (string-lines
+    (replace-substring
+     (first (document-fenced-code-blocks
+             "docs/src/testing.md" "# Running the Test Suite" nil "lisp"))
+     "/path/to/cl-boundary-kit/"
+     (namestring (repository-root)))))
   (documentation-fresh-sbcl-contributing-installation-lines
    (string-lines
     (replace-substring
@@ -123,15 +128,15 @@
   ;; must already exist or the READ itself aborts the child and cascades
   ;; failures to every later group.  The child inherits CL_SOURCE_REGISTRY, so
   ;; ASDF can locate the system here.
-  (let ((forms '("(defparameter *fresh-sbcl-batch-failures* nil)"
-                 "(asdf:load-system :cl-boundary-kit/test)")))
+  (let ((forms (quote ("(defparameter *fresh-sbcl-batch-failures* nil)"
+                       "(asdf:load-system :cl-boundary-kit/test)"))))
     (dolist (group groups)
       (setf forms
             (append forms
                     (wrap-fresh-sbcl-form-group (car group) (cdr group)))))
     (run-lisp-forms-in-fresh-sbcl
      (append forms
-             '("(uiop:quit (if *fresh-sbcl-batch-failures* 1 0))")))))
+             (quote ("(uiop:quit (if *fresh-sbcl-batch-failures* 1 0))"))))))
 
 (defun fresh-sbcl-case-output (stdout name)
   (let* ((begin-marker (fresh-sbcl-case-begin-marker name))

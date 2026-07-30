@@ -75,6 +75,4 @@
   (signals-error-message-contains "DNS addresses for"
     (make-test-dns-resolver :hosts '(("a.test" . "not-a-list")))))
 
-(it "make-test-dns-resolver-rejects-a-non-string-address"
-  (signals-error-message-contains "DNS address for"
-    (make-test-dns-resolver :hosts '(("a.test" . (42))))))
+(it "dns-resolver-validates-addresses-and-recording-defaults" (signals-error-message-contains "DNS address for" (make-test-dns-resolver :hosts (quote (("a.test" . (42)))))) (let ((resolver (make-recording-dns-resolver))) (signals error (dns-resolve resolver "missing.test"))))

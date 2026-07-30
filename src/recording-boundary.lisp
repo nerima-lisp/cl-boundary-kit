@@ -6,10 +6,6 @@
   ((handler :initarg :handler :reader recording-boundary-handler)
    (calls :initform '() :accessor %recording-boundary-calls)))
 
-(defun %recording-boundary-invoke/cps (boundary operation args continuation)
-  (funcall continuation
-           (apply (recording-boundary-handler boundary) operation args)))
-
 (defun make-recording-boundary (&key (handler (lambda (&rest args)
                                                 (declare (ignore args))
                                                 nil)))
@@ -35,16 +31,12 @@ being able to reclaim it by discarding the object."
 (defun recording-boundary-invoke (boundary operation &rest args)
   "Invoke OPERATION on BOUNDARY with ARGS and record the interaction."
   (require-instance boundary 'recording-boundary "BOUNDARY")
-  (%recording-boundary-invoke/cps
-   boundary
-   operation
-   args
-   (lambda (result)
-     (%record-call (%recording-boundary-calls boundary)
-       :operation operation
-       :arguments args
-       :result result)
-     result)))
+  (let ((result (apply (recording-boundary-handler boundary) operation args)))
+    (%record-call (%recording-boundary-calls boundary)
+      :operation operation
+      :arguments args
+      :result result)
+    result))
 
 (defmacro define-recording-call-log
     (calls-name reset-name (parameter class-name calls-accessor) noun &optional extra-doc)

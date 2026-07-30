@@ -137,7 +137,7 @@
          (fs (make-test-filesystem :initial-files (list path "plist"))))
     (expect (string= (filesystem-read-file fs path) "plist") :to-be-truthy))
   (signals error
-    (make-test-filesystem :initial-files '(:bad)))
+    (make-test-filesystem :initial-files (quote (:bad))))
   (signals error
     (filesystem-read-file (make-test-filesystem) #P"/tmp/missing.txt"))
   (signals error
@@ -145,6 +145,11 @@
                            #P"/tmp/missing.txt"
                            "hello"
                            :if-does-not-exist :error))
+  (signals error
+    (filesystem-store-file (make-test-filesystem :initial-files (list #P"/tmp/unsupported.txt" "old"))
+                           #P"/tmp/unsupported.txt"
+                           "new"
+                           :if-exists :unsupported))
   (signals error
     (filesystem-store-file (make-test-filesystem :initial-files (list #P"/tmp/out.txt" "old"))
                            #P"/tmp/out.txt"
@@ -298,7 +303,9 @@
 
 (it "recording-filesystem-calls-rejects-a-non-filesystem-argument"
   (signals-error-message-contains "must be a filesystem"
-    (recording-filesystem-calls 42)))
+    (recording-filesystem-calls 42))
+  (signals-error-message-contains "must be a filesystem"
+    (recording-filesystem-calls nil)))
 
 (it "filesystem-store-file-lines-rejects-non-list-lines"
   (signals-error-message-contains "lines must be a list of strings"

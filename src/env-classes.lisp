@@ -45,19 +45,18 @@
     %make-native-environment)
 
 (defun %make-test-environment (options)
-  (%seed-environment-bindings-cps
-   (%plist-value options :initial-values nil)
-   (lambda (table)
-     (%make-env-boundary
-      :kind :test
-      :get-fn (lambda (name)
-                (gethash name table))
-      :set-fn (lambda (name value)
-                (setf (gethash name table) value))
-      :unset-fn (lambda (name)
-                  (remhash name table))
-      :list-fn (lambda ()
-                 (%sorted-environment-entries-from-table table))))))
+  (let ((table (%seed-environment-bindings
+                (%plist-value options :initial-values nil))))
+    (%make-env-boundary
+     :kind :test
+     :get-fn (lambda (name)
+               (gethash name table))
+     :set-fn (lambda (name value)
+               (setf (gethash name table) value))
+     :unset-fn (lambda (name)
+                 (remhash name table))
+     :list-fn (lambda ()
+                (%sorted-environment-entries-from-table table)))))
 
 (%define-plist-constructor make-test-environment
     "Create a deterministic test environment boundary from plist OPTIONS."

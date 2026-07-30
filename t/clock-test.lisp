@@ -9,15 +9,11 @@
     (expect (= (clock-now clock) 17) :to-be-truthy)
     (expect (= (clock-monotonic clock) 17) :to-be-truthy)))
 
-(it "fake-clock-supports-independent-monotonic-time"
-  (let ((clock (make-fake-clock :start 10 :monotonic-start 100)))
-    (expect (= (clock-now clock) 10) :to-be-truthy)
-    (expect (= (clock-monotonic clock) 100) :to-be-truthy)
-    (advance-fake-clock clock 7 :monotonic-delta 3)
-    (expect (= (clock-now clock) 17) :to-be-truthy)
-    (expect (= (clock-monotonic clock) 103) :to-be-truthy)))
-
-;;; Regression: MAKE-FAKE-CLOCK's NOW-FN/MONOTONIC-FN closures used to close
+(it "fake-clock-supports-independent-monotonic-time" (let ((clock (make-fake-clock :start 10 :monotonic-start 100))) (expect (= (clock-now clock) 10) :to-be-truthy) (expect (= (clock-monotonic clock) 100) :to-be-truthy) (advance-fake-clock clock 7 :monotonic-delta 3) (expect (= (clock-now clock) 17) :to-be-truthy) (expect (= (clock-monotonic clock) 103) :to-be-truthy))) (it "fake-clock-defaults-wall-clock-start-independently"
+  (let ((clock (apply (symbol-function 'make-fake-clock)
+                      (list :monotonic-start 100))))
+    (expect (= (clock-now clock) 0) :to-be-truthy)
+    (expect (= (clock-monotonic clock) 100) :to-be-truthy))) ;;; Regression: MAKE-FAKE-CLOCK's NOW-FN/MONOTONIC-FN closures used to close
 ;;; over the initial START/MONOTONIC-START values instead of reading the
 ;;; mutable slots, so CLOCK-NOW-FN/CLOCK-MONOTONIC-FN (the public readers
 ;;; inherited from CLOCK) stayed frozen at construction time even after
@@ -73,6 +69,4 @@
       (expect (eq :done result) :to-be-truthy)
       (expect (= 0 elapsed) :to-be-truthy))))
 
-(it "call-with-elapsed-rejects-a-non-function-thunk"
-  (signals error
-    (call-with-elapsed (make-fake-clock) :bad)))
+(it "call-with-elapsed-rejects-a-non-function-thunk" (signals error (call-with-elapsed (make-fake-clock) :bad))) (it "fake-clock-defaults-start-when-monotonic-start-is-supplied" (let ((clock (make-fake-clock :monotonic-start 100))) (expect (= (clock-now clock) 0) :to-be-truthy) (expect (= (clock-monotonic clock) 100) :to-be-truthy)))

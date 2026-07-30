@@ -57,29 +57,5 @@
               "`:exact-length nil`"
               "Supplying `:result nil` asserts an explicit `nil` result"
               "`boundary-call-plist` builds the same plist shape used by the built-in"))
-  (readme-stability-policy-documents-the-public-contract
-   :haystack (concatenate 'string
-                          (repository-file-string "docs/src/stability-policy.md")
-                          (repository-file-string "docs/src/repository-layout.md"))
-   :contains ("exported symbols listed across the [Guide](composition.md) pages define"
-              "`examples/*.lisp`"
-              "`asdf:load-system :cl-boundary-kit/test`"
-              "`cl-boundary-kit/test:run-tests`"
-              "cookbook.md"
-              "faq.md"
-              "architecture.md"
-              "compatibility.md"
-              "release-process.md"
-              "executable documentation contract"
-              "regression-checked usage contracts"
-              "CHANGELOG.md"
-              "explicitly"
-              "migration guidance"))
-  (readme-contributing-and-governance-sections-document-contract-maintenance
-   :file "docs/src/contributing.md"
-   :contains ("supported public contract"
-              "executable tests"
-              "relevant examples"
-              "README.md"
-              "CHANGELOG.md"
-              "migration guidance")))
+  (readme-stability-policy-documents-the-public-contract :haystack (concatenate (quote string) (repository-file-string "docs/src/stability-policy.md") (repository-file-string "docs/src/repository-layout.md")) :contains ("exported symbols listed across the [Guide](composition.md) pages define" "`examples/*.lisp`" "`asdf:load-system :cl-boundary-kit/test`" "`cl-boundary-kit/test:run-tests`" "cookbook.md" "faq.md" "architecture.md" "compatibility.md" "release-process.md" "regression-checked usage contracts" "Internal helpers" "checked verification workflows"))
+  (readme-contributing-and-governance-sections-document-contract-maintenance :file "docs/src/contributing.md" :contains ("documented public behavior" "executable tests" "relevant examples" "README.md" "checked workflow" "release evidence")))

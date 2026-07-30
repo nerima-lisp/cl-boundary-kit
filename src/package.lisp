@@ -213,9 +213,7 @@
    #:reset-recording-scheduler-calls
    #:scheduler-schedule
    #:scheduler-cancel
-   #:recording-calls-to-json
    #:make-process-boundary
-   #:process-kit-run-fn
    #:make-test-process-boundary
    #:process-boundary-run
    #:process-result-success-p
@@ -232,7 +230,6 @@
    #:recording-network-calls
    #:reset-recording-network-calls
    #:make-logger
-   #:make-log-kit-sink-fn
    #:make-test-logger
    #:logger-log
    #:logger-debug

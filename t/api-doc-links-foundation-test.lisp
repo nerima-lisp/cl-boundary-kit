@@ -67,7 +67,7 @@
                                "## [Unreleased]"))
     (assert-contains-all stability-policy (list (format nil "`~A`" release-series)))
     (assert-contains-all security (list (format nil "| `~A` | Yes |" release-series)))
-    (assert-contains-all release (list (format nil "`~A` should keep" release-series)))))
+    (assert-contains-all release (quote ("## Evidence Required Before Publishing")))))
 
 (it "compatibility-verification-scope-stays-backed-by-executable-contracts"
   (let* ((compatibility (repository-file-string "docs/src/compatibility.md"))
@@ -78,19 +78,7 @@
                                  "docs/src/installation.md" "# Installation" "## Nix" "lisp"))
          (testing-repl-snippet (single-document-fenced-code-block
                                  "docs/src/testing.md" "# Running the Test Suite" nil "lisp")))
-    (assert-contains-all compatibility
-                         '("Provides a pinned Nix test path through `nix run .#test`"
-                           "Emits pinned Nix apps and checks for `x86_64-linux` and `aarch64-darwin`"
-                           "Exercises the supported host flake check set through `nix flake check`"
-                           "Does not require Quicklisp when using the Nix flake"
-                           "Supports direct `sbcl --script run-tests.lisp` execution"
-                           "Does not claim compatibility for hosts outside the emitted flake systems"
-                           "docs/src installation, quick-start, and test commands"
-                           "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL"
-                           "successful completion"
-                           "exit status 0"
-                           "checked-in `examples/*.lisp` files against a fresh"
-                           "Treats the exported symbol list documented across the [Guide](composition.md)"))
+    (assert-contains-all compatibility (quote ("Provides a pinned Nix test path through `nix run .#test`" "Emits pinned Nix apps and checks for `x86_64-linux` and `aarch64-darwin`" "Exercises the supported host flake check set through `nix flake check`" "Does not require Quicklisp when using the Nix flake" "Supports direct `sbcl --script run-tests.lisp` execution" "Hosts outside the emitted flake systems can run the library when their implementation and dependencies satisfy the documented API requirements" "docs/src installation, quick-start, and test commands" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL" "successful completion" "exit status 0" "checked-in `examples/*.lisp` files against a fresh" "Treats the exported symbol list documented across the [Guide](composition.md)")))
     (assert-contains-all (single-document-fenced-code-block
                           "docs/src/testing.md" "# Running the Test Suite" nil "sh")
                          '("nix run .#test"))

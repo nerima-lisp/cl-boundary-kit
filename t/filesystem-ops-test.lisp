@@ -161,10 +161,27 @@
   (signals error (make-filesystem :rename-file-fn :bad)))
 
 (it "test-filesystem-make-and-check-directory"
-  (let ((fs (make-test-filesystem)))
-    (expect (null (filesystem-directory-exists-p fs #P"/tmp/work/")) :to-be-truthy)
-    (filesystem-make-directory fs #P"/tmp/work/")
-    (expect (eq t (filesystem-directory-exists-p fs #P"/tmp/work/")) :to-be-truthy)))
+    (let ((fs (make-test-filesystem)))
+      (expect (null (filesystem-directory-exists-p fs #P"/tmp/work/")) :to-be-truthy)
+      (filesystem-make-directory fs #P"/tmp/work/")
+      (expect (eq t (filesystem-directory-exists-p fs #P"/tmp/work/")) :to-be-truthy)))
+
+  (it "test-filesystem-overwrite-then-delete-clears-implicit-directory"
+    (let ((fs (make-test-filesystem :initial-files '((#P"/tmp/data/a.txt" . "old")))))
+      (filesystem-store-file fs #P"/tmp/data/a.txt" "new" :if-exists :overwrite)
+      (filesystem-delete-file fs #P"/tmp/data/a.txt")
+      (expect (null (filesystem-directory-exists-p fs #P"/tmp/data/")) :to-be-truthy)))
+
+  (it "test-filesystem-list-directory-sorts-paths-by-namestring"
+    (let ((fs (make-test-filesystem
+               :initial-files '((#P"/tmp/order/z.txt" . "z")
+                                (#P"/tmp/order/a.txt" . "a")
+                                (#P"/tmp/order/m.txt" . "m")))))
+      (expect (equal (list #P"/tmp/order/a.txt"
+                           #P"/tmp/order/m.txt"
+                           #P"/tmp/order/z.txt")
+                     (filesystem-list-directory fs #P"/tmp/order/"))
+              :to-be-truthy)))
 
 (it "test-filesystem-directory-with-files-exists-implicitly"
   (let ((fs (make-test-filesystem :initial-files '((#P"/tmp/data/a.txt" . "x")))))
@@ -191,20 +208,74 @@
            (boundary-call-plist :directory-exists-p (list #P"/tmp/d/") :result t)
            (boundary-call-plist :delete-directory (list #P"/tmp/d/") :result t)))))
 
-(it "make-filesystem-directory-operations-work-on-real-directories"
-  (let* ((base (uiop:ensure-directory-pathname
-                (merge-pathnames "cl-boundary-kit-dir-test/" (uiop:temporary-directory))))
-         (sub (merge-pathnames "sub/" base)))
-    (ignore-errors (uiop:delete-empty-directory sub))
-    (ignore-errors (uiop:delete-empty-directory base))
-    (unwind-protect
-         (let ((fs (make-filesystem)))
-           (filesystem-make-directory fs sub)
-           (expect (eq t (filesystem-directory-exists-p fs sub)) :to-be-truthy)
-           (expect (eq t (filesystem-delete-directory fs sub)) :to-be-truthy)
-           (expect (null (filesystem-directory-exists-p fs sub)) :to-be-truthy))
+(progn
+  (it "make-filesystem-directory-operations-work-on-real-directories"
+    (let* ((base (uiop:ensure-directory-pathname
+                  (merge-pathnames "cl-boundary-kit-dir-test/" (uiop:temporary-directory))))
+           (sub (merge-pathnames "sub/" base)))
       (ignore-errors (uiop:delete-empty-directory sub))
-      (ignore-errors (uiop:delete-empty-directory base)))))
+      (ignore-errors (uiop:delete-empty-directory base))
+      (unwind-protect
+           (let ((fs (make-filesystem)))
+             (filesystem-make-directory fs sub)
+             (expect (eq t (filesystem-directory-exists-p fs sub)) :to-be-truthy)
+             (expect (eq t (filesystem-delete-directory fs sub)) :to-be-truthy)
+             (expect (null (filesystem-directory-exists-p fs sub)) :to-be-truthy))
+        (ignore-errors (uiop:delete-empty-directory sub))
+        (ignore-errors (uiop:delete-empty-directory base)))))
+  (it "make-filesystem-directory-operations-normalize-paths-without-trailing-slashes"
+    (let* ((base (uiop:ensure-directory-pathname
+                  (merge-pathnames "cl-boundary-kit-dir-no-trailing-slash-test/"
+                                   (uiop:temporary-directory))))
+           (sub (merge-pathnames "sub/" base))
+           (path-without-trailing-slash (string-right-trim "/" (namestring sub))))
+      (ignore-errors (uiop:delete-empty-directory sub))
+      (ignore-errors (uiop:delete-empty-directory base))
+      (unwind-protect
+           (let ((fs (make-filesystem)))
+             (filesystem-make-directory fs path-without-trailing-slash)
+             (expect (eq t (filesystem-directory-exists-p fs path-without-trailing-slash))
+                     :to-be-truthy)
+             (expect (eq t (filesystem-delete-directory fs path-without-trailing-slash))
+                     :to-be-truthy))
+        (ignore-errors (uiop:delete-empty-directory sub))
+        (ignore-errors (uiop:delete-empty-directory base)))))
+  (it "make-filesystem-directory-operations-normalize-relative-paths-without-trailing-slashes"
+    (let ((path (format nil "cl-boundary-kit-relative-dir-test-~A" (gensym))))
+      (unwind-protect
+           (let ((fs (make-filesystem)))
+             (filesystem-make-directory fs path)
+             (expect (eq t (filesystem-directory-exists-p fs path)) :to-be-truthy)
+             (expect (eq t (filesystem-delete-directory fs path)) :to-be-truthy))
+        (ignore-errors
+          (uiop:delete-empty-directory (uiop:ensure-directory-pathname path))))))
+  (it "make-filesystem-delete-directory-reports-missing-host-support"
+    (let* ((base (uiop:ensure-directory-pathname
+                  (merge-pathnames "cl-boundary-kit-dir-missing-host-support-test/"
+                                   (uiop:temporary-directory))))
+           (sub (merge-pathnames "sub/" base))
+           (uiop-package (find-package "UIOP"))
+           (original-name (package-name uiop-package))
+           (original-nicknames (package-nicknames uiop-package))
+           (placeholder-package nil))
+      (ignore-errors (uiop:delete-empty-directory sub))
+      (ignore-errors (uiop:delete-empty-directory base))
+      (unwind-protect
+           (let ((fs (make-filesystem)))
+             (filesystem-make-directory fs sub)
+             ;; Preserve UIOP while making the call-time symbol lookup fail.
+             (unwind-protect
+                  (progn
+                    (rename-package uiop-package "CL-BOUNDARY-KIT-HIDDEN-UIOP")
+                    (setf placeholder-package (make-package "UIOP"))
+                    (signals-error-message-contains
+                        "no host directory deletion function is available"
+                      (filesystem-delete-directory fs sub)))
+               (when placeholder-package
+                 (delete-package placeholder-package))
+               (rename-package uiop-package original-name original-nicknames)))
+        (ignore-errors (uiop:delete-empty-directory sub))
+        (ignore-errors (uiop:delete-empty-directory base))))))
 
 (it "make-filesystem-rejects-non-function-directory-collaborators"
   (signals error (make-filesystem :make-directory-fn :bad))

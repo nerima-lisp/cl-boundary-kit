@@ -66,13 +66,13 @@
     (expect (p '(:x)) :to-be-truthy)              ; single non-nil -> present
     (expect (p '(nil)) :to-be nil)))              ; single NIL -> absent
 
-(it "normalize-environment-values-cps-covers-empty-alist-and-plist-inputs"
-  (flet ((n (input) (cl-boundary-kit::%normalize-environment-values-cps input #'identity)))
+(it "normalize-environment-values-covers-empty-alist-and-plist-inputs"
+  (flet ((n (input) (cl-boundary-kit::%normalize-environment-values input)))
     (expect (n '()) :to-be nil)                                   ; empty
     (expect (equal (n '((:a . 1))) '((:a . 1))) :to-be-truthy)   ; already an alist
     (expect (equal (n '(:a 1 :b 2)) '((:a . 1) (:b . 2))) :to-be-truthy))  ; plist -> alist
   (signals-error-message-contains "INITIAL-VALUES must be an alist or plist"
-    (cl-boundary-kit::%normalize-environment-values-cps '(:a 1 :b) #'identity)))  ; odd
+    (cl-boundary-kit::%normalize-environment-values '(:a 1 :b))))  ; odd
 
 ;;; --- args-nth and random validation branches --------------------------
 

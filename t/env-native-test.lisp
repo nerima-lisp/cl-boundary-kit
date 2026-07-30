@@ -42,11 +42,11 @@
     ;; PATH is present in essentially every process environment.
     (expect (stringp (environment-get environment "PATH")) :to-be-truthy)))
 
-(it "split-environment-entry-cps-handles-entries-with-and-without-a-separator"
+(it "split-environment-entry-handles-entries-with-and-without-a-separator"
   ;; The else arm (no #\=) maps the whole entry to a NAME with an empty value.
-  (cl-boundary-kit::%split-environment-entry-cps
-   "NAME=value"
-   (lambda (binding) (expect (equal binding (cons "NAME" "value")) :to-be-truthy)))
-  (cl-boundary-kit::%split-environment-entry-cps
-   "BARE"
-   (lambda (binding) (expect (equal binding (cons "BARE" "")) :to-be-truthy))))
+  (expect (equal (cl-boundary-kit::%split-environment-entry "NAME=value")
+                 (cons "NAME" "value"))
+          :to-be-truthy)
+  (expect (equal (cl-boundary-kit::%split-environment-entry "BARE")
+                 (cons "BARE" ""))
+          :to-be-truthy))

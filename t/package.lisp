@@ -153,11 +153,8 @@
   (not (null (search needle (princ-to-string condition)))))
 
 (defun run-tests ()
-  (unless (run-all :reporter :spec)
-    (error "cl-boundary-kit test suite failed"))
-  ;; RUN-ALL signals a non-local exit above unless the suite is green, so
-  ;; reaching this line documents the successful-completion contract that the
-  ;; policy documents describe: the documented REPL runner finishes with
-  ;; 0 failures and exit status 0.
-  (format t "~&cl-boundary-kit/test: successful completion with 0 failures~%")
-  t)
+  (let ((passedp (run-all :reporter :spec)))
+    (unless passedp
+      (error "cl-boundary-kit test suite failed"))
+    (format t "~&cl-boundary-kit/test: successful completion with 0 failures~%")
+    t))

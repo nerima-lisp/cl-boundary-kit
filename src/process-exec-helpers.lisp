@@ -87,17 +87,19 @@ child indefinitely instead.")
         (%join-capturing-thread stderr-thread)))
     (values stdout-thread stderr-thread)))
 
-(defun %run-native-process/cps (program input directory environment environment-supplied-p
-                                output error-output timeout continuation)
-  (let ((process (apply #'sb-ext:run-program
-                        (first program)
-                        (rest program)
-                        (%native-process-options input
-                                                 directory
-                                                 environment
-                                                 environment-supplied-p
-                                                 output
-                                                 error-output))))
+(defun %real-process-run (command &key arguments input directory
+                                  (environment nil environment-supplied-p)
+                                  output error-output timeout)
+  (let* ((program (%normalize-program command arguments))
+         (process (apply #'sb-ext:run-program
+                         (first program)
+                         (rest program)
+                         (%native-process-options input
+                                                  directory
+                                                  environment
+                                                  environment-supplied-p
+                                                  output
+                                                  error-output))))
     (unwind-protect
         (multiple-value-bind (stdout-thread stderr-thread)
             (%start-both-capturing-threads-or-cleanup process output error-output)
@@ -105,9 +107,7 @@ child indefinitely instead.")
             (let ((stdout (%join-capturing-thread stdout-thread))
                   (stderr (%join-capturing-thread stderr-thread))
                   (exit-code (sb-ext:process-exit-code process)))
-              (funcall continuation
-                       (%make-native-process-result program stdout stderr exit-code
-                                                    timed-out)))))
+              (%make-native-process-result program stdout stderr exit-code timed-out))))
       ;; An early exit above (e.g. a capture thread failing to start) skips
       ;; %WAIT-FOR-PROCESS-WITH-TIMEOUT entirely, so the child would
       ;; otherwise be left running as an untracked orphan: closing its
@@ -115,16 +115,3 @@ child indefinitely instead.")
       ;; path, not only the timeout path.
       (%force-kill-and-reap process)
       (sb-ext:process-close process))))
-
-(defun %real-process-run (command &key arguments input directory
-                                  (environment nil environment-supplied-p)
-                                  output error-output timeout)
-  (%run-native-process/cps (%normalize-program command arguments)
-                           input
-                           directory
-                           environment
-                           environment-supplied-p
-                           output
-                           error-output
-                           timeout
-                           #'identity))

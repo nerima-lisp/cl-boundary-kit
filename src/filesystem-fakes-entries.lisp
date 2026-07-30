@@ -16,7 +16,10 @@
   (gethash path files))
 
 (defun %set-filesystem-entry-in (files directory-counts path content)
-  (%adjust-test-directory-counts directory-counts path 1)
+  (multiple-value-bind (existing-entry present-p) (gethash path files)
+    (declare (ignore existing-entry))
+    (unless present-p
+      (%adjust-test-directory-counts directory-counts path 1)))
   (setf (gethash path files)
         (%make-filesystem-entry (namestring (pathname path))
                                 (%copy-test-file-content content)))
@@ -30,16 +33,18 @@
         (concatenate 'string directory-name "/"))))
 
 (defun %sorted-test-directory-entries-in (files directory)
-  ;; Compute each matching entry's namestring once, here, and carry it
-  ;; alongside PATH for the sort key -- SORT's :KEY function can otherwise
-  ;; re-run the same PATHNAME/NAMESTRING conversion per comparison rather
-  ;; than once per entry.
-  (let ((prefix (%directory-path-prefix directory))
-        (entries nil))
+  ;; Sort explicitly so tests do not depend on implementation-specific hash
+  ;; table traversal order.
+  (let* ((prefix (%directory-path-prefix directory))
+         (prefix-length (length prefix))
+         (entries nil))
     (maphash (lambda (path entry)
                (let ((path-name (%filesystem-entry-path-name entry)))
-                 (when (and (<= (length prefix) (length path-name))
-                            (string= prefix path-name :end2 (length prefix)))
+                 (when (and (<= prefix-length (length path-name))
+                            (string= prefix path-name :end2 prefix-length))
                    (push (cons path path-name) entries))))
              files)
-    (mapcar #'car (sort entries #'string< :key #'cdr))))
+    (let ((sorted-entries (sort entries #'string< :key #'cdr)))
+      (loop for tail on sorted-entries
+            do (setf (car tail) (caar tail)))
+      sorted-entries)))

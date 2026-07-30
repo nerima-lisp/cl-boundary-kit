@@ -18,6 +18,10 @@
             do (write-string chunk out :end n))
       (get-output-stream-string out))))
 
+(defparameter *capturing-thread-maker*
+  (function sb-thread:make-thread)
+  "Function used to start a stdout or stderr capture thread.")
+
 (defun %start-capturing-thread (process accessor destination)
   ;; Draining stdout/stderr must happen concurrently with waiting for the
   ;; process, not after: a child that writes more than one OS pipe buffer
@@ -25,7 +29,7 @@
   ;; waiting for exit before reading deadlocks forever on large output.
   (when (%capture-destination-p destination)
     (let ((stream (funcall accessor process)))
-      (sb-thread:make-thread (lambda () (%slurp-stream stream))))))
+      (funcall *capturing-thread-maker* (lambda () (%slurp-stream stream))))))
 
 (defun %join-capturing-thread (thread)
   (when thread

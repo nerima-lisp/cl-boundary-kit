@@ -207,3 +207,21 @@
     (random-source-sample (make-test-random-source) #(:a :b) 3))
   (signals error
     (random-source-sample (make-test-random-source) #(:a :b) -1)))
+
+(it "random-source-sample-on-vectors-preserves-input-and-draw-order"
+  ;; Partial Fisher-Yates draws bounds 3 then 2. The vector-specific sparse
+  ;; swap table must yield the same samples without modifying INPUT.
+  (let* ((source (make-test-random-source :values '(2 0)))
+         (input #(:a :b :c))
+         (original (copy-seq input))
+         (result (random-source-sample source input 2)))
+    (expect (equal (list :c :b) result) :to-be-truthy)
+    (expect (equalp original input) :to-be-truthy)))
+
+(it "random-source-sample-selects-from-a-large-vector-with-count-one"
+  (let* ((input (make-array 100000 :initial-element nil))
+         (source (make-test-random-source :values '(99999))))
+    (setf (aref input 99999) :selected)
+    (expect (equal (list :selected) (random-source-sample source input 1))
+            :to-be-truthy)
+    (expect (eq :selected (aref input 99999)) :to-be-truthy)))
