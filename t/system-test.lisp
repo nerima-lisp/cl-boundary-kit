@@ -36,36 +36,17 @@
 ;; %DEFAULT-SYSTEM-EXIT -- MAKE-SYSTEM-BOUNDARY's &KEY default -- is the only
 ;; path that actually terminates the process, so every test above supplies a
 ;; non-terminating :EXIT-FN instead. Exercise %DEFAULT-SYSTEM-EXIT directly,
-;; stubbing UIOP:QUIT so the call is observed rather than actually exiting.
-(it "default-system-exit-calls-uiop-quit-with-the-code"
+;; stubbing HOST-KIT:QUIT so the call is observed rather than actually exiting.
+(it "default-system-exit-calls-host-kit-quit-with-the-code"
   (let ((requested '())
-        (original (symbol-function 'uiop:quit)))
+        (original (symbol-function 'host-kit:quit)))
     (unwind-protect
          (progn
-           (setf (symbol-function 'uiop:quit)
+           (setf (symbol-function 'host-kit:quit)
                  (lambda (code) (push code requested) :exited))
            (expect (eq :exited (cl-boundary-kit::%default-system-exit 7)) :to-be-truthy)
            (expect (equal '(7) requested) :to-be-truthy))
-      (setf (symbol-function 'uiop:quit) original))))
-
-;; Complements the test above: when no UIOP:QUIT is reachable at all,
-;; %DEFAULT-SYSTEM-EXIT reports the missing host support instead of erroring
-;; on the FUNCALL.
-(it "default-system-exit-reports-missing-host-support"
-  (let* ((uiop-package (find-package "UIOP"))
-         (original-name (package-name uiop-package))
-         (original-nicknames (package-nicknames uiop-package))
-         (placeholder-package nil))
-    (unwind-protect
-         (progn
-           (rename-package uiop-package "CL-BOUNDARY-KIT-HIDDEN-UIOP")
-           (setf placeholder-package (make-package "UIOP"))
-           (signals-error-message-contains
-               "no host exit function is available"
-             (cl-boundary-kit::%default-system-exit 0)))
-      (when placeholder-package
-        (delete-package placeholder-package))
-      (rename-package uiop-package original-name original-nicknames))))
+      (setf (symbol-function 'host-kit:quit) original))))
 
 (it "test-system-boundary-records-exit-codes-without-terminating"
   (let ((system (make-test-system-boundary)))

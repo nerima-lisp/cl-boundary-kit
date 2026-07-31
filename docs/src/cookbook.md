@@ -72,7 +72,7 @@ If a host-specific capability is intentionally unavailable, the library signals
 `unsupported-boundary-operation` instead of inventing a fallback.
 
 ```lisp
-(let ((environment (cl-boundary-kit:make-environment)))
+(let ((environment (cl-boundary-kit:make-environment :set-fn nil)))
   (handler-case
       (cl-boundary-kit:environment-set environment "FEATURE_FLAG" "enabled")
     (cl-boundary-kit:unsupported-boundary-operation (condition)

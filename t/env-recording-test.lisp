@@ -15,7 +15,7 @@
                (boundary-call-plist :list nil :result list-result)))))))
 
 (it "recording-environment-propagates-unsupported-set"
-  (let ((env (make-recording-environment :delegate (make-environment))))
+  (let ((env (make-recording-environment :delegate (make-environment :set-fn nil))))
     (signals-unsupported-boundary-operation
         (environment-set "native environment mutation is unavailable")
       (environment-set env "A" "1")
