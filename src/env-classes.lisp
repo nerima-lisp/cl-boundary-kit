@@ -26,8 +26,8 @@
 
 (defun %make-native-environment (options)
   (let ((get-fn (%plist-value options :get-fn #'%native-environment-get))
-        (set-fn (%plist-value options :set-fn nil))
-        (unset-fn (%plist-value options :unset-fn nil))
+        (set-fn (%plist-value options :set-fn #'%native-environment-set))
+        (unset-fn (%plist-value options :unset-fn #'%native-environment-unset))
         (list-fn (%plist-value options :list-fn #'%native-environment-list)))
     (require-function get-fn "GET-FN")
     (require-optional-function set-fn "SET-FN")

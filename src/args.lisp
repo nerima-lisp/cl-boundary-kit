@@ -19,14 +19,7 @@
       (error "Command-line argument must be a string: ~S" argument))))
 
 (defun %default-command-line-arguments ()
-  ;; Resolve SB-EXT:*POSIX-ARGV* at call time via FIND-SYMBOL rather than a
-  ;; read-time package reference, so this file still loads where SB-EXT is
-  ;; absent (for example the examples bootstrap on a non-SBCL host).
-  (let ((argv (and (find-package "SB-EXT")
-                   (find-symbol "*POSIX-ARGV*" "SB-EXT"))))
-    (if (and argv (boundp argv))
-        (copy-list (symbol-value argv))
-        '())))
+  (host-kit:command-line-arguments))
 
 (defun make-args (&key (arguments (%default-command-line-arguments)))
   "Create a command-line arguments boundary over ARGUMENTS.

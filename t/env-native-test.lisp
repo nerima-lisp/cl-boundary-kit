@@ -21,10 +21,31 @@
     (expect (environment-present-p env "OTHER") :to-be-truthy)))
 
 (it "make-environment-signals-unsupported-on-set-without-setter"
-  (let ((env (make-environment)))
+  (let ((env (make-environment :set-fn nil)))
     (signals-unsupported-boundary-operation
         (environment-set "native environment mutation is unavailable")
       (environment-set env "A" "1"))))
+
+(it "make-environment-signals-unsupported-on-unset-without-unsetter"
+  (let ((env (make-environment :unset-fn nil)))
+    (signals-unsupported-boundary-operation
+        (environment-unset "native environment mutation is unavailable")
+      (environment-unset env "A"))))
+
+(it "native-environment-set-and-unset-mutate-the-real-process-environment"
+  ;; make-environment's SET-FN/UNSET-FN now default to a real cl-host-kit
+  ;; backend instead of erroring; CALL-WITH-ENVIRONMENT-VARIABLE restores the
+  ;; prior (absent) binding afterward so this leaves no trace on the process.
+  (let ((environment (make-environment)))
+    (call-with-environment-variable
+     environment "CL_BOUNDARY_KIT_NATIVE_ENV_TEST" "probe-value"
+     (lambda ()
+       (expect
+         (equal (environment-get environment "CL_BOUNDARY_KIT_NATIVE_ENV_TEST") "probe-value")
+         :to-be-truthy)))
+    (expect
+      (null (environment-present-p environment "CL_BOUNDARY_KIT_NATIVE_ENV_TEST"))
+      :to-be-truthy)))
 
 (it "make-environment-rejects-non-function-collaborators"
   (signals error

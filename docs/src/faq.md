@@ -58,9 +58,10 @@ operation is intentionally unavailable, it signals
 `unsupported-boundary-operation` so tests and production wiring both see the
 same contract.
 
-That is why `make-environment` without a `:set-fn` does not pretend mutation is
-supported, and why a network boundary without a transport function does not
-invent one.
+That is why a network boundary without a transport function does not invent
+one, and why `make-environment` still signals when explicitly given `:set-fn
+nil` or `:unset-fn nil` to opt an environment out of native mutation, rather
+than silently ignoring the write.
 
 See [Verification](compatibility.md) for the checked workflows around those
 guarantees.

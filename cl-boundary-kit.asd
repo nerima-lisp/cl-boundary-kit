@@ -2,14 +2,14 @@
 (asdf:defsystem "cl-boundary-kit"
   :description "Explicit boundary abstractions for Common Lisp"
   :long-description "Protocol-first boundary abstractions, fakes, and recording test doubles for explicit filesystem, environment, clock, random, process, network, and logging effects."
-  :version "1.0.0"
+  :version "2.0.0"
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
   :homepage "https://github.com/nerima-lisp/cl-boundary-kit"
   :bug-tracker "https://github.com/nerima-lisp/cl-boundary-kit/issues"
   :source-control (:git "https://github.com/nerima-lisp/cl-boundary-kit")
-  :depends-on (:asdf)
+  :depends-on (:asdf :cl-host-kit)
   :pathname "src"
   :serial t
   :components ((:file "package")
@@ -161,7 +161,7 @@
   (asdf:defsystem "cl-boundary-kit/test"
     :description "Test system for cl-boundary-kit"
     :long-description "Regression tests for the cl-boundary-kit public API, documentation contracts, examples, and the documented checkout test runner."
-    :version "1.0.0"
+    :version "2.0.0"
     :author "takeokunn <bararararatty@gmail.com>"
     :maintainer "takeokunn <bararararatty@gmail.com>"
     :license "MIT"

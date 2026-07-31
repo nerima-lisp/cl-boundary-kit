@@ -42,17 +42,6 @@
       (expect (listp (args-list args)) :to-be-truthy)
       (expect (integerp (args-count args)) :to-be-truthy)))
 
-  (it "make-args-falls-back-to-an-empty-list-when-host-argv-is-unbound"
-    (let* ((argv-symbol (find-symbol "*POSIX-ARGV*" "SB-EXT"))
-           (was-bound (boundp argv-symbol))
-           (saved-value (and was-bound (symbol-value argv-symbol))))
-      (unwind-protect
-           (progn
-             (sb-ext:without-package-locks (makunbound argv-symbol))
-             (expect (null (args-list (make-args))) :to-be-truthy))
-        (when was-bound
-          (sb-ext:without-package-locks (setf (symbol-value argv-symbol) saved-value))))))
-
 (it "make-test-args-rejects-non-string-arguments"
   (signals error
     (make-test-args :arguments (list 42)))

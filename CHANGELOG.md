@@ -16,6 +16,37 @@ diffs alone.
 
 Nothing is queued for the next release yet.
 
+## [2.0.0] - 2026-07-31
+
+### Changed (breaking)
+
+- A native environment's `:set-fn` and `:unset-fn` now default to a real
+  `cl-host-kit`-backed implementation instead of `nil`, so a plain
+  `(make-environment)` mutates the real process environment: `environment-set`
+  and `environment-unset` on it used to always signal
+  `unsupported-boundary-operation`, and now succeed by default. Migration:
+  pass `:set-fn nil`/`:unset-fn nil` explicitly to restore the old
+  fail-loudly-on-mutation behavior.
+- `make-host-info`'s default `hostname-fn`/`username-fn` and
+  `make-system-boundary`'s default `exit-fn` now read the host through
+  `cl-host-kit:hostname`/`cl-host-kit:user-name`/`cl-host-kit:quit` instead of
+  `machine-instance`/the `USER`/`USERNAME` environment/`uiop:quit`. Observable
+  behavior is unchanged (real hostname, username, and process termination);
+  only the implementation moved onto the shared `cl-host-kit` dependency.
+- `make-args`'s default argument source now reads through
+  `cl-host-kit:command-line-arguments` instead of a `SB-EXT:*POSIX-ARGV*`
+  probe, with no observable behavior change.
+- `cl-host-kit` is now a required dependency of the `cl-boundary-kit` core
+  system (previously the core had no dependency beyond `:asdf`).
+
+### Removed (breaking)
+
+- Removed the optional `cl-boundary-kit/process-kit` and `cl-boundary-kit/json`
+  systems and the `make-log-kit-sink-fn`, `process-kit-run-fn`, and
+  `recording-calls-to-json` exports. Wire process, logging, and JSON libraries
+  through the existing injected boundary functions at the application edge
+  instead.
+
 ## [1.0.0] - 2026-07-26
 First stable release.
 

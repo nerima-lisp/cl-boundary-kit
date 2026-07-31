@@ -62,7 +62,7 @@
 (it "native-environment-unset-is-unsupported-without-an-unset-fn"
   (signals-unsupported-boundary-operation
       (cl-boundary-kit:environment-unset "native environment mutation is unavailable")
-    (environment-unset (make-environment) "ANY")))
+    (environment-unset (make-environment :unset-fn nil) "ANY")))
 
 (it "native-environment-unset-uses-an-injected-unset-fn"
   (let* ((removed '())

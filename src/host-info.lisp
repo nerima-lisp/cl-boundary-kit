@@ -17,16 +17,12 @@
    (calls :initform '() :accessor %recording-host-info-calls)))
 
 (defun %default-host-username ()
-  ;; No portable Common Lisp accessor exists; read USER/USERNAME through
-  ;; SB-EXT:POSIX-GETENV resolved at call time, falling back to "unknown".
-  (let ((getenv (and (find-package "SB-EXT")
-                     (find-symbol "POSIX-GETENV" "SB-EXT"))))
-    (or (and getenv (or (funcall getenv "USER") (funcall getenv "USERNAME")))
-        "unknown")))
+  (or (host-kit:user-name) "unknown"))
 
 (defun %default-host-pid ()
   ;; SB-POSIX:GETPID resolved at call time so this file loads without SB-POSIX;
-  ;; falls back to 0 when no process-id accessor is available.
+  ;; falls back to 0 when no process-id accessor is available. cl-host-kit
+  ;; itself depends on SB-POSIX but does not expose a PID reader.
   (let ((getpid (and (find-package "SB-POSIX")
                      (find-symbol "GETPID" "SB-POSIX"))))
     (if getpid (funcall getpid) 0)))
@@ -37,16 +33,16 @@
   pid)
 
 (defun make-host-info (&key
-                         (hostname-fn #'machine-instance)
+                         (hostname-fn #'host-kit:hostname)
                          (username-fn #'%default-host-username)
                          (pid-fn #'%default-host-pid))
   "Create a host-info boundary from HOSTNAME-FN, USERNAME-FN, and PID-FN.
 
 `host-info-hostname`, `host-info-username`, and `host-info-pid` call the matching
 collaborator with no arguments. The defaults read the real host through
-`machine-instance`, the `USER`/`USERNAME` environment, and the process id, so a
-plain `make-host-info` reflects the running process. Every collaborator is
-validated at construction time."
+`cl-host-kit:hostname`, `cl-host-kit:user-name`, and the process id, so a plain
+`make-host-info` reflects the running process. Every collaborator is validated
+at construction time."
   (require-function hostname-fn "HOSTNAME-FN")
   (require-function username-fn "USERNAME-FN")
   (require-function pid-fn "PID-FN")

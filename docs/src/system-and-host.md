@@ -39,7 +39,7 @@ See [`examples/test-args.lisp`](https://github.com/nerima-lisp/cl-boundary-kit/b
 The host-info boundary models process introspection. `host-info-hostname`,
 `host-info-username`, and `host-info-pid` return the host name, user name, and
 process id. `make-host-info` wires those to injected collaborators, defaulting to
-`machine-instance`, the `USER`/`USERNAME` environment, and the process id, so a
+`cl-host-kit:hostname`, `cl-host-kit:user-name`, and the process id, so a
 plain `make-host-info` reflects the running process.
 `make-test-host-info` returns fixed `:hostname`, `:username`, and `:pid` values
 for deterministic tests.
@@ -61,8 +61,8 @@ See [`examples/test-host-info.lisp`](https://github.com/nerima-lisp/cl-boundary-
 
 The system boundary models process termination. `system-exit` requests
 termination with a validated non-negative integer exit code, defaulting to `0`.
-The default `make-system-boundary` terminates the process through `uiop:quit`,
-so it is the only path that actually exits.
+The default `make-system-boundary` terminates the process through
+`cl-host-kit:quit`, so it is the only path that actually exits.
 `make-test-system-boundary` records requested exit codes and returns them
 without terminating the process, so tests can assert that code asked to exit and
 with which status through `test-system-exit-codes`.

@@ -94,12 +94,17 @@ Its `environment-list` view is sorted by variable name, keeping examples and
 test assertions reproducible across runs.
 `make-environment` validates its collaborators at construction time: `:get-fn`
 and `:list-fn` must be functions, and `:set-fn` and `:unset-fn` must each be
-either `nil` or a function.
+either `nil` or a function. `:set-fn` and `:unset-fn` default to real
+`cl-host-kit`-backed mutation of the process environment, so a plain
+`make-environment` both reads and writes the real host environment; pass
+`:set-fn nil` and/or `:unset-fn nil` explicitly to opt a native environment
+out of mutation.
 Recording environments also require an `environment` delegate.
 `environment-unset` removes a variable and returns whether it was bound; the
 state-backed test environment drops it from its in-memory bindings, while a
-native environment without an `:unset-fn` signals `unsupported-boundary-operation`,
-just like `environment-set` without a `:set-fn`.
+native environment constructed with an explicit `:unset-fn nil` signals
+`unsupported-boundary-operation`, just like `environment-set` on one
+constructed with an explicit `:set-fn nil`.
 `call-with-environment-variable` temporarily binds a variable for the duration of
 a thunk and restores its previous value (or unsets it when it was absent) in an
 `unwind-protect` cleanup, so a scoped override is always undone even on a
