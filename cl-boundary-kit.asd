@@ -1,11 +1,23 @@
 ;;;; cl-boundary-kit.asd
+
+;;; This form comes first, before any defsystem. ASDF binds *package* to
+;;; ASDF-USER only for a file it loads itself; read any other way -- a REPL
+;;; `load`, an editor evaluating the buffer, flake.nix parsing :version -- the
+;;; file is read in whatever package happens to be current. Saying it makes the
+;;; file self-contained.
+(in-package #:asdf-user)
+
+;;; Metadata keys are in the org's canonical order (PACKAGE_STANDARD.md,
+;;; "asd の書き方"): :description :long-description :author :maintainer
+;;; :license :version :homepage :bug-tracker :source-control :depends-on
+;;; :pathname :serial :components :in-order-to.
 (asdf:defsystem "cl-boundary-kit"
   :description "Explicit boundary abstractions for Common Lisp"
   :long-description "Protocol-first boundary abstractions, fakes, and recording test doubles for explicit filesystem, environment, clock, random, process, network, and logging effects."
-  :version "2.0.0"
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
+  :version "2.0.0"
   :homepage "https://github.com/nerima-lisp/cl-boundary-kit"
   :bug-tracker "https://github.com/nerima-lisp/cl-boundary-kit/issues"
   :source-control (:git "https://github.com/nerima-lisp/cl-boundary-kit")
@@ -84,7 +96,10 @@
     (:file "testing-helpers")
     (:file "testing-queries" :depends-on ("testing-helpers"))
     (:file "testing" :depends-on ("testing-queries"))
-    (:file "testing-events")))
+    (:file "testing-events"))
+  ;; Without this, `asdf:test-system "cl-boundary-kit"` succeeds while running
+  ;; zero tests.
+  :in-order-to ((test-op (test-op "cl-boundary-kit/test"))))
 
 (progn
   (asdf:defsystem "cl-boundary-kit/test-base"

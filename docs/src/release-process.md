@@ -8,8 +8,9 @@ documentation and evidence exercise, not just a version bump.
 
 1. Confirm the intended scope still fits [Governance](governance.md) and
    the non-goals in [Design Non-Goals](design-notes.md).
-2. Update `CHANGELOG.md` so the release notes describe every intentional public
-   change and remove any stale `Unreleased` placeholders.
+2. Draft the release notes so they describe every intentional public change.
+   They go in the GitHub Release description, which is the only canonical
+   changelog; there is no `CHANGELOG.md` in the tree.
 3. Reconcile [Roadmap](roadmap.md) with the release scope so shipped items are removed,
    narrowed, or rewritten as future work instead of being left as if they were
    still merely planned.
@@ -37,9 +38,15 @@ documentation and evidence exercise, not just a version bump.
 
    Pushing a `v[0-9]+.[0-9]+.[0-9]+` tag triggers
    [`.github/workflows/release.yml`](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/.github/workflows/release.yml),
-   which verifies the tag matches the ASDF `:version`, extracts the matching
-   `CHANGELOG.md` section as release notes, and publishes a GitHub Release. Push
-   the tag only from a commit whose CI run is green.
+   which verifies the tag matches the ASDF `:version`, runs `nix flake check`,
+   and creates an empty **draft** GitHub Release. Push the tag only from a
+   commit whose CI run is green.
+
+10. Fill in the release description and publish:
+
+    ```sh
+    gh release edit v1.0.0 --notes-file release-notes.md --draft=false
+    ```
 
 ## Evidence Required Before Publishing
 
@@ -52,7 +59,7 @@ Published documentation should be tied to what the repository actually proves:
 
 If a claim is not backed by that evidence, it should stay out of release notes.
 
-`CHANGELOG.md` is for shipped history and concrete unreleased public changes.
+The GitHub Release description is for shipped history.
 [Roadmap](roadmap.md) is for deferred direction and non-commitment planning. Releases
 should keep shipped facts from deferred intent and preserve those distinct
 roles.

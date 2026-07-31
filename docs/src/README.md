@@ -127,7 +127,7 @@ at the repository root packages `cl-boundary-kit` as a Nix flake:
 - `nix run .#test` — the pinned checkout test runner (`run-tests.lisp`).
 - `nix flake check` — the checkout runner, a `cl-weave` machine-readable
   report, and a 100% expression-coverage gate, as reproducible derivations for
-  `x86_64-linux` and `aarch64-darwin`.
+  `x86_64-linux`.
 - `nix build .#docs` — builds this documentation site with MkDocs (Material)
   in `--strict` mode, so broken links fail the build.
 
@@ -155,7 +155,6 @@ for vulnerability reporting. Do not put exploit details in a public issue.
 - Security: [security.md](security.md)
 - Roadmap: [roadmap.md](roadmap.md)
 - Release Process: [release-process.md](release-process.md)
-- Changelog: [changelog.md](changelog.md)
 - Pull request queue: <https://github.com/nerima-lisp/cl-boundary-kit/pulls>
 - Issue tracker: <https://github.com/nerima-lisp/cl-boundary-kit/issues>
 - Release notes: <https://github.com/nerima-lisp/cl-boundary-kit/releases>

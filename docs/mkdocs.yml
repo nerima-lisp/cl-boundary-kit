@@ -94,7 +94,6 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -152,7 +151,6 @@ nav:
       - Security: security.md
       - Roadmap: roadmap.md
       - Release Process: release-process.md
-      - Changelog: changelog.md
   - Contributing:
       - Contributing: contributing.md
       - Cookbook: cookbook.md

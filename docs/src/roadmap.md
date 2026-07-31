@@ -6,8 +6,9 @@ adoption quality rather than surface growth.
 ## Status Semantics
 
 - Items in this document are directional, not release commitments.
-- Public changes that are already shipped or concretely queued for the next
-  release belong in [Changelog](changelog.md), not only here.
+- Public changes that are already shipped belong in the release description on
+  the [GitHub releases page](https://github.com/nerima-lisp/cl-boundary-kit/releases),
+  not only here.
 - When a roadmap item ships, the corresponding release update should remove,
   narrow, or rewrite that roadmap entry so deferred intent does not masquerade
   as current fact.

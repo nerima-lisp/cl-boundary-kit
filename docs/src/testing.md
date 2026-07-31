@@ -11,8 +11,8 @@ Quicklisp or separately installed Common Lisp dependencies. `cl-weave` provides
 the test runner, machine-readable reporting, and coverage integration.
 `cl-prolog` is used by the test system to express and verify cross-boundary
 invariants. These runnable flake apps and checks are emitted for
-`x86_64-linux` and `aarch64-darwin`; the Ubuntu GitHub Actions workflow is the
-canonical Linux CI path.
+`x86_64-linux` only; the Ubuntu GitHub Actions workflow is the canonical
+verification path.
 
 On a supported Nix host, run `nix flake check --print-build-logs` to execute
 the flake checks for that host, including the checkout runner,

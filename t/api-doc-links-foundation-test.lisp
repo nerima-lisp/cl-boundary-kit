@@ -53,18 +53,15 @@
   (let* ((versions (asd-version-strings))
          (release-version (first versions))
          (release-series (supported-release-series release-version))
-         (changelog (repository-file-string "CHANGELOG.md"))
          (stability-policy (repository-file-string "docs/src/stability-policy.md"))
          (security (repository-file-string "docs/src/security.md"))
          (release (repository-file-string "docs/src/release-process.md")))
     (expect (not (null release-version)) :to-be-truthy)
     (expect (every (lambda (version) (string= release-version version)) versions) :to-be-truthy)
-    ;; Keep a Changelog headings: `## [X.Y.Z] - YYYY-MM-DD`. release.yml
-    ;; extracts the release body by matching `^## \[<version>\]`, so the
-    ;; brackets are load-bearing, not cosmetic.
-    (assert-contains-all changelog
-                         (list (format nil "## [~A]" release-version)
-                               "## [Unreleased]"))
+    ;; There is no CHANGELOG.md to cross-check as of the 2026-08-01 revision:
+    ;; the GitHub Release description is the org's only canonical changelog,
+    ;; and release.yml no longer extracts a release body from the tree. The
+    ;; remaining policy documents still have to agree with the .asd :version.
     (assert-contains-all stability-policy (list (format nil "`~A`" release-series)))
     (assert-contains-all security (list (format nil "| `~A` | Yes |" release-series)))
     (assert-contains-all release (quote ("## Evidence Required Before Publishing")))))
@@ -78,7 +75,7 @@
                                  "docs/src/installation.md" "# Installation" "## Nix" "lisp"))
          (testing-repl-snippet (single-document-fenced-code-block
                                  "docs/src/testing.md" "# Running the Test Suite" nil "lisp")))
-    (assert-contains-all compatibility (quote ("Provides a pinned Nix test path through `nix run .#test`" "Emits pinned Nix apps and checks for `x86_64-linux` and `aarch64-darwin`" "Exercises the supported host flake check set through `nix flake check`" "Does not require Quicklisp when using the Nix flake" "Supports direct `sbcl --script run-tests.lisp` execution" "Hosts outside the emitted flake systems can run the library when their implementation and dependencies satisfy the documented API requirements" "docs/src installation, quick-start, and test commands" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL" "successful completion" "exit status 0" "checked-in `examples/*.lisp` files against a fresh" "Treats the exported symbol list documented across the [Guide](composition.md)")))
+    (assert-contains-all compatibility (quote ("Provides a pinned Nix test path through `nix run .#test`" "Emits pinned Nix apps and checks for `x86_64-linux` only" "Exercises the supported host flake check set through `nix flake check`" "Does not require Quicklisp when using the Nix flake" "Supports direct `sbcl --script run-tests.lisp` execution" "Hosts outside the emitted flake systems can run the library when their implementation and dependencies satisfy the documented API requirements" "docs/src installation, quick-start, and test commands" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL" "successful completion" "exit status 0" "checked-in `examples/*.lisp` files against a fresh" "Treats the exported symbol list documented across the [Guide](composition.md)")))
     (assert-contains-all (single-document-fenced-code-block
                           "docs/src/testing.md" "# Running the Test Suite" nil "sh")
                          '("nix run .#test"))

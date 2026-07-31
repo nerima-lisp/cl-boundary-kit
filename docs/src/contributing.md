@@ -23,8 +23,8 @@ Run the test app without installing Quicklisp or the test dependencies separatel
 nix run .#test
 ```
 
-The runnable flake app and check set are emitted for `x86_64-linux` and
-`aarch64-darwin`; Ubuntu CI is the canonical Linux verification path. Before
+The runnable flake app and check set are emitted for `x86_64-linux` only;
+Ubuntu CI is the canonical verification path. Before
 submitting a change from a supported Nix host, run the complete check set:
 
 ```sh

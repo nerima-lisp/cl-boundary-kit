@@ -51,8 +51,10 @@ nix run .#test
 Full documentation — the API guide, cookbook, architecture notes, and every
 policy document — is published at
 <https://nerima-lisp.github.io/cl-boundary-kit/>. The source for that site
-lives in [docs/src/](docs/src/README.md); apart from this file, the changelog,
-and the license, every document in this repository lives there.
+lives in [docs/src/](docs/src/README.md); apart from this file and the license,
+every document in this repository lives there. Release history is not in the
+tree at all — it is the description on each
+[GitHub release](https://github.com/nerima-lisp/cl-boundary-kit/releases).
 
 ## Development
 

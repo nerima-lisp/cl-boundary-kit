@@ -16,7 +16,7 @@
                   "support.md"
                   "normal usage question"
                   "vulnerability"))
-      (support-document-exists-and-defines-routing :file "docs/src/support.md" :exists t :contains ("# Support" "## What To Use" "security.md" "code-of-conduct.md" "README.md" "compatibility.md" "changelog.md" "governance.md" "cookbook.md" "faq.md" "harassment" "verification guidance" "current documented API"))
+      (support-document-exists-and-defines-routing :file "docs/src/support.md" :exists t :contains ("# Support" "## What To Use" "security.md" "code-of-conduct.md" "README.md" "compatibility.md" "GitHub releases page" "governance.md" "cookbook.md" "faq.md" "harassment" "verification guidance" "current documented API"))
       (governance-document-exists-and-defines-contract-surface :file "docs/src/governance.md" :exists t :contains ("# Governance" "## Maintainer Role" "## Decision Process" "README.md" "compatibility.md" "examples/*.lisp" "checked-in examples" "verification notes"))
       (architecture-document-exists-and-defines-layering
        :file "docs/src/architecture.md"
@@ -47,7 +47,7 @@
                   "unsupported-boundary-operation"))
       (faq-document-exists-and-defines-decision-points :file "docs/src/faq.md" :exists t :contains ("# FAQ" "## When Should I Use This Library?" "## How Do I Choose Between A Recording Boundary And A Test Boundary?" "## How Do I Preserve Explicit `nil` Values?" "## Why Do Unsupported Operations Signal Instead Of Falling Back?" "## What If Behavior Differs Across Lisp Implementations Or Platforms?" "## What Defines The Current Public API?" "cookbook.md" "compatibility.md" "support.md" "contributing.md" "governance.md" "security.md"))
       (faq-documents-the-stable-public-surface-contract :file "docs/src/faq.md" :contains ("## What Defines The Current Public API?" "current public API is defined by:" "exported symbols documented across the [Guide](composition.md) pages" "checked-in examples and cookbook snippets" "compatibility.md" "contributing.md" "governance.md" "executable verification" "not treat it as documented API behavior"))
-      (release-document-exists-and-defines-evidence-based-checklist :file "docs/src/release-process.md" :exists t :contains ("# Release Evidence" "## Release Checklist" "CHANGELOG.md" "roadmap.md" "README.md" "cookbook.md" "compatibility.md" "`sbcl --script run-tests.lisp`" "t/api-test.lisp" "t/api-doc-claims-test.lisp" "t/api-doc-links-test.lisp" "t/api-executable-docs-test.lisp" "t/examples-test.lisp" "security.md" "## Evidence Required Before Publishing" "checked-in verification"))
+      (release-document-exists-and-defines-evidence-based-checklist :file "docs/src/release-process.md" :exists t :contains ("# Release Evidence" "## Release Checklist" "GitHub Release description" "roadmap.md" "README.md" "cookbook.md" "compatibility.md" "`sbcl --script run-tests.lisp`" "t/api-test.lisp" "t/api-doc-claims-test.lisp" "t/api-doc-links-test.lisp" "t/api-executable-docs-test.lisp" "t/examples-test.lisp" "security.md" "## Evidence Required Before Publishing" "checked-in verification"))
       (compatibility-document-exists-and-defines-verification-scope :file "docs/src/compatibility.md" :exists t :contains ("# Verification" "## Checked Workflows" "`sbcl --script run-tests.lisp`" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)`" "`0 failures`" "documented REPL runner" "stable verification path" "Hosts outside the emitted flake systems" "support.md" "security.md" "100% coverage"))
       (security-policy-documents-supported-versions-and-reporting-process
        :file "docs/src/security.md"
@@ -66,39 +66,20 @@
        :exists t
        :contains ("MIT License"
                   "Permission is hereby granted, free of charge"))
-      (roadmap-documents-verification-driven-adoption-constraints :file "docs/src/roadmap.md" :contains ("## Status Semantics" "directional, not release commitments" "changelog.md" "documented REPL test-runner contract" "executable verification" "cookbook.md" "documented workflows only after they are exercised"))
-      (roadmap-changelog-and-release-documents-separate-facts-from-direction
+      (roadmap-documents-verification-driven-adoption-constraints :file "docs/src/roadmap.md" :contains ("## Status Semantics" "directional, not release commitments" "GitHub releases page" "documented REPL test-runner contract" "executable verification" "cookbook.md" "documented workflows only after they are exercised"))
+      (roadmap-release-history-and-direction-stay-separate
        :file "docs/src/roadmap.md"
        :contains ("directional, not release commitments"
-                  "Public changes that are already shipped or concretely queued for the next"))))
+                  "Public changes that are already shipped belong in the release description"))))
 
-  (defparameter *document-search-foundation-extra-cases*
-    '((changelog-exists-and-has-minimal-release-structure
-       :file "CHANGELOG.md"
-       :exists t
-       :contains ("# Changelog"
-                  "## [Unreleased]"
-                  "Keep a Changelog"
-                  "docs/src/roadmap.md"
-                  "This section tracks intentional public changes that may ship in the next"
-                  "Long-term ideas, non-committed exploration, and deferred work belong"
-                  "Deprecations, removals, and intentionally breaking behavior changes"
-                  "migration guidance"
-                  "## [0.1.0] - "))
-      (changelog-tracks-current-unreleased-public-testing-helper-work
-       :file "CHANGELOG.md"
-       :contains ("`assert-recorded-call-count`"
-                  "`assert-recorded-call-sequence`"
-                  "`:exact-length nil`"
-                  "`:result nil`"
-                  "`boundary-call-plist`"
-                  "README.md"
-                  ;; Matches the shipped 0.2.0 entry. Released CHANGELOG
-                  ;; sections are history and keep the file names that were
-                  ;; current when they shipped, so this needle stays
-                  ;; upper-case even though the file now lives in docs/src.
-                  "`COOKBOOK.md`")
-       :absent ("No unreleased changes yet."))))
+  ;; Empty as of the 2026-08-01 revision. Both cases that lived here asserted
+  ;; on CHANGELOG.md's Keep a Changelog structure and on its unreleased
+  ;; section. There is no CHANGELOG.md any more: the GitHub Release
+  ;; description is the org's only canonical changelog, and nothing in the
+  ;; working tree can be checked against it. The parameter itself stays so
+  ;; DOCUMENT-SEARCH-FOUNDATION-CASES keeps its shape and a future
+  ;; foundation-only case has somewhere to go.
+  (defparameter *document-search-foundation-extra-cases* '())
 
   ;; These cases used to check README.md's own summary prose linking out to
   ;; each governance document. Now that README is a lean landing page without
@@ -106,11 +87,11 @@
   ;; as the authoritative source for the same cross-reference, using an
   ;; explicit :FILE (or a combined :HAYSTACK) instead of a README :SECTION.
   (defparameter *readme-document-search-shared-cases*
-    '((readme-repository-layout-documents-the-changelog
+    '((readme-repository-layout-documents-where-release-history-lives
        :file "docs/src/repository-layout.md"
        :contains ("compatibility.md"
-                  "CHANGELOG.md"
-                  "release history"))
+                  "There is no `CHANGELOG.md`"
+                  "GitHub Release description"))
       (readme-repository-layout-documents-the-canonical-test-entrypoint-and-license
        :file "docs/src/repository-layout.md"
        :contains ("`run-tests.lisp`"

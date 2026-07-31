@@ -16,8 +16,10 @@ current.
 - `nix/` CI runner and coverage threshold tooling
 - `docs/` MkDocs (Material) source for this documentation site
 - `README.md` landing page and quick start
-- `CHANGELOG.md` release history and pending unreleased changes
 - `LICENSE` MIT license terms
+
+There is no `CHANGELOG.md`. Release history is the GitHub Release description,
+which is the org's only canonical changelog.
 
 ## Documentation
 

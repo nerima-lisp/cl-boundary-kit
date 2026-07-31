@@ -19,7 +19,8 @@ Check [Cookbook](cookbook.md) first when your question is about composing
 boundaries, asserting recorder behavior, or handling unsupported operations.
 Check [FAQ](faq.md) first when your question is about choosing between a
 recording boundary and a test boundary, preserving explicit `nil`, or
-understanding the current documented API. Check [Changelog](changelog.md)
+understanding the current documented API. Check the
+[GitHub releases page](https://github.com/nerima-lisp/cl-boundary-kit/releases)
 for release history.
 
 Use the private route described in [Security](security.md) for:
