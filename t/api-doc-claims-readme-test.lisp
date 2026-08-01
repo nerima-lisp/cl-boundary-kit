@@ -10,7 +10,7 @@
 (define-document-search-tests
   (:cases (readme-document-search-shared-cases))
   (readme-api-overview-documents-composition-and-condition-contracts
-   :file "docs/src/composition.md"
+   :file "docs/src/guide/composition.md"
    :contains ("records the operation, arguments, and returned"
               "preserving explicit `nil` results"
               "without adding a partial call"
@@ -18,13 +18,13 @@
               "silently emulating behavior"
               "failed operation and its detail"))
   (readme-process-and-network-sections-document-explicit-nil-result-contracts
-   :file "docs/src/process-network-and-dns.md"
+   :file "docs/src/guide/process-network-and-dns.md"
    :contains ("explicit `nil` result"
               "responses from test queues or delegates"))
   (readme-filesystem-environment-and-logging-sections-document-stateful-test-double-contracts
    :haystack (concatenate 'string
-                          (repository-file-string "docs/src/filesystem-and-environment.md")
-                          (repository-file-string "docs/src/observability.md"))
+                          (repository-file-string "docs/src/guide/filesystem-and-environment.md")
+                          (repository-file-string "docs/src/guide/observability.md"))
    :contains ("state-backed fake that accepts `:initial-files` as"
               "Missing reads and unsupported write-mode combinations signal explicitly"
               "recording filesystems require a `filesystem` delegate"
@@ -38,8 +38,8 @@
               "recording loggers require a `logger` delegate"))
   (readme-clock-random-and-testing-helper-sections-document-deterministic-testing-contracts
    :haystack (concatenate 'string
-                          (repository-file-string "docs/src/time-and-randomness.md")
-                          (repository-file-string "docs/src/testing-helpers.md"))
+                          (repository-file-string "docs/src/guide/time-and-randomness.md")
+                          (repository-file-string "docs/src/guide/testing-helpers.md"))
    :contains ("`make-fake-clock` accepts an optional `:monotonic-start`"
               "`advance-fake-clock` accepts `:monotonic-delta`"
               "rejects non-function `:now-fn` and `:monotonic-fn` values"
@@ -57,5 +57,5 @@
               "`:exact-length nil`"
               "Supplying `:result nil` asserts an explicit `nil` result"
               "`boundary-call-plist` builds the same plist shape used by the built-in"))
-  (readme-stability-policy-documents-the-public-contract :haystack (concatenate (quote string) (repository-file-string "docs/src/stability-policy.md") (repository-file-string "docs/src/repository-layout.md")) :contains ("exported symbols listed across the [Guide](composition.md) pages define" "`examples/*.lisp`" "`asdf:load-system :cl-boundary-kit/test`" "`cl-boundary-kit/test:run-tests`" "cookbook.md" "faq.md" "architecture.md" "compatibility.md" "release-process.md" "regression-checked usage contracts" "Internal helpers" "checked verification workflows"))
-  (readme-contributing-and-governance-sections-document-contract-maintenance :file "docs/src/contributing.md" :contains ("documented public behavior" "executable tests" "relevant examples" "README.md" "checked workflow" "release evidence")))
+  (readme-stability-policy-documents-the-public-contract :haystack (concatenate (quote string) (repository-file-string "docs/src/reference/stability-policy.md") (repository-file-string "docs/src/reference/repository-layout.md")) :contains ("exported symbols listed across the [Guide](../guide/composition.md) pages define" "`examples/*.lisp`" "`asdf:load-system :cl-boundary-kit/test`" "`cl-boundary-kit/test:run-tests`" "cookbook.md" "faq.md" "architecture.md" "compatibility.md" "release-process.md" "regression-checked usage contracts" "Internal helpers" "checked verification workflows"))
+  (readme-contributing-and-governance-sections-document-contract-maintenance :file "docs/src/project/contributing.md" :contains ("documented public behavior" "executable tests" "relevant examples" "README.md" "checked workflow" "release evidence")))

@@ -16,8 +16,8 @@
 
 (it "readme-testing-section-repl-snippet-uses-documented-test-runner"
   (let* ((snippet (single-document-fenced-code-block
-                   "docs/src/testing.md" "# Running the Test Suite" nil "lisp"))
-         (testing-doc (repository-file-string "docs/src/testing.md")))
+                   "docs/src/project/development.md" "## Running the Test Suite" nil "lisp"))
+         (testing-doc (repository-file-string "docs/src/project/development.md")))
     (expect (not (null (search "(asdf:load-system :cl-boundary-kit/test)" snippet))) :to-be-truthy)
     (expect (not (null (search "(cl-boundary-kit/test:run-tests)" snippet))) :to-be-truthy)
     (expect (not (null (search "successful completion with `0 failures`" testing-doc))) :to-be-truthy)

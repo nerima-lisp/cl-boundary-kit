@@ -25,9 +25,8 @@ bag.
 ;; => (1000 1005)
 ```
 
-See [Quick Start](https://nerima-lisp.github.io/cl-boundary-kit/quick-start/)
-for more examples and [Installation](https://nerima-lisp.github.io/cl-boundary-kit/installation/)
-for every install path.
+See [Getting Started](https://nerima-lisp.github.io/cl-boundary-kit/getting-started/)
+for every install path and more examples.
 
 ## Install
 
@@ -51,7 +50,7 @@ nix run .#test
 Full documentation — the API guide, cookbook, architecture notes, and every
 policy document — is published at
 <https://nerima-lisp.github.io/cl-boundary-kit/>. The source for that site
-lives in [docs/src/](docs/src/README.md); apart from this file and the license,
+lives in [docs/src/](docs/src/index.md); apart from this file and the license,
 every document in this repository lives there. Release history is not in the
 tree at all — it is the description on each
 [GitHub release](https://github.com/nerima-lisp/cl-boundary-kit/releases).
@@ -64,26 +63,26 @@ nix flake check
 nix build .#docs
 ```
 
-See [Running the Test Suite](https://nerima-lisp.github.io/cl-boundary-kit/testing/)
+See [Development](https://nerima-lisp.github.io/cl-boundary-kit/project/development/)
 for the complete verification paths, including direct `sbcl --script
 run-tests.lisp` execution without Nix.
 
 ## Contributing
 
-Start with [Contributing](https://nerima-lisp.github.io/cl-boundary-kit/contributing/)
+Start with [Contributing](https://nerima-lisp.github.io/cl-boundary-kit/project/contributing/)
 for the supported workflow, validation expectations, and public-surface rules.
 Project governance, maintenance, and release policies are available in the
 [documentation](https://nerima-lisp.github.io/cl-boundary-kit/).
 
 ## Support
 
-Use the [Support](https://nerima-lisp.github.io/cl-boundary-kit/support/) page
+Use the [Support](https://nerima-lisp.github.io/cl-boundary-kit/project/support/) page
 for the canonical support boundaries, and
 [private GitHub security advisories](https://github.com/nerima-lisp/cl-boundary-kit/security/advisories/new)
 for vulnerability reporting. Do not put exploit details in a public issue.
 
 Community conduct is defined in the
-[Code of Conduct](https://nerima-lisp.github.io/cl-boundary-kit/code-of-conduct/),
+[Code of Conduct](https://nerima-lisp.github.io/cl-boundary-kit/project/code-of-conduct/),
 and release history is published through
 [GitHub Releases](https://github.com/nerima-lisp/cl-boundary-kit/releases).
 

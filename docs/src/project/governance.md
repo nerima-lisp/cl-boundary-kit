@@ -32,8 +32,8 @@ The project-level support and stability contract is defined by the checked-in
 artifacts below:
 
 - `README.md` for the project overview and entry point into the full documentation
-- the [Guide](composition.md) pages for the supported public API surface
-- [Verification](compatibility.md) for checked verification workflows
+- the [Guide](../guide/composition.md) pages for the supported public API surface
+- [Verification](../reference/compatibility.md) for checked verification workflows
 - [Contributing](contributing.md) for contributor workflow and test expectations
 - [Support](support.md) for request routing and maintenance boundary
 - [Security](security.md) for private reporting expectations

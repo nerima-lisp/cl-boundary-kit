@@ -7,15 +7,15 @@ documentation and evidence exercise, not just a version bump.
 ## Release Checklist
 
 1. Confirm the intended scope still fits [Governance](governance.md) and
-   the non-goals in [Design Non-Goals](design-notes.md).
+   the non-goals in [Design Non-Goals](../guide/design-notes.md).
 2. Draft the release notes so they describe every intentional public change.
    They go in the GitHub Release description, which is the only canonical
    changelog; there is no `CHANGELOG.md` in the tree.
 3. Reconcile [Roadmap](roadmap.md) with the release scope so shipped items are removed,
    narrowed, or rewritten as future work instead of being left as if they were
    still merely planned.
-4. Update `README.md`, the relevant [Guide](composition.md) pages, [Cookbook](cookbook.md),
-   [Verification](compatibility.md), and `examples/*.lisp` for any public
+4. Update `README.md`, the relevant [Guide](../guide/composition.md) pages, [Cookbook](../guide/cookbook.md),
+   [Verification](../reference/compatibility.md), and `examples/*.lisp` for any public
    contract change.
 5. Run `sbcl --script run-tests.lisp` from a clean checkout state and confirm
    the executable documentation still matches reality.

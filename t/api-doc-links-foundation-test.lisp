@@ -11,14 +11,14 @@
     (expect (null (set-difference documented actual :test #'string=)) :to-be-truthy)))
 
 (it "readme-testing-section-documents-the-canonical-linux-test-command"
-  (let ((command (single-document-fenced-code-block "docs/src/testing.md"
-                                                     "# Running the Test Suite" nil "sh")))
+  (let ((command (single-document-fenced-code-block "docs/src/project/development.md"
+                                                     "## Running the Test Suite" nil "sh")))
     (expect (string= "nix run .#test" command) :to-be-truthy)))
 
 (it "public-subsystems-have-dedicated-regression-suites"
-  (let* ((docs-readme (repository-file-string "docs/src/README.md"))
-         (testing-doc (repository-file-string "docs/src/testing.md"))
-         (contributing (repository-file-string "docs/src/contributing.md"))
+  (let* ((docs-readme (repository-file-string "docs/src/index.md"))
+         (testing-doc (repository-file-string "docs/src/project/development.md"))
+         (contributing (repository-file-string "docs/src/project/contributing.md"))
          (asd (repository-file-string "cl-boundary-kit.asd"))
          (package (string-upcase (repository-file-string "src/package.lisp")))
          (suites (public-subsystem-regression-suites)))
@@ -53,9 +53,9 @@
   (let* ((versions (asd-version-strings))
          (release-version (first versions))
          (release-series (supported-release-series release-version))
-         (stability-policy (repository-file-string "docs/src/stability-policy.md"))
-         (security (repository-file-string "docs/src/security.md"))
-         (release (repository-file-string "docs/src/release-process.md")))
+         (stability-policy (repository-file-string "docs/src/reference/stability-policy.md"))
+         (security (repository-file-string "docs/src/project/security.md"))
+         (release (repository-file-string "docs/src/project/release-process.md")))
     (expect (not (null release-version)) :to-be-truthy)
     (expect (every (lambda (version) (string= release-version version)) versions) :to-be-truthy)
     ;; There is no CHANGELOG.md to cross-check as of the 2026-08-01 revision:
@@ -67,17 +67,17 @@
     (assert-contains-all release (quote ("## Evidence Required Before Publishing")))))
 
 (it "compatibility-verification-scope-stays-backed-by-executable-contracts"
-  (let* ((compatibility (repository-file-string "docs/src/compatibility.md"))
+  (let* ((compatibility (repository-file-string "docs/src/reference/compatibility.md"))
          (api-tests (api-test-suite-string))
          (example-tests (repository-file-string "t/examples-runtime-test.lisp"))
          (example-helpers (repository-file-string "t/helpers-examples.lisp"))
          (installation-snippet (single-document-fenced-code-block
-                                 "docs/src/installation.md" "# Installation" "## Nix" "lisp"))
+                                 "docs/src/getting-started.md" "# Getting Started" "## Nix" "lisp"))
          (testing-repl-snippet (single-document-fenced-code-block
-                                 "docs/src/testing.md" "# Running the Test Suite" nil "lisp")))
-    (assert-contains-all compatibility (quote ("Provides a pinned Nix test path through `nix run .#test`" "Emits pinned Nix apps and checks for `x86_64-linux` only" "Exercises the supported host flake check set through `nix flake check`" "Does not require Quicklisp when using the Nix flake" "Supports direct `sbcl --script run-tests.lisp` execution" "Hosts outside the emitted flake systems can run the library when their implementation and dependencies satisfy the documented API requirements" "docs/src installation, quick-start, and test commands" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL" "successful completion" "exit status 0" "checked-in `examples/*.lisp` files against a fresh" "Treats the exported symbol list documented across the [Guide](composition.md)")))
+                                 "docs/src/project/development.md" "## Running the Test Suite" nil "lisp")))
+    (assert-contains-all compatibility (quote ("Provides a pinned Nix test path through `nix run .#test`" "Emits pinned Nix apps and checks for `x86_64-linux` only" "Exercises the supported host flake check set through `nix flake check`" "Does not require Quicklisp when using the Nix flake" "Supports direct `sbcl --script run-tests.lisp` execution" "Hosts outside the emitted flake systems can run the library when their implementation and dependencies satisfy the documented API requirements" "docs/src installation, quick-start, and test commands" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL" "successful completion" "exit status 0" "checked-in `examples/*.lisp` files against a fresh" "Treats the exported symbol list documented across the [Guide](../guide/composition.md)")))
     (assert-contains-all (single-document-fenced-code-block
-                          "docs/src/testing.md" "# Running the Test Suite" nil "sh")
+                          "docs/src/project/development.md" "## Running the Test Suite" nil "sh")
                          '("nix run .#test"))
     (assert-contains-none (string-downcase installation-snippet)
                           '("quicklisp"
@@ -95,8 +95,8 @@
     (assert-contains-all example-tests '("documented-examples-have-output-checks"))))
 
 (it "release-evidence-and-compatibility-scope-stay-aligned"
-  (let* ((release (repository-file-string "docs/src/release-process.md"))
-         (compatibility (repository-file-string "docs/src/compatibility.md"))
+  (let* ((release (repository-file-string "docs/src/project/release-process.md"))
+         (compatibility (repository-file-string "docs/src/reference/compatibility.md"))
          (api-tests (api-test-suite-string))
          (example-helpers (repository-file-string "t/helpers-examples.lisp")))
     (assert-contains-all release

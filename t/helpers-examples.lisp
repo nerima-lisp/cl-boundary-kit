@@ -8,7 +8,7 @@
   (subseq path (length "examples/")))
 
 (defun readme-example-paths ()
-  (let ((examples-doc (repository-file-string "docs/src/examples.md")))
+  (let ((examples-doc (repository-file-string "docs/src/guide/examples.md")))
     (sort (markdown-example-paths examples-doc) #'string<)))
 
 (defun %run-example (name)

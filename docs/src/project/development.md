@@ -1,4 +1,10 @@
-# Running the Test Suite
+# Development
+
+This page covers the repository-local build and verification workflow. The
+change workflow itself — what a patch must carry, and how it is reviewed — is
+in [Contributing](contributing.md).
+
+## Running the Test Suite
 
 The recommended pinned checkout test command is:
 
@@ -53,5 +59,5 @@ The documented REPL runner reaches successful completion with `0 failures` and
 exit status 0 when the whole suite is green; treat any other outcome as a
 regression to fix before relying on the checkout.
 
-See [Verification](compatibility.md) for the checked workflows, and [Contributing](contributing.md) for
+See [Verification](../reference/compatibility.md) for the checked workflows, and [Contributing](contributing.md) for
 the workflow that keeps documentation, examples, and tests in sync.

@@ -8,7 +8,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *document-search-shared-cases*
     '((code-of-conduct-exists-and-documents-reporting
-       :file "docs/src/code-of-conduct.md"
+       :file "docs/src/project/code-of-conduct.md"
        :exists t
        :contains ("# Code of Conduct"
                   "## Reporting"
@@ -16,10 +16,10 @@
                   "support.md"
                   "normal usage question"
                   "vulnerability"))
-      (support-document-exists-and-defines-routing :file "docs/src/support.md" :exists t :contains ("# Support" "## What To Use" "security.md" "code-of-conduct.md" "README.md" "compatibility.md" "GitHub releases page" "governance.md" "cookbook.md" "faq.md" "harassment" "verification guidance" "current documented API"))
-      (governance-document-exists-and-defines-contract-surface :file "docs/src/governance.md" :exists t :contains ("# Governance" "## Maintainer Role" "## Decision Process" "README.md" "compatibility.md" "examples/*.lisp" "checked-in examples" "verification notes"))
+      (support-document-exists-and-defines-routing :file "docs/src/project/support.md" :exists t :contains ("# Support" "## What To Use" "security.md" "code-of-conduct.md" "README.md" "compatibility.md" "GitHub releases page" "governance.md" "cookbook.md" "faq.md" "harassment" "verification guidance" "current documented API"))
+      (governance-document-exists-and-defines-contract-surface :file "docs/src/project/governance.md" :exists t :contains ("# Governance" "## Maintainer Role" "## Decision Process" "README.md" "compatibility.md" "examples/*.lisp" "checked-in examples" "verification notes"))
       (architecture-document-exists-and-defines-layering
-       :file "docs/src/architecture.md"
+       :file "docs/src/reference/architecture.md"
        :exists t
        :contains ("# Architecture"
                   "## Layering Model"
@@ -34,7 +34,7 @@
                   "README.md"
                   "governance.md"))
       (cookbook-document-exists-and-defines-supported-patterns
-       :file "docs/src/cookbook.md"
+       :file "docs/src/guide/cookbook.md"
        :exists t
        :contains ("# Cookbook"
                   "## Compose Boundaries At The Application Edge"
@@ -45,12 +45,12 @@
                   "assert-recorded-call-count"
                   "assert-recorded-call-sequence"
                   "unsupported-boundary-operation"))
-      (faq-document-exists-and-defines-decision-points :file "docs/src/faq.md" :exists t :contains ("# FAQ" "## When Should I Use This Library?" "## How Do I Choose Between A Recording Boundary And A Test Boundary?" "## How Do I Preserve Explicit `nil` Values?" "## Why Do Unsupported Operations Signal Instead Of Falling Back?" "## What If Behavior Differs Across Lisp Implementations Or Platforms?" "## What Defines The Current Public API?" "cookbook.md" "compatibility.md" "support.md" "contributing.md" "governance.md" "security.md"))
-      (faq-documents-the-stable-public-surface-contract :file "docs/src/faq.md" :contains ("## What Defines The Current Public API?" "current public API is defined by:" "exported symbols documented across the [Guide](composition.md) pages" "checked-in examples and cookbook snippets" "compatibility.md" "contributing.md" "governance.md" "executable verification" "not treat it as documented API behavior"))
-      (release-document-exists-and-defines-evidence-based-checklist :file "docs/src/release-process.md" :exists t :contains ("# Release Evidence" "## Release Checklist" "GitHub Release description" "roadmap.md" "README.md" "cookbook.md" "compatibility.md" "`sbcl --script run-tests.lisp`" "t/api-test.lisp" "t/api-doc-claims-test.lisp" "t/api-doc-links-test.lisp" "t/api-executable-docs-test.lisp" "t/examples-test.lisp" "security.md" "## Evidence Required Before Publishing" "checked-in verification"))
-      (compatibility-document-exists-and-defines-verification-scope :file "docs/src/compatibility.md" :exists t :contains ("# Verification" "## Checked Workflows" "`sbcl --script run-tests.lisp`" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)`" "`0 failures`" "documented REPL runner" "stable verification path" "Hosts outside the emitted flake systems" "support.md" "security.md" "100% coverage"))
+      (faq-document-exists-and-defines-decision-points :file "docs/src/guide/faq.md" :exists t :contains ("# FAQ" "## When Should I Use This Library?" "## How Do I Choose Between A Recording Boundary And A Test Boundary?" "## How Do I Preserve Explicit `nil` Values?" "## Why Do Unsupported Operations Signal Instead Of Falling Back?" "## What If Behavior Differs Across Lisp Implementations Or Platforms?" "## What Defines The Current Public API?" "cookbook.md" "compatibility.md" "support.md" "contributing.md" "governance.md" "security.md"))
+      (faq-documents-the-stable-public-surface-contract :file "docs/src/guide/faq.md" :contains ("## What Defines The Current Public API?" "current public API is defined by:" "exported symbols documented across the [Guide](../guide/composition.md) pages" "checked-in examples and cookbook snippets" "compatibility.md" "contributing.md" "governance.md" "executable verification" "not treat it as documented API behavior"))
+      (release-document-exists-and-defines-evidence-based-checklist :file "docs/src/project/release-process.md" :exists t :contains ("# Release Evidence" "## Release Checklist" "GitHub Release description" "roadmap.md" "README.md" "cookbook.md" "compatibility.md" "`sbcl --script run-tests.lisp`" "t/api-test.lisp" "t/api-doc-claims-test.lisp" "t/api-doc-links-test.lisp" "t/api-executable-docs-test.lisp" "t/examples-test.lisp" "security.md" "## Evidence Required Before Publishing" "checked-in verification"))
+      (compatibility-document-exists-and-defines-verification-scope :file "docs/src/reference/compatibility.md" :exists t :contains ("# Verification" "## Checked Workflows" "`sbcl --script run-tests.lisp`" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)`" "`0 failures`" "documented REPL runner" "stable verification path" "Hosts outside the emitted flake systems" "support.md" "security.md" "100% coverage"))
       (security-policy-documents-supported-versions-and-reporting-process
-       :file "docs/src/security.md"
+       :file "docs/src/project/security.md"
        :exists t
        ;; The supported-version row itself is deliberately not asserted here:
        ;; RELEASE-VERSION-DOCUMENTS-STAY-CONSISTENT-ACROSS-ASD-AND-POLICY-DOCS
@@ -66,9 +66,9 @@
        :exists t
        :contains ("MIT License"
                   "Permission is hereby granted, free of charge"))
-      (roadmap-documents-verification-driven-adoption-constraints :file "docs/src/roadmap.md" :contains ("## Status Semantics" "directional, not release commitments" "GitHub releases page" "documented REPL test-runner contract" "executable verification" "cookbook.md" "documented workflows only after they are exercised"))
+      (roadmap-documents-verification-driven-adoption-constraints :file "docs/src/project/roadmap.md" :contains ("## Status Semantics" "directional, not release commitments" "GitHub releases page" "documented REPL test-runner contract" "executable verification" "cookbook.md" "documented workflows only after they are exercised"))
       (roadmap-release-history-and-direction-stay-separate
-       :file "docs/src/roadmap.md"
+       :file "docs/src/project/roadmap.md"
        :contains ("directional, not release commitments"
                   "Public changes that are already shipped belong in the release description"))))
 
@@ -88,12 +88,12 @@
   ;; explicit :FILE (or a combined :HAYSTACK) instead of a README :SECTION.
   (defparameter *readme-document-search-shared-cases*
     '((readme-repository-layout-documents-where-release-history-lives
-       :file "docs/src/repository-layout.md"
+       :file "docs/src/reference/repository-layout.md"
        :contains ("compatibility.md"
                   "There is no `CHANGELOG.md`"
                   "GitHub Release description"))
       (readme-repository-layout-documents-the-canonical-test-entrypoint-and-license
-       :file "docs/src/repository-layout.md"
+       :file "docs/src/reference/repository-layout.md"
        :contains ("`run-tests.lisp`"
                   "canonical checkout test runner"
                   "cookbook.md"
@@ -111,14 +111,14 @@
                   "`LICENSE`"
                   "MIT license terms"))
       (readme-links-the-governance-documents
-       :file "docs/src/repository-layout.md"
+       :file "docs/src/reference/repository-layout.md"
        :contains ("contributing.md"))
-      (readme-contributing-and-governance-sections-document-contract-maintenance :file "docs/src/contributing.md" :contains ("documented public behavior" "executable tests" "relevant examples" "README.md" "checked workflow" "release evidence"))
+      (readme-contributing-and-governance-sections-document-contract-maintenance :file "docs/src/project/contributing.md" :contains ("documented public behavior" "executable tests" "relevant examples" "README.md" "checked workflow" "release evidence"))
       (readme-links-the-release-process-document
-       :file "docs/src/contributing.md"
+       :file "docs/src/project/contributing.md"
        :contains ("release-process.md"
                   "executable verification"))
-      (readme-compatibility-section-links-the-compatibility-document :haystack (concatenate (quote string) (repository-file-string "docs/src/contributing.md") (repository-file-string "docs/src/compatibility.md")) :contains ("compatibility.md" "executable verification" "Hosts outside the emitted flake systems"))))
+      (readme-compatibility-section-links-the-compatibility-document :haystack (concatenate (quote string) (repository-file-string "docs/src/project/contributing.md") (repository-file-string "docs/src/reference/compatibility.md")) :contains ("compatibility.md" "executable verification" "Hosts outside the emitted flake systems"))))
 
   (defmacro document-search-shared-cases ()
     `',*document-search-shared-cases*)

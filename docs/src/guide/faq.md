@@ -63,16 +63,16 @@ one, and why `make-environment` still signals when explicitly given `:set-fn
 nil` or `:unset-fn nil` to opt an environment out of native mutation, rather
 than silently ignoring the write.
 
-See [Verification](compatibility.md) for the checked workflows around those
+See [Verification](../reference/compatibility.md) for the checked workflows around those
 guarantees.
 
 ## What If Behavior Differs Across Lisp Implementations Or Platforms?
 
-Start by checking [Verification](compatibility.md) to identify the workflows
+Start by checking [Verification](../reference/compatibility.md) to identify the workflows
 the repository currently exercises.
 
 If a behavior covered by that verified contract fails, report it through
-[Support](support.md) with:
+[Support](../project/support.md) with:
 
 - the exact exported API you called
 - a minimal reproduction
@@ -81,7 +81,7 @@ If a behavior covered by that verified contract fails, report it through
 
 If the behavior difference exposes unsafe effect handling, leaks secrets or
 host state, or otherwise turns into a vulnerability, use the private reporting
-path in [Security](security.md) instead of the public support route.
+path in [Security](../project/security.md) instead of the public support route.
 
 ## What Defines The Current Public API?
 
@@ -89,12 +89,12 @@ The current public API is defined by:
 
 - exported symbols documented across the [Guide](composition.md) pages
 - checked-in examples and cookbook snippets that are exercised by the test suite
-- checked workflows in [Verification](compatibility.md)
-- contributor guidance in [Contributing](contributing.md) and
-  [Governance](governance.md)
+- checked workflows in [Verification](../reference/compatibility.md)
+- contributor guidance in [Contributing](../project/contributing.md) and
+  [Governance](../project/governance.md)
 
 If a behavior is not covered by those artifacts and executable verification, do
 not treat it as documented API behavior.
 
-See [Documentation Scope](stability-policy.md) for the scope this FAQ
+See [Documentation Scope](../reference/stability-policy.md) for the scope this FAQ
 summarizes.

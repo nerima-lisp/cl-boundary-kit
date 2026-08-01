@@ -57,16 +57,16 @@
           (push item items))))))
 
 (defparameter *docs-guide-pages*
-  '("docs/src/composition.md"
-    "docs/src/filesystem-and-environment.md"
-    "docs/src/time-and-randomness.md"
-    "docs/src/process-network-and-dns.md"
-    "docs/src/observability.md"
-    "docs/src/state-and-storage.md"
-    "docs/src/concurrency-control.md"
-    "docs/src/messaging.md"
-    "docs/src/system-and-host.md"
-    "docs/src/testing-helpers.md"))
+  '("docs/src/guide/composition.md"
+    "docs/src/guide/filesystem-and-environment.md"
+    "docs/src/guide/time-and-randomness.md"
+    "docs/src/guide/process-network-and-dns.md"
+    "docs/src/guide/observability.md"
+    "docs/src/guide/state-and-storage.md"
+    "docs/src/guide/concurrency-control.md"
+    "docs/src/guide/messaging.md"
+    "docs/src/guide/system-and-host.md"
+    "docs/src/guide/testing-helpers.md"))
 
 (defun readme-api-overview-symbol-names ()
   (mapcan (lambda (page)

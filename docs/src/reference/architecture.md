@@ -74,8 +74,8 @@ Architecture changes should be argued from:
 
 - a concrete boundary use case
 - an executable regression test
-- the public contract documents in the [Guide](composition.md) pages,
-  [Verification](compatibility.md), and [Governance](governance.md)
+- the public contract documents in the [Guide](../guide/composition.md) pages,
+  [Verification](compatibility.md), and [Governance](../project/governance.md)
 
 Broad framework concerns, hidden host fallbacks, and scope growth without a
 boundary-specific justification are out of scope.

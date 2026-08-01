@@ -25,12 +25,12 @@ The repository exercises these workflows through checked-in verification.
   SBCL process via direct `sbcl --script examples/<name>.lisp` execution
 - Regression-checks cookbook snippets and documentation contracts alongside
   the checked-in examples and README flows
-- Treats the exported symbol list documented across the [Guide](composition.md)
-  pages and the file index in [Examples](examples.md) as regression-checked
+- Treats the exported symbol list documented across the [Guide](../guide/composition.md)
+  pages and the file index in [Examples](../guide/examples.md) as regression-checked
   documentation contracts
 - Produces `report.json` for machine-readable test results and coverage data,
   summary, and HTML files from the corresponding Ubuntu/Linux Nix checks
 
-Use [Support](support.md) for reproducible failures or documentation drift, and
-use [Security](security.md) when behavior exposes a vulnerability, secret leak,
+Use [Support](../project/support.md) for reproducible failures or documentation drift, and
+use [Security](../project/security.md) when behavior exposes a vulnerability, secret leak,
 or unsafe effect handling concern.

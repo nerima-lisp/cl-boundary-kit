@@ -61,7 +61,7 @@
     (documentation-fresh-sbcl-installation-lines)
     (string-lines
       (single-document-fenced-code-block
-        "docs/src/cookbook.md"
+        "docs/src/guide/cookbook.md"
         start-section
         end-section
         "lisp"))))
@@ -76,30 +76,30 @@
         (nth
           0
           (document-fenced-code-blocks
-            "docs/src/quick-start.md"
-            "# Quick Start"
+            "docs/src/getting-started.md"
+            "## Quick Start"
             nil
             "lisp")))
       (string-lines
         (nth
           1
           (document-fenced-code-blocks
-            "docs/src/quick-start.md"
-            "# Quick Start"
+            "docs/src/getting-started.md"
+            "## Quick Start"
             nil
             "lisp")))))
   (documentation-fresh-sbcl-testing-repl-lines
    (string-lines
     (replace-substring
      (first (document-fenced-code-blocks
-             "docs/src/testing.md" "# Running the Test Suite" nil "lisp"))
+             "docs/src/project/development.md" "## Running the Test Suite" nil "lisp"))
      "/path/to/cl-boundary-kit/"
      (namestring (repository-root)))))
   (documentation-fresh-sbcl-contributing-installation-lines
     (string-lines
       (replace-substring
         (nth-document-fenced-code-block
-          "docs/src/contributing.md"
+          "docs/src/project/contributing.md"
           "## Local Setup"
           "## Change Guidelines"
           "lisp"

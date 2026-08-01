@@ -79,7 +79,7 @@
 
 (defun checkout-installation-snippet ()
   (replace-substring
-   (single-document-fenced-code-block "docs/src/installation.md" "# Installation" "## Nix" "lisp")
+   (single-document-fenced-code-block "docs/src/getting-started.md" "# Getting Started" "## Nix" "lisp")
    "/path/to/cl-boundary-kit/"
    (namestring (repository-root))))
 

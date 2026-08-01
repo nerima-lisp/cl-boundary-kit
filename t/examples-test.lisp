@@ -19,8 +19,8 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *readme-snippet-contracts*
     '((:prefix "README-QUICK-START"
-     :file "docs/src/quick-start.md"
-     :start-heading "# Quick Start"
+     :file "docs/src/getting-started.md"
+     :start-heading "## Quick Start"
      :end-heading nil
      :expected-results
      ((1000 1005)
@@ -45,7 +45,7 @@
           :IF-DOES-NOT-EXIST :CREATE
           :EXTERNAL-FORMAT :UTF-8))))))
     (:prefix "README-TESTING-HELPER"
-     :file "docs/src/core-concepts.md"
+     :file "docs/src/guide/core-concepts.md"
      :start-heading "## Testing Helper"
      :end-heading "## Boundary Context"
      :expected-results

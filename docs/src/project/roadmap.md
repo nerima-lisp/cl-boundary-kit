@@ -26,7 +26,7 @@ adoption quality rather than surface growth.
 ## Longer-Term
 
 - Keep the boundary protocols focused before adding any new abstraction layer.
-- Expand [Cookbook](cookbook.md) only when it explains a real usage pattern
+- Expand [Cookbook](../guide/cookbook.md) only when it explains a real usage pattern
   better than the existing examples.
 - Add documented workflows only after they are exercised by real
   repository-level verification, not by assumption.
@@ -37,4 +37,4 @@ adoption quality rather than surface growth.
 - Do not add a generic dependency injection container.
 - Do not add a full mocking framework.
 
-See [Design Non-Goals](design-notes.md) for the corresponding implementation-level constraints.
+See [Design Non-Goals](../guide/design-notes.md) for the corresponding implementation-level constraints.

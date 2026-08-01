@@ -1,4 +1,32 @@
-# Quick Start
+# Getting Started
+
+Clone the repository and load it with ASDF:
+
+```lisp
+(require :asdf)
+(push #P"/path/to/cl-boundary-kit/" asdf:*central-registry*)
+(asdf:load-system :cl-boundary-kit)
+```
+
+If you use a local-projects setup, place the repository under your ASDF source
+tree and load it the same way.
+
+## Nix
+
+The [flake.nix](https://github.com/nerima-lisp/cl-boundary-kit/blob/main/flake.nix)
+at the repository root packages `cl-boundary-kit` as a Nix flake and pins
+every test dependency (SBCL, [`cl-weave`](https://github.com/nerima-lisp/cl-weave),
+and [`cl-prolog`](https://github.com/nerima-lisp/cl-prolog)) so a checkout
+does not require Quicklisp:
+
+```sh
+nix run .#test
+```
+
+See [Development](project/development.md) for the full set of verification
+paths.
+
+## Quick Start
 
 ```lisp
 (asdf:load-system :cl-boundary-kit)
@@ -41,6 +69,6 @@ without adding a partial call record. Logging is slightly different:
 `make-recording-logger` keeps the attempted event even if the delegate sink
 signals an error, which makes sink failures inspectable in tests.
 
-Continue with [Core Concepts](core-concepts.md) to see the vocabulary behind
-these calls, then browse the [Guide](composition.md) for every boundary's full
-API surface.
+Continue with [Core Concepts](guide/core-concepts.md) to see the vocabulary
+behind these calls, then browse the [Guide](guide/composition.md) for every
+boundary's full API surface.

@@ -15,9 +15,9 @@ Use project discussion threads, if available, for:
 - design tradeoff questions before implementation
 - examples or patterns that may belong in documentation
 
-Check [Cookbook](cookbook.md) first when your question is about composing
+Check [Cookbook](../guide/cookbook.md) first when your question is about composing
 boundaries, asserting recorder behavior, or handling unsupported operations.
-Check [FAQ](faq.md) first when your question is about choosing between a
+Check [FAQ](../guide/faq.md) first when your question is about choosing between a
 recording boundary and a test boundary, preserving explicit `nil`, or
 understanding the current documented API. Check the
 [GitHub releases page](https://github.com/nerima-lisp/cl-boundary-kit/releases)
@@ -55,7 +55,7 @@ This project intentionally stays small. Support does not imply:
 ## Maintenance Boundary
 
 Questions and bug reports are evaluated against the explicit public contract in
-the [Guide](composition.md) pages, [Verification](compatibility.md), the checked-in examples,
+the [Guide](../guide/composition.md) pages, [Verification](../reference/compatibility.md), the checked-in examples,
 the executable test suite, and the maintainer decision model in
 [Governance](governance.md). Requests that conflict with the documented
 non-goals or would expand the abstraction surface without a clear boundary use

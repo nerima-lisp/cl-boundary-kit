@@ -79,12 +79,12 @@ before submitting a change.
 - Update the relevant `docs/src` Guide page when the public API changes.
 - Update `docs/src/examples.md` when example files are added, removed, or renamed.
 - Update examples when a public API changes.
-- Update [Verification](compatibility.md) and [Release Evidence](release-process.md)
+- Update [Verification](../reference/compatibility.md) and [Release Evidence](release-process.md)
   when a change alters a checked workflow or release evidence.
-- Update [Cookbook](cookbook.md) when a supported usage pattern changes or a new pattern
+- Update [Cookbook](../guide/cookbook.md) when a supported usage pattern changes or a new pattern
   becomes part of the public contract.
-- Update [FAQ](faq.md) when a change alters user-facing boundary selection guidance.
-- Update [Architecture](architecture.md) when subsystem responsibilities or layering constraints change.
+- Update [FAQ](../guide/faq.md) when a change alters user-facing boundary selection guidance.
+- Update [Architecture](../reference/architecture.md) when subsystem responsibilities or layering constraints change.
 
 ## Test Expectations
 
@@ -112,7 +112,7 @@ Project-level scope and decision criteria are defined in
 [Governance](governance.md); proposed changes should argue from that
 contract surface rather than from framework-style expansion.
 Design-level changes should also stay aligned with the layering model in
-[Architecture](architecture.md) so protocol boundaries, shared utilities,
+[Architecture](../reference/architecture.md) so protocol boundaries, shared utilities,
 and test evidence do not drift apart.
 Maintainers preparing a release should also follow [Release Process](release-process.md)
 so release evidence and executable verification stay in sync.

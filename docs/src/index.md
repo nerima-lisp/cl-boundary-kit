@@ -26,8 +26,8 @@ test.
     ;; => 1000
     ```
 
-    Continue with [Installation](installation.md) → [Quick Start](quick-start.md)
-    → [Core Concepts](core-concepts.md).
+    Continue with [Installation](getting-started.md) → [Quick Start](getting-started.md)
+    → [Core Concepts](guide/core-concepts.md).
 
 ## Explore the docs
 
@@ -40,9 +40,9 @@ test.
     Install with ASDF or Nix, run your first recorded boundary call, and learn
     the Boundary / Protocol / Test Double / Boundary Context vocabulary.
 
-    [:octicons-arrow-right-24: Installation](installation.md) ·
-    [Quick Start](quick-start.md) ·
-    [Core Concepts](core-concepts.md)
+    [:octicons-arrow-right-24: Installation](getting-started.md) ·
+    [Quick Start](getting-started.md) ·
+    [Core Concepts](guide/core-concepts.md)
 
 -   :material-book-open-variant:{ .lg .middle } &nbsp; **Guide**
 
@@ -52,9 +52,9 @@ test.
     environment, time and randomness, process/network/DNS, observability,
     storage, concurrency, messaging, and system/host introspection.
 
-    [:octicons-arrow-right-24: Composition and Context](composition.md) ·
-    [Filesystem and Environment](filesystem-and-environment.md) ·
-    [Assertions and Testing Helpers](testing-helpers.md)
+    [:octicons-arrow-right-24: Composition and Context](guide/composition.md) ·
+    [Filesystem and Environment](guide/filesystem-and-environment.md) ·
+    [Assertions and Testing Helpers](guide/testing-helpers.md)
 
 -   :material-flask-outline:{ .lg .middle } &nbsp; **Examples**
 
@@ -63,7 +63,7 @@ test.
     Every documented example is directly runnable with
     `sbcl --script examples/<name>.lisp` from a checkout.
 
-    [:octicons-arrow-right-24: Examples](examples.md)
+    [:octicons-arrow-right-24: Examples](guide/examples.md)
 
 -   :material-cog-outline:{ .lg .middle } &nbsp; **Reference**
 
@@ -72,10 +72,10 @@ test.
     Layering model, repository layout, the pinned Nix test path, verification
     scope, and the narrow public stability contract.
 
-    [:octicons-arrow-right-24: Architecture](architecture.md) ·
-    [Running the Test Suite](testing.md) ·
-    [Verification](compatibility.md) ·
-    [Documentation Scope](stability-policy.md)
+    [:octicons-arrow-right-24: Architecture](reference/architecture.md) ·
+    [Running the Test Suite](project/development.md) ·
+    [Verification](reference/compatibility.md) ·
+    [Documentation Scope](reference/stability-policy.md)
 
 </div>
 
@@ -95,26 +95,26 @@ test.
 
 ## Guide Map
 
-- [Composition and Context](composition.md) — `make-boundary-context`,
+- [Composition and Context](guide/composition.md) — `make-boundary-context`,
   custom recording boundaries, and the `unsupported-boundary-operation`
   condition.
-- [Filesystem and Environment](filesystem-and-environment.md) — file, directory,
+- [Filesystem and Environment](guide/filesystem-and-environment.md) — file, directory,
   environment variable, and working-directory boundaries.
-- [Time and Randomness](time-and-randomness.md) — clocks, random sources,
+- [Time and Randomness](guide/time-and-randomness.md) — clocks, random sources,
   sleepers, UUIDs, and temporary paths.
-- [Process, Network, and DNS](process-network-and-dns.md) — subprocess
+- [Process, Network, and DNS](guide/process-network-and-dns.md) — subprocess
   execution, HTTP-shaped requests, DNS resolution, and JSON serialization of
   call histories.
-- [Logging, Metrics, and Console](observability.md) — structured logging,
+- [Logging, Metrics, and Console](guide/observability.md) — structured logging,
   fire-and-forget metrics, and terminal I/O.
-- [State and Storage](state-and-storage.md) — key/value stores, TTL caches,
+- [State and Storage](guide/state-and-storage.md) — key/value stores, TTL caches,
   secret stores, and feature flags.
-- [Concurrency Control](concurrency-control.md) — locks, semaphores, rate
+- [Concurrency Control](guide/concurrency-control.md) — locks, semaphores, rate
   limiters, and deferred scheduling.
-- [Messaging](messaging.md) — publishers, subscribers, and notifiers.
-- [System and Host](system-and-host.md) — command-line arguments, host
+- [Messaging](guide/messaging.md) — publishers, subscribers, and notifiers.
+- [System and Host](guide/system-and-host.md) — command-line arguments, host
   introspection, and process termination.
-- [Assertions and Testing Helpers](testing-helpers.md) — the full
+- [Assertions and Testing Helpers](guide/testing-helpers.md) — the full
   recorded-call and event assertion API.
 
 ## Nix Workflow
@@ -131,12 +131,12 @@ at the repository root packages `cl-boundary-kit` as a Nix flake:
 - `nix build .#docs` — builds this documentation site with MkDocs (Material)
   in `--strict` mode, so broken links fail the build.
 
-See [Running the Test Suite](testing.md) for the complete verification paths,
+See [Running the Test Suite](project/development.md) for the complete verification paths,
 including direct `sbcl --script run-tests.lisp` execution without Nix.
 
 ## Support
 
-Use [Support](support.md) for the canonical support boundaries and what to
+Use [Support](project/support.md) for the canonical support boundaries and what to
 include in a request.
 
 Use [private GitHub security advisories](https://github.com/nerima-lisp/cl-boundary-kit/security/advisories/new)
@@ -144,17 +144,17 @@ for vulnerability reporting. Do not put exploit details in a public issue.
 
 ## Project Operations
 
-- Cookbook: [cookbook.md](cookbook.md)
-- FAQ: [faq.md](faq.md)
-- Architecture: [architecture.md](architecture.md)
-- Verification: [compatibility.md](compatibility.md)
-- Contributing: [contributing.md](contributing.md)
-- Governance: [governance.md](governance.md)
-- Code of Conduct: [code-of-conduct.md](code-of-conduct.md)
-- Support: [support.md](support.md)
-- Security: [security.md](security.md)
-- Roadmap: [roadmap.md](roadmap.md)
-- Release Process: [release-process.md](release-process.md)
+- Cookbook: [cookbook.md](guide/cookbook.md)
+- FAQ: [faq.md](guide/faq.md)
+- Architecture: [architecture.md](reference/architecture.md)
+- Verification: [compatibility.md](reference/compatibility.md)
+- Contributing: [contributing.md](project/contributing.md)
+- Governance: [governance.md](project/governance.md)
+- Code of Conduct: [code-of-conduct.md](project/code-of-conduct.md)
+- Support: [support.md](project/support.md)
+- Security: [security.md](project/security.md)
+- Roadmap: [roadmap.md](project/roadmap.md)
+- Release Process: [release-process.md](project/release-process.md)
 - Pull request queue: <https://github.com/nerima-lisp/cl-boundary-kit/pulls>
 - Issue tracker: <https://github.com/nerima-lisp/cl-boundary-kit/issues>
 - Release notes: <https://github.com/nerima-lisp/cl-boundary-kit/releases>

@@ -16,6 +16,6 @@
 - `cl-boundary-kit/test` is the canonical test entrypoint for both
   `run-tests.lisp` and REPL use.
 
-See [Stability Policy](stability-policy.md) for how these constraints tie
-into the public contract, and [Roadmap](roadmap.md) for the corresponding
+See [Stability Policy](../reference/stability-policy.md) for how these constraints tie
+into the public contract, and [Roadmap](../project/roadmap.md) for the corresponding
 directional non-goals.
