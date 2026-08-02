@@ -7,12 +7,12 @@
     # cl-weave is the deepest sibling, so it owns the single paredit-cli (and
     # therefore the single rust-overlay) node that every other sibling follows.
     cl-weave = {
-      url = "github:nerima-lisp/cl-weave/v1.0.1";
+      url = "github:nerima-lisp/cl-weave/v1.1.4";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     cl-prolog = {
-      url = "github:nerima-lisp/cl-prolog/v1.1.0";
+      url = "github:nerima-lisp/cl-prolog/v1.3.0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.cl-weave.follows = "cl-weave";
       inputs.paredit-cli.follows = "cl-weave/paredit-cli";
@@ -22,7 +22,7 @@
     # interaction, adopted directly (no adapter layer) rather than
     # hand-rolled per-boundary implementations.
     cl-host-kit = {
-      url = "github:nerima-lisp/cl-host-kit/v0.2.1";
+      url = "github:nerima-lisp/cl-host-kit/v0.2.5";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
