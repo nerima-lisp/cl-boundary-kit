@@ -125,7 +125,14 @@
     (expect (lambda ()
               (cl-boundary-kit::%process-boundary-run-for-type
                :bad (make-process-boundary) "noop" nil))
-            :to-throw "Unsupported process boundary type")))
+            :to-throw "Unsupported process boundary type"))
+
+  ;; +PROCESS-RECORDED-CALL-KEYS+'s defparameter form is only ever recorded
+  ;; as covered when a test body references it directly, not merely by
+  ;; loading a file that consumes it through %PROCESS-CALL-KEYWORDS.
+  (it "process-recorded-call-keys-names-the-keys-in-recorded-order"
+    (expect cl-boundary-kit::+process-recorded-call-keys+
+            :to-equal '(:arguments :input :directory :output :error-output :timeout))))
 
 (describe "test-filesystem entry helpers"
   (it "copy-test-file-content-copies-strings-and-passes-other-values-through"
