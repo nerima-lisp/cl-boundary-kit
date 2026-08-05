@@ -8,6 +8,17 @@
 (defparameter *%process-kill-grace-seconds* 2
   "Seconds to wait after SIGTERM before escalating to SIGKILL on timeout.")
 
+;;; DATA: the polling cadence and the two POSIX signal numbers this escalation
+;;; sends, kept apart from the termination LOGIC below.
+(defparameter *%process-poll-interval-seconds* 0.01
+  "Seconds between liveness polls while waiting on a child process.")
+
+(defconstant +sigterm+ 15
+  "POSIX SIGTERM: the catchable termination request sent first on timeout.")
+
+(defconstant +sigkill+ 9
+  "POSIX SIGKILL: uncatchable termination, the escalation SIGTERM falls back to.")
+
 (defun %deadline-seconds (timeout)
   (when timeout
     (+ (get-internal-real-time) (round (* timeout internal-time-units-per-second)))))
@@ -27,13 +38,13 @@
   ;; PROCESS-WAIT then reaps it. Every early-exit cleanup path funnels through
   ;; here so a child is never left running as an untracked orphan.
   (when (%process-alive-p process)
-    (sb-ext:process-kill process 9)
+    (sb-ext:process-kill process +sigkill+)
     (sb-ext:process-wait process)))
 
 (defun %kill-process-with-escalation (process)
   ;; A child that traps or ignores SIGTERM would otherwise hang this call (and
   ;; the timeout contract) forever; SIGKILL cannot be caught or ignored.
-  (sb-ext:process-kill process 15)
+  (sb-ext:process-kill process +sigterm+)
   (let ((grace-deadline (+ (get-internal-real-time)
                            (round (* *%process-kill-grace-seconds*
                                      internal-time-units-per-second)))))
@@ -41,10 +52,10 @@
       (when (not (%process-alive-p process))
         (return))
       (when (>= (get-internal-real-time) grace-deadline)
-        (sb-ext:process-kill process 9)
+        (sb-ext:process-kill process +sigkill+)
         (sb-ext:process-wait process)
         (return))
-      (sleep 0.01))))
+      (sleep *%process-poll-interval-seconds*))))
 
 (defun %wait-for-process-with-deadline (process deadline)
   ;; DEADLINE never changes across iterations, so whether one exists at all is
@@ -58,4 +69,4 @@
         when (>= (get-internal-real-time) deadline) do
           (%kill-process-with-escalation process)
           (return t)
-        do (sleep 0.01))))
+        do (sleep *%process-poll-interval-seconds*))))

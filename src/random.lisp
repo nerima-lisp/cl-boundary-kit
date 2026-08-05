@@ -2,6 +2,10 @@
 
 (in-package #:cl-boundary-kit)
 
+(defconstant +lcg-multiplier+ 6364136223846793005)
+
+(defconstant +lcg-increment+ 1)
+
 (defclass random-source ()
   ((state :initarg :state :reader random-source-state)))
 
@@ -15,20 +19,17 @@
   ((delegate :initarg :delegate :reader recording-random-source-delegate)
    (calls :initform '() :accessor %recording-random-source-calls)))
 
-(defun %validate-deterministic-random-modulus (modulus)
-  (unless (and (integerp modulus) (> modulus 1))
-    (error "Deterministic random source modulus must be an integer greater than 1: ~S" modulus))
-  modulus)
+(define-scalar-validator %validate-deterministic-random-modulus modulus
+    (and (integerp modulus) (> modulus 1))
+  "an integer greater than 1" "Deterministic random source modulus")
 
-(defun %validate-random-limit (limit)
-  (unless (and (realp limit) (> limit 0))
-    (error "RANDOM-SOURCE-RANDOM limit must be positive: ~S" limit))
-  limit)
+(define-scalar-validator %validate-random-limit limit
+    (and (realp limit) (> limit 0))
+  "positive" "RANDOM-SOURCE-RANDOM limit")
 
-(defun %validate-random-state (state)
-  (unless (typep state 'random-state)
-    (error "Random source state must be a RANDOM-STATE: ~S" state))
-  state)
+(define-scalar-validator %validate-random-state state
+    (typep state 'random-state)
+  "a RANDOM-STATE" "Random source state")
 
 (define-list-validator %validate-test-random-values values "Test random source values")
 
@@ -68,7 +69,7 @@ This uses Common Lisp RANDOM and is not a cryptographic randomness source."
     (source recording-random-source %recording-random-source-calls) "random source")
 
 (defun %lcg-step (state modulus)
-  (mod (+ (* state 6364136223846793005) 1) modulus))
+  (mod (+ (* state +lcg-multiplier+) +lcg-increment+) modulus))
 
 (defmethod random-source-random ((source random-source) limit)
   (%validate-random-limit limit)
@@ -127,6 +128,29 @@ nonces, salts, and tokens while keeping them deterministic in tests."
 
 
 
+(defun %random-source-sample-vector (source sequence length count)
+  (let ((swaps (make-hash-table)))
+    (labels ((value-at (index)
+               (multiple-value-bind (value present-p) (gethash index swaps)
+                 (if present-p
+                     value
+                     (aref sequence index)))))
+      (loop for index from 0 below count
+            for pick = (+ index (random-source-random source (- length index)))
+            for at-index = (value-at index)
+            for at-pick = (value-at pick)
+            do (setf (gethash index swaps) at-pick
+                     (gethash pick swaps) at-index)
+            collect at-pick))))
+
+(defun %random-source-sample-list (source sequence length count)
+  (let ((vector (make-array length)))
+    (replace vector sequence)
+    (loop for index from 0 below count
+          for pick = (+ index (random-source-random source (- length index)))
+          do (rotatef (aref vector index) (aref vector pick)))
+    (loop for index from 0 below count collect (aref vector index))))
+
 (defun random-source-sample (source sequence count)
   "Return a list of COUNT distinct elements drawn from SEQUENCE without
 replacement, using SOURCE.
@@ -141,25 +165,8 @@ the input is not modified."
     (unless (and (integerp count) (<= 0 count length))
       (error "RANDOM-SOURCE-SAMPLE count must be an integer in [0, ~D]: ~S" length count))
     (if (vectorp sequence)
-        (let ((swaps (make-hash-table)))
-          (labels ((value-at (index)
-                     (multiple-value-bind (value present-p) (gethash index swaps)
-                       (if present-p
-                           value
-                           (aref sequence index)))))
-            (loop for index from 0 below count
-                  for pick = (+ index (random-source-random source (- length index)))
-                  for at-index = (value-at index)
-                  for at-pick = (value-at pick)
-                  do (setf (gethash index swaps) at-pick
-                           (gethash pick swaps) at-index)
-                  collect at-pick)))
-        (let ((vector (make-array length)))
-          (replace vector sequence)
-          (loop for index from 0 below count
-                for pick = (+ index (random-source-random source (- length index)))
-                do (rotatef (aref vector index) (aref vector pick)))
-          (loop for index from 0 below count collect (aref vector index))))))
+        (%random-source-sample-vector source sequence length count)
+        (%random-source-sample-list source sequence length count))))
 
 (defun random-source-shuffle (source sequence)
   "Return a freshly shuffled copy of SEQUENCE using SOURCE.

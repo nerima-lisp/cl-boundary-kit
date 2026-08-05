@@ -2,6 +2,14 @@
 
 (in-package #:cl-boundary-kit)
 
+;;; DATA: the recording schema -- the keys every recorded process call carries,
+;;; in recorded order -- kept apart from the assembly LOGIC in
+;;; %PROCESS-CALL-KEYWORDS, which pairs them positionally with its arguments and
+;;; appends :ENVIRONMENT only when the caller supplied one.
+(defparameter +process-recorded-call-keys+
+  '(:arguments :input :directory :output :error-output :timeout)
+  "Keys every recorded process call carries, in recorded order.")
+
 (define-recording-call-log recording-process-calls reset-recording-process-calls
     (boundary (satisfies %recording-process-boundary-p) %process-calls)
     "process boundary")
@@ -12,12 +20,9 @@
   ;; omitted :ENVIRONMENT (inherit) stays distinguishable downstream from an
   ;; explicit empty '() (give the child nothing) all the way to the native
   ;; sb-ext:run-program call -- both would otherwise look identical as NIL.
-  (list* :arguments arguments
-         :input input
-         :directory directory
-         :output output
-         :error-output error-output
-         :timeout timeout
+  (nconc (mapcan #'list
+                 +process-recorded-call-keys+
+                 (list arguments input directory output error-output timeout))
          (when environment-supplied-p (list :environment environment))))
 
 (defun %record-process-call

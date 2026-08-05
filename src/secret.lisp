@@ -33,8 +33,12 @@ INITIAL accepts either an alist or a plist mapping secret names to values. Keys
 are compared with `equal`, and `secret-get` returns a present-p secondary value
 so a stored `nil` is distinguishable from a missing secret."
   (let ((table (make-hash-table :test 'equal)))
-    (dolist (pair (%normalize-kv-initial initial))
-      (setf (gethash (car pair) table) (cdr pair)))
+    (%normalize-pairs-cps
+     initial
+     "INITIAL"
+     (lambda (pairs)
+       (dolist (pair pairs)
+         (setf (gethash (car pair) table) (cdr pair)))))
     (make-instance 'test-secret-store :get-fn nil :table table)))
 
 (define-recording-boundary-constructor make-recording-secret-store

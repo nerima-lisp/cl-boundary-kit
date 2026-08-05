@@ -15,22 +15,6 @@
   ((delegate :initarg :delegate :reader recording-kv-store-delegate)
    (calls :initform '() :accessor %recording-kv-calls)))
 
-(defun %normalize-kv-initial (initial)
-  "Return INITIAL as a list of (key . value) pairs, accepting an alist or plist."
-  (cond
-    ((null initial) '())
-    ((every #'consp initial)
-     (mapcar (lambda (binding) (cons (car binding) (cdr binding))) initial))
-    (t
-     (let ((pairs '())
-           (rest initial))
-       (loop while rest do
-         (unless (consp (cdr rest))
-           (error "INITIAL must be an alist or plist: ~S" initial))
-         (push (cons (first rest) (second rest)) pairs)
-         (setf rest (cddr rest)))
-       (nreverse pairs)))))
-
 (defun make-kv-store (&key get-fn put-fn delete-fn keys-fn)
   "Create a key/value store boundary from the supplied collaborator functions.
 
@@ -56,8 +40,12 @@ INITIAL accepts either an alist or a plist. Keys are compared with `equal`, so
 strings and other compound keys work as expected, and `kv-keys` returns them
 sorted by printed representation for reproducible tests."
   (let ((table (make-hash-table :test 'equal)))
-    (dolist (pair (%normalize-kv-initial initial))
-      (setf (gethash (car pair) table) (cdr pair)))
+    (%normalize-pairs-cps
+     initial
+     "INITIAL"
+     (lambda (pairs)
+       (dolist (pair pairs)
+         (setf (gethash (car pair) table) (cdr pair)))))
     (make-instance 'test-kv-store
                    :get-fn nil :put-fn nil :delete-fn nil :keys-fn nil
                    :table table)))

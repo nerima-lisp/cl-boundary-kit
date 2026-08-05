@@ -35,9 +35,13 @@ HOSTS is an alist or plist mapping each hostname string to a list of address
 strings. `dns-resolve` returns the mapped addresses, and signals for a hostname
 that is not present, mirroring a resolution failure."
   (let ((table (make-hash-table :test 'equal)))
-    (dolist (pair (%normalize-kv-initial hosts))
-      (setf (gethash (require-string (car pair) "DNS hostname") table)
-            (copy-list (%validate-dns-addresses (car pair) (cdr pair)))))
+    (%normalize-pairs-cps
+     hosts
+     "HOSTS"
+     (lambda (pairs)
+       (dolist (pair pairs)
+         (setf (gethash (require-string (car pair) "DNS hostname") table)
+               (copy-list (%validate-dns-addresses (car pair) (cdr pair)))))))
     (make-instance 'test-dns-resolver :resolve-fn nil :hosts table)))
 
 (define-recording-boundary-constructor make-recording-dns-resolver
