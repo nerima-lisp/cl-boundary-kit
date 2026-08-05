@@ -11,12 +11,8 @@
   ((delegate :initarg :delegate :reader recording-args-delegate)
    (calls :initform '() :accessor %recording-args-calls)))
 
-(defun %validate-args-list (arguments)
-  (unless (listp arguments)
-    (error "Command-line arguments must be a list: ~S" arguments))
-  (dolist (argument arguments arguments)
-    (unless (stringp argument)
-      (error "Command-line argument must be a string: ~S" argument))))
+(define-list-validator %validate-args-list arguments "Command-line arguments"
+  (argument (stringp argument) "a string" "Command-line argument"))
 
 (defun %default-command-line-arguments ()
   (host-kit:command-line-arguments))

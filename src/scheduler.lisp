@@ -18,10 +18,9 @@
   ((delegate :initarg :delegate :reader recording-scheduler-delegate)
    (calls :initform '() :accessor %recording-scheduler-calls)))
 
-(defun %validate-schedule-delay (delay)
-  (unless (and (realp delay) (>= delay 0))
-    (error "SCHEDULER-SCHEDULE delay must be a non-negative real number: ~S" delay))
-  delay)
+(define-scalar-validator %validate-schedule-delay delay
+    (and (realp delay) (>= delay 0))
+  "a non-negative real number" "SCHEDULER-SCHEDULE delay")
 
 (defun make-scheduler (&key schedule-fn cancel-fn)
   "Create a scheduler boundary from the injected collaborator functions.

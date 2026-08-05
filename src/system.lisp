@@ -2,10 +2,9 @@
 
 (in-package #:cl-boundary-kit)
 
-(defun %validate-exit-code (code)
-  (unless (and (integerp code) (>= code 0))
-    (error "SYSTEM-EXIT code must be a non-negative integer: ~S" code))
-  code)
+(define-scalar-validator %validate-exit-code code
+    (and (integerp code) (>= code 0))
+  "a non-negative integer" "SYSTEM-EXIT code")
 
 (defun %default-system-exit (code)
   (host-kit:quit code))

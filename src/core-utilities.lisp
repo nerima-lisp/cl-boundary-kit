@@ -33,13 +33,24 @@
          do (progn ,@body)
          finally (return ,result)))
 
-(defmacro define-list-validator (name parameter noun)
+(defmacro define-list-validator (name parameter noun &optional element-spec)
   "Define NAME as a validator that signals an error naming NOUN unless PARAMETER
-is a list, and returns PARAMETER unchanged."
-  `(defun ,name (,parameter)
-     (unless (listp ,parameter)
-       (error ,(format nil "~A must be a list: ~~S" noun) ,parameter))
-     ,parameter))
+is a list, and returns PARAMETER unchanged.
+
+ELEMENT-SPEC, when supplied, additionally checks every element. It has the same
+shape as DEFINE-SCALAR-VALIDATOR's trailing arguments -- (ELEMENT PREDICATE
+DESCRIPTION ELEMENT-NOUN) -- where PREDICATE is a form written in terms of
+ELEMENT and ELEMENT-NOUN names a single element in its error message."
+  (destructuring-bind (&optional element predicate description element-noun) element-spec
+    `(defun ,name (,parameter)
+       (unless (listp ,parameter)
+         (error ,(format nil "~A must be a list: ~~S" noun) ,parameter))
+       ,@(when element-spec
+           `((dolist (,element ,parameter)
+               (unless ,predicate
+                 (error ,(format nil "~A must be ~A: ~~S" element-noun description)
+                        ,element)))))
+       ,parameter)))
 
 (defmacro define-name-validator (name parameter noun)
   "Define NAME as a validator that signals an error naming NOUN unless PARAMETER
@@ -48,6 +59,25 @@ is a non-nil symbol or a string, and returns PARAMETER unchanged."
      (unless (or (stringp ,parameter) (and (symbolp ,parameter) ,parameter))
        (error ,(format nil "~A must be a non-nil symbol or a string: ~~S" noun) ,parameter))
      ,parameter))
+
+(defmacro define-scalar-validator (name parameter predicate description noun)
+  "Define NAME as a validator that signals an error unless PREDICATE holds for
+PARAMETER, and returns PARAMETER unchanged.
+
+PREDICATE is a form written in terms of PARAMETER, so it can be any test rather
+than a single function. DESCRIPTION completes the message NOUN must be
+DESCRIPTION. NOUN is either a string, naming the value in every message, or a
+symbol, which becomes a second required parameter of NAME supplying that name at
+run time."
+  (let ((extra (unless (stringp noun) (list noun))))
+    `(defun ,name (,parameter ,@extra)
+       (unless ,predicate
+         (error ,(if (stringp noun)
+                     (format nil "~A must be ~A: ~~S" noun description)
+                     (format nil "~~A must be ~A: ~~S" description))
+                ,@extra
+                ,parameter))
+       ,parameter)))
 
 (defmacro define-plist-accessor (name parameter key &optional docstring)
   "Define NAME as a reader returning KEY's value from the PARAMETER plist argument."
@@ -146,20 +176,21 @@ cannot corrupt the boundary history."
   event)
 
 (defmacro define-emit-event-boundary-dispatch (class)
-  "Generate the CLOS plumbing shared by every emit-style event boundary.
+  "Generate the classes and CLOS plumbing shared by every emit-style event boundary.
 
 An emit boundary sinks each event three ways depending on its concrete class:
 the plain CLASS forwards through its own emit-fn, TEST-<CLASS> buffers the event
 in memory, and RECORDING-<CLASS> buffers it and then forwards to its delegate.
-This macro emits that dispatch once, deriving every name from CLASS:
+This macro emits the whole boundary once, deriving every name from CLASS:
 
+  * CLASS itself, holding the EMIT-FN slot read by <CLASS>-EMIT-FN;
+  * TEST-<CLASS> and RECORDING-<CLASS>, each holding an event buffer accessed by
+    %<CLASS>-EVENTS, with RECORDING-<CLASS> also holding the DELEGATE slot read
+    by RECORDING-<CLASS>-DELEGATE;
   * a %<CLASS>-EVENTS base method that rejects unsupported boundary types (the
-    reader itself is the slot accessor defined on the test/recording classes);
+    reader itself is the slot accessor on the test/recording classes);
   * the %RESET-<CLASS>-EVENTS generic that clears a buffer's history; and
-  * the %<CLASS>-EMIT-EVENT generic implementing the three-way sink above.
-
-CLASS, TEST-<CLASS>, and RECORDING-<CLASS> must already be defined, along with
-the <CLASS>-EMIT-FN and RECORDING-<CLASS>-DELEGATE readers."
+  * the %<CLASS>-EMIT-EVENT generic implementing the three-way sink above."
   (let* ((name (symbol-name class))
          (package (symbol-package class))
          (test-class (intern (format nil "TEST-~A" name) package))
@@ -171,6 +202,16 @@ the <CLASS>-EMIT-FN and RECORDING-<CLASS>-DELEGATE readers."
          (delegate (intern (format nil "RECORDING-~A-DELEGATE" name) package))
          (unsupported (format nil "Unsupported ~A type: ~~S" (string-downcase name))))
     `(progn
+       (defclass ,class ()
+         ((emit-fn :initarg :emit-fn :reader ,emit-fn)))
+
+       (defclass ,test-class (,class)
+         ((events :initform '() :accessor ,events)))
+
+       (defclass ,recording-class (,class)
+         ((delegate :initarg :delegate :reader ,delegate)
+          (events :initform '() :accessor ,events)))
+
        (defmethod ,events ((,class ,class))
          (error ,unsupported ,class))
 

@@ -2,29 +2,17 @@
 
 (in-package #:cl-boundary-kit)
 
-(defclass metrics ()
-  ((emit-fn :initarg :emit-fn :reader metrics-emit-fn)))
-
-(defclass test-metrics (metrics)
-  ((events :initform '() :accessor %metrics-events)))
-
-(defclass recording-metrics (metrics)
-  ((delegate :initarg :delegate :reader recording-metrics-delegate)
-   (events :initform '() :accessor %metrics-events)))
-
 (define-emit-event-boundary-dispatch metrics)
 
 (define-name-validator %validate-metric-name name "Metric name")
 
-(defun %validate-metric-value (value name)
-  (unless (realp value)
-    (error "~A must be a real number: ~S" name value))
-  value)
+(define-scalar-validator %validate-metric-value value
+    (realp value)
+  "a real number" name)
 
-(defun %validate-metric-timing (milliseconds)
-  (unless (and (realp milliseconds) (>= milliseconds 0))
-    (error "Metric timing milliseconds must be a non-negative real number: ~S" milliseconds))
-  milliseconds)
+(define-scalar-validator %validate-metric-timing milliseconds
+    (and (realp milliseconds) (>= milliseconds 0))
+  "a non-negative real number" "Metric timing milliseconds")
 
 (defun %make-metric-event (type name value)
   (list :type type :name (%copy-boundary-value name) :value value))

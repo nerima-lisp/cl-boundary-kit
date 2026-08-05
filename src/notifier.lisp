@@ -2,16 +2,6 @@
 
 (in-package #:cl-boundary-kit)
 
-(defclass notifier ()
-  ((emit-fn :initarg :emit-fn :reader notifier-emit-fn)))
-
-(defclass test-notifier (notifier)
-  ((events :initform '() :accessor %notifier-events)))
-
-(defclass recording-notifier (notifier)
-  ((delegate :initarg :delegate :reader recording-notifier-delegate)
-   (events :initform '() :accessor %notifier-events)))
-
 (define-emit-event-boundary-dispatch notifier)
 
 (defun %make-notification (recipient subject body)

@@ -2,16 +2,6 @@
 
 (in-package #:cl-boundary-kit)
 
-(defclass publisher ()
-  ((emit-fn :initarg :emit-fn :reader publisher-emit-fn)))
-
-(defclass test-publisher (publisher)
-  ((events :initform '() :accessor %publisher-events)))
-
-(defclass recording-publisher (publisher)
-  ((delegate :initarg :delegate :reader recording-publisher-delegate)
-   (events :initform '() :accessor %publisher-events)))
-
 (define-emit-event-boundary-dispatch publisher)
 
 (define-name-validator %validate-publisher-topic topic "Publisher topic")

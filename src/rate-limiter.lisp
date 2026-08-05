@@ -17,15 +17,13 @@
   ((delegate :initarg :delegate :reader recording-rate-limiter-delegate)
    (calls :initform '() :accessor %recording-rate-limiter-calls)))
 
-(defun %validate-rate-limiter-capacity (capacity)
-  (unless (and (realp capacity) (> capacity 0))
-    (error "Rate limiter capacity must be a positive real number: ~S" capacity))
-  capacity)
+(define-scalar-validator %validate-rate-limiter-capacity capacity
+    (and (realp capacity) (> capacity 0))
+  "a positive real number" "Rate limiter capacity")
 
-(defun %validate-rate-limiter-refill-rate (refill-rate)
-  (unless (and (realp refill-rate) (>= refill-rate 0))
-    (error "Rate limiter refill rate must be a non-negative real number: ~S" refill-rate))
-  refill-rate)
+(define-scalar-validator %validate-rate-limiter-refill-rate refill-rate
+    (and (realp refill-rate) (>= refill-rate 0))
+  "a non-negative real number" "Rate limiter refill rate")
 
 (defun make-rate-limiter (&key allow-fn available-fn)
   "Create a rate limiter boundary from the injected collaborator functions.

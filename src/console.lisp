@@ -16,17 +16,13 @@
   ((delegate :initarg :delegate :reader recording-console-delegate)
    (calls :initform '() :accessor %recording-console-calls)))
 
-(defun %validate-console-stream (stream name)
-  (unless (streamp stream)
-    (error "~A must be a stream: ~S" name stream))
-  stream)
+(define-scalar-validator %validate-console-stream stream
+    (streamp stream)
+  "a stream" name)
 
-(defun %validate-console-input-lines (input-lines)
-  (unless (listp input-lines)
-    (error "Test console input lines must be a list: ~S" input-lines))
-  (dolist (line input-lines input-lines)
-    (unless (stringp line)
-      (error "Test console input line must be a string: ~S" line))))
+(define-list-validator %validate-console-input-lines input-lines
+    "Test console input lines"
+  (line (stringp line) "a string" "Test console input line"))
 
 (defun make-console (&key
                        (input *standard-input*)
