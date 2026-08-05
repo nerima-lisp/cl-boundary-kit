@@ -228,6 +228,15 @@ sub ignored_sb_cover_artifacts {
             next;
         }
 
+        # +UUID-HYPHEN-POSITIONS+'s quoted list value form is a second,
+        # separate load-time artifact beyond the DEFPARAMETER form itself,
+        # the same shape as +FILESYSTEM-WRITE-OPTION-KEYS+ above.
+        if ($source eq 'uuid.lisp'
+            && $line =~ /^\s*'\(4\s+6\s+8\s+10\)/i) {
+            ++$ignored;
+            next;
+        }
+
         # *NETWORK-SENSITIVE-FIELD-NAMES*'s LET/DOLIST/SETF value form runs
         # once at load time to populate the hash table; each sub-form is a
         # separate load-time artifact beyond the DEFPARAMETER form itself.
