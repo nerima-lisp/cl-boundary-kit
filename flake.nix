@@ -188,31 +188,20 @@
             lispSystem = "cl-boundary-kit";
             inherit version;
             src = self;
-            # KNOWN LIMITATION, not fixed here: cl.lispDerivation's own
-            # dependency parameter is lispDependencies (cl-nix-forge's
-            # docs/src/reference/building.md), not lispLibs (the
-            # pkgs.sbcl.buildASDFSystem parameter used above for
-            # cl-weave-runtime/cl-prolog-runtime/cl-host-kit-runtime).
-            # Using lispDependencies here is the documented spelling, but
-            # cl-nix-forge v0.5.0's dependency-deduplication machinery reads
-            # each entry's OWN .ancestry attribute, which only a
-            # cl.lispDerivation-built package carries -- cl-host-kit-runtime
+            # cl.lispDerivation's dependency parameter is lispDependencies,
+            # and every entry must carry a passthru.ancestry attrset (cl-nix-
+            # forge's lib/core/dedup.nix ancestryWalker). cl-host-kit-runtime
             # is built via pkgs.sbcl.buildASDFSystem above, not
-            # cl.lispDerivation, so passing it as lispDependencies makes
-            # `nix flake check`'s evaluation phase fail immediately with
-            # "attribute 'ancestry' missing". lispLibs is silently ignored
-            # by cl.lispDerivation instead, which lets evaluation succeed but
-            # leaves cl-host-kit-runtime off this package's own
-            # CL_SOURCE_REGISTRY, so `nix build .#cl-boundary-kit` fails at
-            # ASDF load time with "Component :CL-HOST-KIT not found,
-            # required by #<SYSTEM \"cl-boundary-kit\">" instead -- a
-            # pre-existing failure on main, unrelated to any change in this
-            # PR. Real fix needs cl-host-kit-runtime rebuilt via
-            # cl.lispDerivation so it carries .ancestry; deferred rather than
-            # attempted here since none of checks.*/apps.* actually build
-            # this package (they all load sources directly via
-            # ci-runner.lisp/run-tests.lisp instead, see the comment below).
-            lispLibs = [ cl-host-kit-runtime ];
+            # cl.lispDerivation, so it has no .ancestry of its own -- wrap it
+            # with cl.fromDerivation (lib/core/external.nix), the documented
+            # adapter for a foreign derivation that gives it a synthetic
+            # ancestry leaf (no-op merge, no further sub-dependencies).
+            lispDependencies = [
+              (cl.fromDerivation {
+                drv = cl-host-kit-runtime;
+                lispImplementation = "sbcl";
+              })
+            ];
           };
           # TEST-SBCL and DEPS-SBCL are identical: every check and app loads
           # CL-BOUNDARY-KIT's own sources fresh from the checkout (via
