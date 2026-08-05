@@ -17,7 +17,7 @@
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
-  :version "2.2.0"
+  :version "2.3.0"
   :homepage "https://github.com/nerima-lisp/cl-boundary-kit"
   :bug-tracker "https://github.com/nerima-lisp/cl-boundary-kit/issues"
   :source-control (:git "https://github.com/nerima-lisp/cl-boundary-kit")
@@ -176,7 +176,7 @@
   (asdf:defsystem "cl-boundary-kit/test"
     :description "Test system for cl-boundary-kit"
     :long-description "Regression tests for the cl-boundary-kit public API, documentation contracts, examples, and the documented checkout test runner."
-    :version "2.2.0"
+    :version "2.3.0"
     :author "takeokunn <bararararatty@gmail.com>"
     :maintainer "takeokunn <bararararatty@gmail.com>"
     :license "MIT"
