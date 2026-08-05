@@ -17,7 +17,11 @@
     #:gen-member
     #:run-all
     #:signals
-    #:with-soft-assertions)
+    #:with-soft-assertions
+    #:before-each
+    #:after-each
+    #:before-all
+    #:after-all)
   (:export #:run-tests))
 
 (in-package #:cl-boundary-kit/test)
@@ -54,14 +58,6 @@
       (expect
         (string= (unsupported-boundary-operation-detail condition) ,detail)
         :to-be-truthy)
-      ,@body)))
-
-(defmacro signals-error-message-contains (needle form &body body)
-  `(handler-case (progn
-      ,form
-      (error "Expected error containing ~S" ,needle))
-    (error (condition)
-      (expect (not (null (search ,needle (princ-to-string condition)))) :to-be-truthy)
       ,@body)))
 
 (defun prolog-special-symbol (name)
