@@ -14,10 +14,9 @@
   ((delegate :initarg :delegate :reader recording-semaphore-delegate)
    (calls :initform '() :accessor %recording-semaphore-calls)))
 
-(defun %validate-semaphore-permits (permits)
-  (unless (and (integerp permits) (>= permits 0))
-    (error "Semaphore permits must be a non-negative integer: ~S" permits))
-  permits)
+(define-scalar-validator %validate-semaphore-permits permits
+    (and (integerp permits) (>= permits 0))
+  "a non-negative integer" "Semaphore permits")
 
 (defun make-semaphore (&key acquire-fn release-fn available-fn)
   "Create a semaphore boundary from the injected collaborator functions.

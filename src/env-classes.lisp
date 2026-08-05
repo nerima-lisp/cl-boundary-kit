@@ -17,9 +17,7 @@
    (list-fn :initarg :list-fn
             :initform nil
             :reader environment-list-fn)
-   (delegate :initarg :delegate
-             :initform nil
-             :reader recording-environment-delegate)
+   (delegate :initarg :delegate :initform nil)
    (calls :initarg :calls
           :initform nil
           :accessor %environment-calls)))

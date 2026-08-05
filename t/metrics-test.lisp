@@ -2,104 +2,99 @@
 
 (in-package #:cl-boundary-kit/test)
 
-(it "make-metrics-forwards-events-to-its-emit-fn-and-returns-them"
-  (let* ((emitted '())
-         (metrics (make-metrics :emit-fn (lambda (event) (push event emitted)))))
-    (let ((event (metrics-count metrics "hits" 3)))
-      (expect (equal (list :type :count :name "hits" :value 3) event) :to-be-truthy)
-      (expect (equal event (first emitted)) :to-be-truthy)
-      (expect (not (eq event (first emitted))) :to-be-truthy))))
+(defvar *test-metrics* nil)
 
-(it "make-metrics-rejects-a-non-function-emit-fn"
-  (signals error
-    (make-metrics :emit-fn :bad)))
+(describe "metrics"
+  (it "make-metrics-forwards-events-to-its-emit-fn-and-returns-them"
+    (let* ((emitted '())
+           (metrics (make-metrics :emit-fn (lambda (event) (push event emitted)))))
+      (let ((event (metrics-count metrics "hits" 3)))
+        (expect event :to-equal (list :type :count :name "hits" :value 3))
+        (expect event :to-equal (first emitted))
+        (expect event :not :to-be (first emitted)))))
 
-(it "test-metrics-records-count-gauge-and-timing-events-in-order"
-  (let ((metrics (make-test-metrics)))
-    (metrics-count metrics "requests" 1)
-    (metrics-gauge metrics "queue-depth" 7)
-    (metrics-timing metrics "request-ms" 42)
-    (expect (equal (recording-metric-events metrics)
-                   (list (list :type :count :name "requests" :value 1)
-                         (list :type :gauge :name "queue-depth" :value 7)
-                         (list :type :timing :name "request-ms" :value 42))) :to-be-truthy)))
-
-(it "metrics-operations-return-an-independent-recorded-event"
-  (let* ((metrics (make-test-metrics))
-         (event (metrics-gauge metrics "depth" 2)))
-    (expect (equal event (first (recording-metric-events metrics))) :to-be-truthy)
-    (expect (not (eq event (first (recording-metric-events metrics)))) :to-be-truthy)))
-
-(it "metrics-reject-invalid-names-values-and-timings"
-  (let ((metrics (make-test-metrics)))
+  (it "make-metrics-rejects-a-non-function-emit-fn"
     (signals error
-      (metrics-count metrics nil 1))
+      (make-metrics :emit-fn :bad))))
+
+(describe "test metrics"
+  (before-each
+    (setf *test-metrics* (make-test-metrics)))
+
+  (it "test-metrics-records-count-gauge-and-timing-events-in-order"
+    (metrics-count *test-metrics* "requests" 1)
+    (metrics-gauge *test-metrics* "queue-depth" 7)
+    (metrics-timing *test-metrics* "request-ms" 42)
+    (expect (recording-metric-events *test-metrics*)
+            :to-equal (list (list :type :count :name "requests" :value 1)
+                            (list :type :gauge :name "queue-depth" :value 7)
+                            (list :type :timing :name "request-ms" :value 42))))
+
+  (it "metrics-operations-return-an-independent-recorded-event"
+    (let ((event (metrics-gauge *test-metrics* "depth" 2)))
+      (expect event :to-equal (first (recording-metric-events *test-metrics*)))
+      (expect event :not :to-be (first (recording-metric-events *test-metrics*)))))
+
+  (it "metrics-reject-invalid-names-values-and-timings"
     (signals error
-      (metrics-gauge metrics "g" :not-a-number))
+      (metrics-count *test-metrics* nil 1))
     (signals error
-      (metrics-timing metrics "t" -1))))
+      (metrics-gauge *test-metrics* "g" :not-a-number))
+    (signals error
+      (metrics-timing *test-metrics* "t" -1)))
 
-(it "metrics-accept-symbol-names"
-  (let ((metrics (make-test-metrics)))
-    (expect (equal (list :type :count :name :hits :value 5)
-                   (metrics-count metrics :hits 5)) :to-be-truthy)))
+  (it "metrics-accept-symbol-names"
+    (expect (metrics-count *test-metrics* :hits 5) :to-equal (list :type :count :name :hits :value 5))))
 
-(it "recording-metrics-records-events-and-forwards-them-to-a-delegate"
-  (let* ((forwarded '())
-         (delegate (make-metrics :emit-fn (lambda (event) (push event forwarded))))
-         (metrics (make-recording-metrics :delegate delegate))
-         (event (metrics-count metrics "hits" 1)))
-    (expect (equal event (first (recording-metric-events metrics))) :to-be-truthy)
-    (expect (equal event (first forwarded)) :to-be-truthy)
-    (expect (not (eq event (first (recording-metric-events metrics)))) :to-be-truthy)
-    (expect (not (eq event (first forwarded))) :to-be-truthy)))
+(describe "recording metrics"
+  (it "recording-metrics-records-events-and-forwards-them-to-a-delegate"
+    (let* ((forwarded '())
+           (delegate (make-metrics :emit-fn (lambda (event) (push event forwarded))))
+           (metrics (make-recording-metrics :delegate delegate))
+           (event (metrics-count metrics "hits" 1)))
+      (expect event :to-equal (first (recording-metric-events metrics)))
+      (expect event :to-equal (first forwarded))
+      (expect event :not :to-be (first (recording-metric-events metrics)))
+      (expect event :not :to-be (first forwarded))))
 
-(it "recording-metric-events-returns-independent-snapshots"
-  (let* ((metrics (make-test-metrics))
-         (event (metrics-count metrics (copy-seq "hits") 3)))
-    (setf (char (getf event :name) 0) #\m
-          (getf event :value) 99)
-    (expect (equal (list (list :type :count :name "hits" :value 3))
-                   (recording-metric-events metrics)) :to-be-truthy)))
+  (it "recording-metric-events-returns-independent-snapshots"
+    (let* ((metrics (make-test-metrics))
+           (event (metrics-count metrics (copy-seq "hits") 3)))
+      (setf (char (getf event :name) 0) #\m
+            (getf event :value) 99)
+      (expect (recording-metric-events metrics) :to-equal (list (list :type :count :name "hits" :value 3)))))
 
-(it "make-recording-metrics-defaults-to-a-no-op-sink"
-  (let ((metrics (make-recording-metrics)))
-    (metrics-count metrics "hits" 1)
-    (expect (= 1 (length (recording-metric-events metrics))) :to-be-truthy)))
+  (it "make-recording-metrics-defaults-to-a-no-op-sink"
+    (let ((metrics (make-recording-metrics)))
+      (metrics-count metrics "hits" 1)
+      (expect (recording-metric-events metrics) :to-have-length 1)))
 
-(it "make-recording-metrics-rejects-a-non-metrics-delegate"
-  (signals error
-    (make-recording-metrics :delegate :bad)))
+  (it "make-recording-metrics-rejects-a-non-metrics-delegate"
+    (signals error
+      (make-recording-metrics :delegate :bad))))
 
-(it-each ((recording-metric-events)
-          (reset-recording-metric-events))
-    "~A signals for unsupported metrics types"
-    (operation)
-  (expect (lambda () (funcall operation (make-metrics)))
-          :to-signal-message-containing "Unsupported metrics type"))
+(describe "recording-metric-events and reset"
+  (before-each
+    (setf *test-metrics* (make-test-metrics)))
 
-(it "reset-recording-metric-events-clears-history-and-returns-the-metrics"
-  (let ((metrics (make-test-metrics)))
-    (metrics-count metrics "hits" 1)
-    (expect (= 1 (length (recording-metric-events metrics))) :to-be-truthy)
-    (expect (eq metrics (reset-recording-metric-events metrics)) :to-be-truthy)
-    (expect (null (recording-metric-events metrics)) :to-be-truthy)))
+  (it-each ((recording-metric-events)
+            (reset-recording-metric-events))
+      "~A signals for unsupported metrics types"
+      (operation)
+    (expect (lambda () (funcall operation (make-metrics))) :to-throw "Unsupported metrics type"))
 
-(it "metrics-increment-emits-a-counter-of-one"
-  (let ((metrics (make-test-metrics)))
-    (expect (equal (list :type :count :name "hits" :value 1)
-                   (metrics-increment metrics "hits")) :to-be-truthy)
-    (expect (= 1 (length (recording-metric-events metrics))) :to-be-truthy)))
+  (it "reset-recording-metric-events-clears-history-and-returns-the-metrics"
+    (metrics-count *test-metrics* "hits" 1)
+    (expect (recording-metric-events *test-metrics*) :to-have-length 1)
+    (expect (reset-recording-metric-events *test-metrics*) :to-be *test-metrics*)
+    (expect (recording-metric-events *test-metrics*) :to-be-null))
 
-(it "reset-recording-metric-events-clears-a-test-metrics-history"
-  (let ((metrics (make-test-metrics)))
-    (metrics-count metrics "hits" 1)
-    (expect (= 1 (length (recording-metric-events metrics))) :to-be-truthy)
-    (expect (eq metrics (reset-recording-metric-events metrics)) :to-be-truthy)
-    (expect (null (recording-metric-events metrics)) :to-be-truthy)))
+  (it "metrics-increment-emits-a-counter-of-one"
+    (expect (metrics-increment *test-metrics* "hits") :to-equal (list :type :count :name "hits" :value 1))
+    (expect (recording-metric-events *test-metrics*) :to-have-length 1))
 
-(it "reset-recording-metric-events-clears-a-recording-metrics-history"
-  (let ((metrics (make-recording-metrics)))
-    (metrics-count metrics "hits" 1)
-    (expect (eq metrics (reset-recording-metric-events metrics)) :to-be-truthy)
-    (expect (null (recording-metric-events metrics)) :to-be-truthy)))
+  (it "reset-recording-metric-events-clears-a-recording-metrics-history"
+    (let ((metrics (make-recording-metrics)))
+      (metrics-count metrics "hits" 1)
+      (expect (reset-recording-metric-events metrics) :to-be metrics)
+      (expect (recording-metric-events metrics) :to-be-null))))

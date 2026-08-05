@@ -1,7 +1,7 @@
 # Documentation Scope
 
 The public contract is intentionally narrow. The current supported release
-series is `2.0.x`:
+series is `2.1.x`:
 
 - The exported symbols listed across the [Guide](../guide/composition.md) pages define
   the current library surface.

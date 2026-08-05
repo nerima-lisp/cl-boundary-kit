@@ -59,20 +59,34 @@
 
 (defun api-test-suite-file-paths ()
   '("t/api-test.lisp"
-    "t/api-doc-claims-test.lisp"
     "t/api-doc-claims-foundation-test.lisp"
     "t/api-doc-claims-readme-test.lisp"
-    "t/api-doc-links-test.lisp"
     "t/api-doc-links-foundation-test.lisp"
     "t/api-doc-links-documents-test.lisp"
     "t/api-doc-links-readme-test.lisp"
-    "t/api-executable-docs-test.lisp"))
+    "t/api-executable-docs-readme-test.lisp"
+    "t/api-executable-docs-contributing-test.lisp"
+    "t/api-executable-docs-cookbook-test.lisp"))
 
 (defun api-test-suite-string ()
   (with-output-to-string (out)
     (dolist (path (api-test-suite-file-paths))
       (write-string (repository-file-string path) out)
       (terpri out))))
+
+(defun api-test-defined-p (name suite)
+  "True when SUITE defines a test called NAME, matching either an (it \"name\" ...)
+form or a bare-symbol clause head in one of the define-*-tests macros. Matching a
+definition shape rather than the bare name is what keeps this honest: SUITE also
+contains the caller assertion lists, whose entries are quoted, so a plain name
+search would be satisfied by the assertion asking the question."
+  (or (contains-string-p (format nil "(it \"~A\"" name) suite)
+      (contains-string-p (format nil "(~A" name) suite)))
+
+(defun assert-api-tests-defined (names)
+  (let ((suite (api-test-suite-string)))
+    (dolist (name names t)
+      (expect (api-test-defined-p name suite) :to-be-truthy))))
 
 (defun readme-testing-child-process-p ()
   (not (null (member :cl-boundary-kit-verify-readme-testing *features*))))

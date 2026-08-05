@@ -2,6 +2,14 @@
 
 (in-package #:cl-boundary-kit)
 
+;;; DATA: the values the default host readers report when the host cannot
+;;; answer, kept apart from the lookup LOGIC below.
+(defparameter +host-info-unknown-username+ "unknown"
+  "User name reported when the host exposes none.")
+
+(defconstant +host-info-unknown-pid+ 0
+  "Process id reported when no process-id accessor is available.")
+
 (defclass host-info ()
   ((hostname-fn :initarg :hostname-fn :reader host-info-hostname-fn)
    (username-fn :initarg :username-fn :reader host-info-username-fn)
@@ -17,20 +25,20 @@
    (calls :initform '() :accessor %recording-host-info-calls)))
 
 (defun %default-host-username ()
-  (or (host-kit:user-name) "unknown"))
+  (or (host-kit:user-name) +host-info-unknown-username+))
 
 (defun %default-host-pid ()
   ;; SB-POSIX:GETPID resolved at call time so this file loads without SB-POSIX;
-  ;; falls back to 0 when no process-id accessor is available. cl-host-kit
-  ;; itself depends on SB-POSIX but does not expose a PID reader.
+  ;; falls back to +HOST-INFO-UNKNOWN-PID+ when no process-id accessor is
+  ;; available. cl-host-kit itself depends on SB-POSIX but does not expose a PID
+  ;; reader.
   (let ((getpid (and (find-package "SB-POSIX")
                      (find-symbol "GETPID" "SB-POSIX"))))
-    (if getpid (funcall getpid) 0)))
+    (if getpid (funcall getpid) +host-info-unknown-pid+)))
 
-(defun %validate-pid (pid)
-  (unless (and (integerp pid) (>= pid 0))
-    (error "Process id must be a non-negative integer: ~S" pid))
-  pid)
+(define-scalar-validator %validate-pid pid
+    (and (integerp pid) (>= pid 0))
+  "a non-negative integer" "Process id")
 
 (defun make-host-info (&key
                          (hostname-fn #'host-kit:hostname)

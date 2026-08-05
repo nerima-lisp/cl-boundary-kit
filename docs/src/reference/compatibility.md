@@ -5,8 +5,9 @@
 The repository exercises these workflows through checked-in verification.
 
 - Provides a pinned Nix test path through `nix run .#test`
-- Emits pinned Nix apps and checks for `x86_64-linux` only;
-  the Ubuntu CI workflow is the canonical verification path
+- Emits pinned Nix apps and checks for `x86_64-linux` and `aarch64-darwin`;
+  only `x86_64-linux` is CI-gated, and the Ubuntu CI workflow is the canonical
+  verification path
 - Exercises the supported host flake check set through `nix flake check`,
   including the checkout runner, a `cl-weave` JSON report, and a 100% coverage
   threshold

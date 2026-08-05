@@ -37,6 +37,40 @@ The library keeps a few constraints stable across subsystems:
 
 These principles matter more than adding new convenience wrappers.
 
+## Macro Consolidation
+
+Repeated shapes are pushed into `defmacro` in `src/core-utilities.lisp` rather
+than hand-copied per subsystem: `define-scalar-validator` and
+`define-list-validator` generate the `%validate-*` guard functions every
+constructor calls before wiring a boundary together, and
+`define-emit-event-boundary-dispatch` generates the class triple (`CLASS`,
+`TEST-<CLASS>`, `RECORDING-<CLASS>`) plus dispatch methods for the
+emit-event-shaped boundaries (metrics, notifier, publisher). A validator or
+emit-event boundary should reach for the existing macro before writing a new
+hand-rolled guard or defclass triple; only a validator whose return value
+isn't its own input, or whose element check isn't a bare predicate, has
+outgrown what the macros model and needs its own hand-written function.
+
+## CPS Convention
+
+Continuation-passing style is used where a boundary's own logic already
+threads a producer through a shared normalization or dispatch step, not
+applied uniformly across the codebase. The canonical example is
+`%normalize-pairs-cps` in `src/filesystem-fakes-normalize.lisp`, which turns a
+null/alist/plist input into `(key . value)` pairs and hands them to a
+`continuation` function; `src/dns.lisp`, `src/kv.lisp`, `src/cache.lisp`,
+`src/secret.lisp`, and `src/env-helpers.lisp` all normalize their initial
+bindings through it (some via a thin direct-style, `#'identity`-continuation
+wrapper where a caller genuinely only wants the immediate value back).
+`%run-native-process/cps` in `src/process-exec-helpers.lisp` is the other
+real user, threading a continuation through the deadline-sharing timeout path
+of the native process runner. CPS is not used for simple two-step read/write
+or loop-shaped logic (for example `cache-fetch`, `kv-get-or-put`, or the
+filesystem copy loop) where a continuation parameter would add ceremony
+without a real producer/consumer relationship to thread through -- forcing it
+there would work against the "human readable" and "avoid convenience
+wrappers" principles above.
+
 ## File Responsibilities
 
 - `src/package.lisp` exports the supported public API
@@ -61,9 +95,9 @@ These principles matter more than adding new convenience wrappers.
 - `src/testing.lisp`, `src/testing-helpers.lisp`, `src/testing-queries.lisp`,
   and `src/testing-events.lisp` expose lightweight test assertions and
   recorded-call/event query helpers
-- `t/api-test.lisp`, `t/api-doc-claims-test.lisp`, `t/api-doc-links-test.lisp`,
-  `t/api-doc-links-documents-test.lisp`, `t/api-executable-docs-test.lisp`, and
-  `t/examples-test.lisp` protect documentation and example contracts
+- `t/api-test.lisp`, the `t/api-doc-*-test.lisp` and
+  `t/api-executable-docs-*-test.lisp` split suites, and `t/examples-test.lisp`
+  protect documentation and example contracts
 
 Changes that move responsibilities across these layers should update this
 document, `README.md`, and the executable tests in the same change.

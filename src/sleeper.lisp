@@ -11,10 +11,9 @@
   ((delegate :initarg :delegate :reader recording-sleeper-delegate)
    (calls :initform '() :accessor %recording-sleeper-calls)))
 
-(defun %validate-sleep-seconds (seconds)
-  (unless (and (realp seconds) (>= seconds 0))
-    (error "SLEEPER-SLEEP seconds must be a non-negative real number: ~S" seconds))
-  seconds)
+(define-scalar-validator %validate-sleep-seconds seconds
+    (and (realp seconds) (>= seconds 0))
+  "a non-negative real number" "SLEEPER-SLEEP seconds")
 
 (defun make-sleeper (&key (sleep-fn #'sleep))
   "Create a sleeper boundary backed by SLEEP-FN.

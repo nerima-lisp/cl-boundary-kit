@@ -118,6 +118,33 @@ sub ignored_sb_cover_artifacts {
         if ($line =~ /^\s*\(\s*([a-z][a-z0-9-]*)\b/i) {
             my $keyword = lc $1;
             if ($load_time_declaration{$keyword}) {
+                # TEMP-PATH.LISP's +TEMP-PATH-RANDOM-LIMIT+ and
+                # +TEMP-PATH-RANDOM-HEX-DIGITS+ compute their value with a
+                # compound expression on the same source line as the
+                # DEFCONSTANT keyword itself (e.g. "(defconstant +name+ (ash
+                # 1 +other-const+))"). SB-COVER records that value expression
+                # as its own artifact beyond the DEFCONSTANT form, the same
+                # shape as CORE.LISP's multi-clause DECLAIM below, so this
+                # line needs two exclusions, not the generic rule's flat one.
+                if ($source eq 'temp-path.lisp'
+                    && $keyword eq 'defconstant'
+                    && $line =~ /^\s*\(defconstant\s+\+temp-path-random-(?:limit|hex-digits)\+\s+\(/i) {
+                    $ignored += 2;
+                    next;
+                }
+
+                # +UUID-HYPHEN-POSITIONS+'s quoted list value shares its
+                # DEFPARAMETER keyword's own source line (unlike
+                # +FILESYSTEM-WRITE-OPTION-KEYS+/+PROCESS-RECORDED-CALL-KEYS+
+                # above, whose value forms are on their own following line),
+                # so it needs the same two-artifacts-one-line handling as
+                # TEMP-PATH.LISP's compound DEFCONSTANTs above.
+                if ($source eq 'uuid.lisp'
+                    && $keyword eq 'defparameter'
+                    && $line =~ /^\s*\(defparameter\s+\+uuid-hyphen-positions\+\s+'\(/i) {
+                    $ignored += 2;
+                    next;
+                }
                 ++$ignored;
                 next;
             }
@@ -204,6 +231,16 @@ sub ignored_sb_cover_artifacts {
             ++$ignored;
             next;
         }
+
+        # +PROCESS-RECORDED-CALL-KEYS+'s quoted list value form is a second,
+        # separate load-time artifact beyond the DEFPARAMETER form itself,
+        # the same shape as +FILESYSTEM-WRITE-OPTION-KEYS+ above.
+        if ($source eq 'process-recording.lisp'
+            && $line =~ /^\s*'\(:arguments\s+:input\s+:directory\s+:output\s+:error-output\s+:timeout\)/i) {
+            ++$ignored;
+            next;
+        }
+
 
         # *NETWORK-SENSITIVE-FIELD-NAMES*'s LET/DOLIST/SETF value form runs
         # once at load time to populate the hash table; each sub-form is a
@@ -298,7 +335,7 @@ sub ignored_sb_cover_artifacts {
         # $SLOT_INITARG_LINES_SEEN already reflects whether this SBCL
         # version marks those slot lines state-2 at all.
         if ($source eq 'temp-path.lisp'
-            && $line =~ /^\s*\((?:directory|prefix|suffix|counter|next-fn|paths|delegate|calls)\s+:(?:initarg|initform)\b/i) {
+            && $line =~ /^\s*\(+(?:directory|prefix|suffix|counter|next-fn|paths|delegate|calls)\s+:(?:initarg|initform)\b/i) {
             ++$ignored;
             $slot_initarg_lines_seen = 1;
             next;

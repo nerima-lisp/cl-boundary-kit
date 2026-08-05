@@ -90,18 +90,7 @@ but drops the present-p secondary value for callers that never need it."
   (nth-value 0 (%plist-ref-values plist key default)))
 
 (defun %normalize-environment-values (initial-values)
-  (cond
-    ((null initial-values)
-     nil)
-    ((every #'consp initial-values)
-     initial-values)
-    (t
-     (let ((entries nil))
-       (loop for rest on initial-values by #'cddr
-             do (when (null (cdr rest))
-                  (error "INITIAL-VALUES must be an alist or plist: ~S" initial-values))
-             do (push (cons (car rest) (cadr rest)) entries))
-       (nreverse entries)))))
+  (%normalize-pairs-cps initial-values "INITIAL-VALUES" #'identity))
 
 (defun %sorted-environment-entries-from-table (table)
   (let ((entries nil))

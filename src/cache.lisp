@@ -47,8 +47,12 @@ compared with `equal`. Pass `(lambda () (clock-now a-clock))` as NOW-FN to drive
 expiry from a fake clock."
   (require-function now-fn "NOW-FN")
   (let ((table (make-hash-table :test 'equal)))
-    (dolist (pair (%normalize-kv-initial initial))
-      (setf (gethash (car pair) table) (cons (cdr pair) nil)))
+    (%normalize-pairs-cps
+     initial
+     "INITIAL"
+     (lambda (pairs)
+       (dolist (pair pairs)
+         (setf (gethash (car pair) table) (cons (cdr pair) nil)))))
     (make-instance 'test-cache :get-fn nil :put-fn nil :evict-fn nil
                                :table table :now-fn now-fn)))
 

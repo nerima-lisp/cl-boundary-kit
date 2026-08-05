@@ -94,6 +94,28 @@ resolve to absolute paths unless callers explicitly opt in to PATH lookup.")
                              environment-supplied-p output error-output timeout
                              #'identity)))
 
+(defun %capture-thread-output (thread deadline)
+  "Join THREAD against what remains of DEADLINE, as (values OUTPUT TIMED-OUT-P)."
+  (%join-capturing-thread thread :timeout (%deadline-remaining-seconds deadline)))
+
+(defun %capture-process-output (process stdout-thread stderr-thread deadline)
+  "Join both capture threads within DEADLINE and return (values STDOUT STDERR).
+
+Both joins run to completion before any escalation, so a stream that finishes
+in time is never abandoned because its sibling hung."
+  (multiple-value-bind (stdout stdout-timed-out-p)
+      (%capture-thread-output stdout-thread deadline)
+    (multiple-value-bind (stderr stderr-timed-out-p)
+        (%capture-thread-output stderr-thread deadline)
+      (when (or stdout-timed-out-p stderr-timed-out-p)
+        ;; A descendant can retain the pipe after its parent exits.
+        (%close-process-streams process)
+        (when stdout-timed-out-p
+          (setf stdout (%terminate-capturing-thread stdout-thread)))
+        (when stderr-timed-out-p
+          (setf stderr (%terminate-capturing-thread stderr-thread))))
+      (values stdout stderr))))
+
 (defun %run-native-process/cps (program input directory environment environment-supplied-p
                                output error-output timeout continuation)
   (let ((process (apply #'sb-ext:run-program
@@ -111,24 +133,11 @@ resolve to absolute paths unless callers explicitly opt in to PATH lookup.")
           (let* ((deadline (%deadline-seconds timeout))
                  (timed-out (%wait-for-process-with-deadline process deadline))
                  (exit-code (sb-ext:process-exit-code process)))
-            (multiple-value-bind (stdout stdout-timed-out-p)
-                (%join-capturing-thread
-                 stdout-thread
-                 :timeout (%deadline-remaining-seconds deadline))
-              (multiple-value-bind (stderr stderr-timed-out-p)
-                  (%join-capturing-thread
-                   stderr-thread
-                   :timeout (%deadline-remaining-seconds deadline))
-                (when (or stdout-timed-out-p stderr-timed-out-p)
-                  ;; A descendant can retain the pipe after its parent exits.
-                  (%close-process-streams process)
-                  (when stdout-timed-out-p
-                    (setf stdout (%terminate-capturing-thread stdout-thread)))
-                  (when stderr-timed-out-p
-                    (setf stderr (%terminate-capturing-thread stderr-thread))))
-                (funcall continuation
-                         (%make-native-process-result
-                          program stdout stderr exit-code timed-out))))))
+            (multiple-value-bind (stdout stderr)
+                (%capture-process-output process stdout-thread stderr-thread deadline)
+              (funcall continuation
+                       (%make-native-process-result
+                        program stdout stderr exit-code timed-out)))))
       ;; An early exit above (e.g. a capture thread failing to start) skips
       ;; %WAIT-FOR-PROCESS-WITH-DEADLINE entirely, so the child would
       ;; otherwise be left running as an untracked orphan: closing its

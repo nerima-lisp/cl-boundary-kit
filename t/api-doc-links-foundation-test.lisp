@@ -68,14 +68,13 @@
 
 (it "compatibility-verification-scope-stays-backed-by-executable-contracts"
   (let* ((compatibility (repository-file-string "docs/src/reference/compatibility.md"))
-         (api-tests (api-test-suite-string))
          (example-tests (repository-file-string "t/examples-runtime-test.lisp"))
          (example-helpers (repository-file-string "t/helpers-examples.lisp"))
          (installation-snippet (single-document-fenced-code-block
                                  "docs/src/getting-started.md" "# Getting Started" "## Nix" "lisp"))
          (testing-repl-snippet (single-document-fenced-code-block
                                  "docs/src/project/development.md" "## Running the Test Suite" nil "lisp")))
-    (assert-contains-all compatibility (quote ("Provides a pinned Nix test path through `nix run .#test`" "Emits pinned Nix apps and checks for `x86_64-linux` only" "Exercises the supported host flake check set through `nix flake check`" "Does not require Quicklisp when using the Nix flake" "Supports direct `sbcl --script run-tests.lisp` execution" "Hosts outside the emitted flake systems can run the library when their implementation and dependencies satisfy the documented API requirements" "docs/src installation, quick-start, and test commands" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL" "successful completion" "exit status 0" "checked-in `examples/*.lisp` files against a fresh" "Treats the exported symbol list documented across the [Guide](../guide/composition.md)")))
+    (assert-contains-all compatibility (quote ("Provides a pinned Nix test path through `nix run .#test`" "Emits pinned Nix apps and checks for `x86_64-linux` and `aarch64-darwin`" "only `x86_64-linux` is CI-gated" "Exercises the supported host flake check set through `nix flake check`" "Does not require Quicklisp when using the Nix flake" "Supports direct `sbcl --script run-tests.lisp` execution" "Hosts outside the emitted flake systems can run the library when their implementation and dependencies satisfy the documented API requirements" "docs/src installation, quick-start, and test commands" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL" "successful completion" "exit status 0" "checked-in `examples/*.lisp` files against a fresh" "Treats the exported symbol list documented across the [Guide](../guide/composition.md)")))
     (assert-contains-all (single-document-fenced-code-block
                           "docs/src/project/development.md" "## Running the Test Suite" nil "sh")
                          '("nix run .#test"))
@@ -85,19 +84,18 @@
     (assert-contains-all testing-repl-snippet
                          '("(asdf:load-system :cl-boundary-kit/test)"
                            "(cl-boundary-kit/test:run-tests)"))
-    (assert-contains-all api-tests
-                         '("readme-installation-and-quick-start-flow-is-executable"
-                           "readme-testing-section-repl-snippet-is-executable"
-                           "readme-testing-section-repl-snippet-uses-documented-test-runner"
-                           "public-api-is-exported-intentionally"
-                           "readme-examples-index-covers-the-example-files"))
+    (assert-api-tests-defined
+     '("readme-installation-and-quick-start-flow-is-executable"
+       "readme-testing-section-repl-snippet-is-executable"
+       "readme-testing-section-repl-snippet-uses-documented-test-runner"
+       "public-api-is-exported-intentionally"
+       "readme-examples-index-covers-the-example-files"))
     (assert-contains-all example-helpers '("run-example-in-fresh-sbcl"))
     (assert-contains-all example-tests '("documented-examples-have-output-checks"))))
 
 (it "release-evidence-and-compatibility-scope-stay-aligned"
   (let* ((release (repository-file-string "docs/src/project/release-process.md"))
          (compatibility (repository-file-string "docs/src/reference/compatibility.md"))
-         (api-tests (api-test-suite-string))
          (example-helpers (repository-file-string "t/helpers-examples.lisp")))
     (assert-contains-all release
                          '("the checkout installation flow"
@@ -109,12 +107,12 @@
                            "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)` from a fresh SBCL"
                            "checked-in `examples/*.lisp` files against a fresh"
                            "cookbook snippets and documentation contracts"))
-    (assert-contains-all api-tests
-                         '("readme-installation-snippet-loads-system-from-a-checkout"
-                           "readme-testing-section-repl-snippet-uses-documented-test-runner"
-                           "cookbook-compose-boundaries-snippet-is-executable"
-                           "cookbook-recorded-boundary-snippet-is-executable"
-                           "cookbook-unsupported-operation-snippet-is-executable"
-                           "readme-api-overview-covers-the-exported-surface"
-                           "public-subsystems-have-dedicated-regression-suites"))
+    (assert-api-tests-defined
+     '("readme-installation-snippet-loads-system-from-a-checkout"
+       "readme-testing-section-repl-snippet-uses-documented-test-runner"
+       "cookbook-compose-boundaries-snippet-is-executable"
+       "cookbook-recorded-boundary-snippet-is-executable"
+       "cookbook-unsupported-operation-snippet-is-executable"
+       "readme-api-overview-covers-the-exported-surface"
+       "public-subsystems-have-dedicated-regression-suites"))
     (assert-contains-all example-helpers '("run-example-in-fresh-sbcl"))))

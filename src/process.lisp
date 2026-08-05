@@ -2,6 +2,6 @@
 
 (in-package #:cl-boundary-kit)
 
-(defparameter +process-boundary-type+ :process-boundary)
-(defparameter +test-process-boundary-type+ :test-process-boundary)
-(defparameter +recording-process-boundary-type+ :recording-process-boundary)
+(defconstant +process-boundary-type+ :process-boundary)
+(defconstant +test-process-boundary-type+ :test-process-boundary)
+(defconstant +recording-process-boundary-type+ :recording-process-boundary)

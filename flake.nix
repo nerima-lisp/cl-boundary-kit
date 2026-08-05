@@ -7,30 +7,37 @@
     # cl-weave is the deepest sibling, so it owns the single paredit-cli (and
     # therefore the single rust-overlay) node that every other sibling follows.
     cl-weave = {
-      url = "github:nerima-lisp/cl-weave/v1.1.4";
+      url = "github:nerima-lisp/cl-weave/v1.3.0";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.cl-nix-forge.follows = "cl-nix-forge";
+      inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
     cl-prolog = {
-      url = "github:nerima-lisp/cl-prolog/v1.3.0";
+      url = "github:nerima-lisp/cl-prolog/v1.4.3";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.cl-weave.follows = "cl-weave";
       inputs.paredit-cli.follows = "cl-weave/paredit-cli";
+      inputs.cl-nix-forge.follows = "cl-nix-forge";
+      inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
     # cl-boundary-kit's own real-boundary backend for host process
     # interaction, adopted directly (no adapter layer) rather than
     # hand-rolled per-boundary implementations.
     cl-host-kit = {
-      url = "github:nerima-lisp/cl-host-kit/v0.2.5";
+      url = "github:nerima-lisp/cl-host-kit/v0.3.1";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.cl-weave.follows = "cl-weave";
+      inputs.cl-nix-forge.follows = "cl-nix-forge";
+      inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
     # crane for Common Lisp/ASDF: builds cl-weave-runtime, cl-prolog-runtime,
     # and cl-boundary-kit itself as lispDerivations instead of hand-rolled
     # pkgs.sbcl.buildASDFSystem calls.
     cl-nix-forge = {
-      url = "github:nerima-lisp/cl-nix-forge/v0.4.0";
+      url = "github:nerima-lisp/cl-nix-forge/v0.5.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -181,6 +188,30 @@
             lispSystem = "cl-boundary-kit";
             inherit version;
             src = self;
+            # KNOWN LIMITATION, not fixed here: cl.lispDerivation's own
+            # dependency parameter is lispDependencies (cl-nix-forge's
+            # docs/src/reference/building.md), not lispLibs (the
+            # pkgs.sbcl.buildASDFSystem parameter used above for
+            # cl-weave-runtime/cl-prolog-runtime/cl-host-kit-runtime).
+            # Using lispDependencies here is the documented spelling, but
+            # cl-nix-forge v0.5.0's dependency-deduplication machinery reads
+            # each entry's OWN .ancestry attribute, which only a
+            # cl.lispDerivation-built package carries -- cl-host-kit-runtime
+            # is built via pkgs.sbcl.buildASDFSystem above, not
+            # cl.lispDerivation, so passing it as lispDependencies makes
+            # `nix flake check`'s evaluation phase fail immediately with
+            # "attribute 'ancestry' missing". lispLibs is silently ignored
+            # by cl.lispDerivation instead, which lets evaluation succeed but
+            # leaves cl-host-kit-runtime off this package's own
+            # CL_SOURCE_REGISTRY, so `nix build .#cl-boundary-kit` fails at
+            # ASDF load time with "Component :CL-HOST-KIT not found,
+            # required by #<SYSTEM \"cl-boundary-kit\">" instead -- a
+            # pre-existing failure on main, unrelated to any change in this
+            # PR. Real fix needs cl-host-kit-runtime rebuilt via
+            # cl.lispDerivation so it carries .ancestry; deferred rather than
+            # attempted here since none of checks.*/apps.* actually build
+            # this package (they all load sources directly via
+            # ci-runner.lisp/run-tests.lisp instead, see the comment below).
             lispLibs = [ cl-host-kit-runtime ];
           };
           # TEST-SBCL and DEPS-SBCL are identical: every check and app loads
@@ -339,9 +370,16 @@
           pkgs = nixpkgs.legacyPackages.${system};
         in
         {
+          # deps-sbcl bundles cl-weave/cl-prolog/cl-host-kit via
+          # withPackages, matching what checks.* load this checkout against
+          # (flake.nix's TEST-SBCL/DEPS-SBCL comment above). A bare pkgs.sbcl
+          # here left `nix develop` unable to resolve `(asdf:load-system
+          # :cl-weave)`, silently breaking the `nix develop` + `sbcl --script
+          # run-tests.lisp` workflow docs/src/project/development.md and
+          # README.md document as supported.
           default = pkgs.mkShell {
             packages = [
-              pkgs.sbcl
+              self.packages.${system}.deps-sbcl
             ];
             CL_SOURCE_REGISTRY = sourceRegistry;
           };

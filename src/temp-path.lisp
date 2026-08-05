@@ -2,6 +2,21 @@
 
 (in-package #:cl-boundary-kit)
 
+;;; DATA: the temp-path allocation budget and name entropy, kept apart from the
+;;; retry LOGIC in %RANDOM-TEMP-PATH. The printed hex width is derived from the
+;;; bit width rather than restated, so the two cannot drift apart.
+(defconstant +temp-path-attempt-limit+ 256
+  "Candidate names %RANDOM-TEMP-PATH tries before giving up on a directory.")
+
+(defconstant +temp-path-random-bits+ 128
+  "Random bits in a generated temp-path name.")
+
+(defconstant +temp-path-random-limit+ (ash 1 +temp-path-random-bits+)
+  "Exclusive upper bound of a generated temp-path name's random value.")
+
+(defconstant +temp-path-random-hex-digits+ (floor +temp-path-random-bits+ 4)
+  "Hex digits the random value is zero-padded to, one per four random bits.")
+
 (defclass temp-path-source ()
   ((next-fn :initarg :next-fn :reader temp-path-source-next-fn)))
 
@@ -41,11 +56,12 @@
 (defun %random-temp-path (directory prefix suffix state)
   ;; This still returns a candidate path rather than atomically creating a file,
   ;; but it avoids returning an already-existing candidate from normal use.
-  (loop repeat 256
+  (loop repeat +temp-path-attempt-limit+
         for path = (%temp-path-under directory
-                                     (format nil "~A-~(~32,'0x~)~A"
+                                     (format nil "~A-~(~V,'0x~)~A"
                                              prefix
-                                             (random (ash 1 128) state)
+                                             +temp-path-random-hex-digits+
+                                             (random +temp-path-random-limit+ state)
                                              suffix))
         unless (probe-file path)
           return path

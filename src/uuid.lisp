@@ -2,6 +2,33 @@
 
 (in-package #:cl-boundary-kit)
 
+;;; DATA: the RFC 4122 version-4 layout -- byte count, the two fixed nibble
+;;; edits, and the hyphen positions -- kept apart from the byte-shuffling LOGIC
+;;; in %UUID-V4-STRING so the wire format reads as a specification.
+(defconstant +uuid-byte-length+ 16
+  "Octets in a UUID: 128 bits laid out as 16 bytes.")
+
+(defconstant +uuid-version-byte-index+ 6
+  "Byte carrying the version nibble.")
+
+(defconstant +uuid-version-4-nibble+ #x40
+  "Version nibble ORed into the version byte, marking the UUID as version 4.")
+
+(defconstant +uuid-version-nibble-mask+ #x0f
+  "Bits of the version byte left random once the version nibble is set.")
+
+(defconstant +uuid-variant-byte-index+ 8
+  "Byte carrying the variant bits.")
+
+(defconstant +uuid-variant-rfc-4122-bits+ #x80
+  "Variant bits ORed into the variant byte, marking the UUID as RFC 4122.")
+
+(defconstant +uuid-variant-bits-mask+ #x3f
+  "Bits of the variant byte left random once the variant bits are set.")
+
+(defparameter +uuid-hyphen-positions+ '(4 6 8 10)
+  "Byte indexes a hyphen precedes in the 8-4-4-4-12 textual form.")
+
 (defclass uuid-source ()
   ((generate-fn :initarg :generate-fn :reader uuid-source-generate-fn)))
 
@@ -21,33 +48,36 @@
   ;; RFC 4122 version-4 UUID. Tests never reach this path -- they use the
   ;; sequential or queue-backed doubles below -- so relying on the global
   ;; *RANDOM-STATE* here is the intended real-world effect, not hidden fallback.
-  (let ((bytes (make-array 16 :element-type '(unsigned-byte 8))))
-    (dotimes (index 16)
+  (let ((bytes (make-array +uuid-byte-length+ :element-type '(unsigned-byte 8))))
+    (dotimes (index +uuid-byte-length+)
       (setf (aref bytes index) (random 256)))
-    (setf (aref bytes 6) (logior #x40 (logand (aref bytes 6) #x0f)))
-    (setf (aref bytes 8) (logior #x80 (logand (aref bytes 8) #x3f)))
+    (setf (aref bytes +uuid-version-byte-index+)
+          (logior +uuid-version-4-nibble+
+                  (logand (aref bytes +uuid-version-byte-index+)
+                          +uuid-version-nibble-mask+)))
+    (setf (aref bytes +uuid-variant-byte-index+)
+          (logior +uuid-variant-rfc-4122-bits+
+                  (logand (aref bytes +uuid-variant-byte-index+)
+                          +uuid-variant-bits-mask+)))
     (with-output-to-string (out)
-      (loop for index below 16
-            do (case index
-                 ((4 6 8 10) (write-char #\- out)))
+      (loop for index below +uuid-byte-length+
+            do (when (member index +uuid-hyphen-positions+)
+                 (write-char #\- out))
                (format out "~(~2,'0x~)" (aref bytes index))))))
 
-(defun %validate-uuid-prefix (prefix)
-  (unless (stringp prefix)
-    (error "Sequential UUID source prefix must be a string: ~S" prefix))
-  prefix)
+(define-scalar-validator %validate-uuid-prefix prefix
+    (stringp prefix)
+  "a string" "Sequential UUID source prefix")
 
-(defun %validate-uuid-start (start)
-  (unless (and (integerp start) (>= start 0))
-    (error "Sequential UUID source start must be a non-negative integer: ~S" start))
-  start)
+(define-scalar-validator %validate-uuid-start start
+    (and (integerp start) (>= start 0))
+  "a non-negative integer" "Sequential UUID source start")
 
 (define-list-validator %validate-test-uuid-values values "Test UUID source values")
 
-(defun %validate-test-uuid-value (value)
-  (unless (stringp value)
-    (error "Test UUID source value must be a string: ~S" value))
-  value)
+(define-scalar-validator %validate-test-uuid-value value
+    (stringp value)
+  "a string" "Test UUID source value")
 
 (defun make-uuid-source (&key (generate-fn #'%uuid-v4-string))
   "Create a UUID source backed by GENERATE-FN.
