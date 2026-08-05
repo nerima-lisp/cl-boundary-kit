@@ -103,8 +103,7 @@ test.
 - [Time and Randomness](guide/time-and-randomness.md) — clocks, random sources,
   sleepers, UUIDs, and temporary paths.
 - [Process, Network, and DNS](guide/process-network-and-dns.md) — subprocess
-  execution, HTTP-shaped requests, DNS resolution, and JSON serialization of
-  call histories.
+  execution, HTTP-shaped requests, and DNS resolution.
 - [Logging, Metrics, and Console](guide/observability.md) — structured logging,
   fire-and-forget metrics, and terminal I/O.
 - [State and Storage](guide/state-and-storage.md) — key/value stores, TTL caches,
@@ -127,7 +126,7 @@ at the repository root packages `cl-boundary-kit` as a Nix flake:
 - `nix run .#test` — the pinned checkout test runner (`run-tests.lisp`).
 - `nix flake check` — the checkout runner, a `cl-weave` machine-readable
   report, and a 100% expression-coverage gate, as reproducible derivations for
-  `x86_64-linux`.
+  `x86_64-linux` and `aarch64-darwin`.
 - `nix build .#docs` — builds this documentation site with MkDocs (Material)
   in `--strict` mode, so broken links fail the build.
 

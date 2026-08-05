@@ -12,13 +12,14 @@ The recommended pinned checkout test command is:
 nix run .#test
 ```
 
-The flake pins SBCL, `cl-prolog`, and `cl-weave`, so this path does not require
-Quicklisp or separately installed Common Lisp dependencies. `cl-weave` provides
+The flake pins SBCL, `cl-host-kit`, `cl-prolog`, and `cl-weave`, so this path
+does not require Quicklisp or separately installed Common Lisp dependencies.
+`cl-host-kit` is the runtime dependency of the library itself. `cl-weave` provides
 the test runner, machine-readable reporting, and coverage integration.
 `cl-prolog` is used by the test system to express and verify cross-boundary
 invariants. These runnable flake apps and checks are emitted for
-`x86_64-linux` only; the Ubuntu GitHub Actions workflow is the canonical
-verification path.
+`x86_64-linux` and `aarch64-darwin`; only `x86_64-linux` is CI-gated, so the
+Ubuntu GitHub Actions workflow is the canonical verification path.
 
 On a supported Nix host, run `nix flake check --print-build-logs` to execute
 the flake checks for that host, including the checkout runner,
@@ -34,13 +35,13 @@ declarations. The `cl-weave` runner limits each test to 30 seconds. Each Nix
 check has a 300-second outer limit followed by a 30-second forced-termination
 grace period, so a stopped test process cannot retain a CI worker. Hosts outside
 the emitted flake systems are not a compatibility claim; use
-`sbcl --script run-tests.lisp` there when `cl-prolog` and `cl-weave` are
-discoverable by ASDF.
+`sbcl --script run-tests.lisp` there when `cl-host-kit`, `cl-prolog`, and
+`cl-weave` are discoverable by ASDF.
 
 For local development on any host with an existing SBCL environment, run
 `sbcl --script run-tests.lisp`. Quicklisp itself is not required, but direct
-SBCL and REPL use requires `cl-prolog` and `cl-weave` to be discoverable by
-ASDF. The suite exercises
+SBCL and REPL use requires `cl-host-kit`, `cl-prolog`, and `cl-weave` to be
+discoverable by ASDF. The suite exercises
 filesystem, environment, clock, random, process, network, logging, recording,
 and boundary composition behavior.
 

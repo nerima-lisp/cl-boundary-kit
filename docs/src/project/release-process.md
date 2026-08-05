@@ -19,10 +19,9 @@ documentation and evidence exercise, not just a version bump.
    contract change.
 5. Run `sbcl --script run-tests.lisp` from a clean checkout state and confirm
    the executable documentation still matches reality.
-6. If the public contract changed, verify that `t/api-test.lisp`,
-   `t/api-doc-claims-test.lisp`, `t/api-doc-links-test.lisp`,
-   `t/api-doc-links-documents-test.lisp`, `t/api-executable-docs-test.lisp`,
-   and `t/examples-test.lisp` cover the new or changed behavior.
+6. If the public contract changed, verify that `t/api-test.lisp`, the
+   `t/api-doc-*-test.lisp` and `t/api-executable-docs-*-test.lisp` split
+   suites, and `t/examples-test.lisp` cover the new or changed behavior.
 7. For security-relevant fixes, make sure [Security](security.md) reporting and disclosure
    expectations still match the release notes and do not force sensitive details
    into public issue history.

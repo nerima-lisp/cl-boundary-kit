@@ -28,9 +28,8 @@
                   "src/testing.lisp"
                   "examples/*.lisp"
                   "t/api-test.lisp"
-                  "t/api-doc-claims-test.lisp"
-                  "t/api-doc-links-test.lisp"
-                  "t/api-executable-docs-test.lisp"
+                  "t/api-doc-*-test.lisp"
+                  "t/api-executable-docs-*-test.lisp"
                   "README.md"
                   "governance.md"))
       (cookbook-document-exists-and-defines-supported-patterns
@@ -47,7 +46,7 @@
                   "unsupported-boundary-operation"))
       (faq-document-exists-and-defines-decision-points :file "docs/src/guide/faq.md" :exists t :contains ("# FAQ" "## When Should I Use This Library?" "## How Do I Choose Between A Recording Boundary And A Test Boundary?" "## How Do I Preserve Explicit `nil` Values?" "## Why Do Unsupported Operations Signal Instead Of Falling Back?" "## What If Behavior Differs Across Lisp Implementations Or Platforms?" "## What Defines The Current Public API?" "cookbook.md" "compatibility.md" "support.md" "contributing.md" "governance.md" "security.md"))
       (faq-documents-the-stable-public-surface-contract :file "docs/src/guide/faq.md" :contains ("## What Defines The Current Public API?" "current public API is defined by:" "exported symbols documented across the [Guide](composition.md) pages" "checked-in examples and cookbook snippets" "compatibility.md" "contributing.md" "governance.md" "executable verification" "not treat it as documented API behavior"))
-      (release-document-exists-and-defines-evidence-based-checklist :file "docs/src/project/release-process.md" :exists t :contains ("# Release Evidence" "## Release Checklist" "GitHub Release description" "roadmap.md" "README.md" "cookbook.md" "compatibility.md" "`sbcl --script run-tests.lisp`" "t/api-test.lisp" "t/api-doc-claims-test.lisp" "t/api-doc-links-test.lisp" "t/api-executable-docs-test.lisp" "t/examples-test.lisp" "security.md" "## Evidence Required Before Publishing" "checked-in verification"))
+      (release-document-exists-and-defines-evidence-based-checklist :file "docs/src/project/release-process.md" :exists t :contains ("# Release Evidence" "## Release Checklist" "GitHub Release description" "roadmap.md" "README.md" "cookbook.md" "compatibility.md" "`sbcl --script run-tests.lisp`" "t/api-test.lisp" "t/api-doc-*-test.lisp" "t/api-executable-docs-*-test.lisp" "t/examples-test.lisp" "security.md" "## Evidence Required Before Publishing" "checked-in verification"))
       (compatibility-document-exists-and-defines-verification-scope :file "docs/src/reference/compatibility.md" :exists t :contains ("# Verification" "## Checked Workflows" "`sbcl --script run-tests.lisp`" "`asdf:load-system :cl-boundary-kit/test` and `(cl-boundary-kit/test:run-tests)`" "`0 failures`" "documented REPL runner" "stable verification path" "Hosts outside the emitted flake systems" "support.md" "security.md" "100% coverage"))
       (security-policy-documents-supported-versions-and-reporting-process
        :file "docs/src/project/security.md"

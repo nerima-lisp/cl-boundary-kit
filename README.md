@@ -38,7 +38,14 @@ Clone the repository and load it with ASDF:
 (asdf:load-system :cl-boundary-kit)
 ```
 
-Or use the Nix flake, which pins SBCL and every test dependency so a checkout
+`cl-boundary-kit` depends on
+[`cl-host-kit`](https://github.com/nerima-lisp/cl-host-kit) at runtime, so
+clone it as well and register its checkout the same way before loading. The
+test system additionally needs
+[`cl-weave`](https://github.com/nerima-lisp/cl-weave) and
+[`cl-prolog`](https://github.com/nerima-lisp/cl-prolog).
+
+Or use the Nix flake, which pins SBCL and every dependency so a checkout
 does not require Quicklisp:
 
 ```sh
