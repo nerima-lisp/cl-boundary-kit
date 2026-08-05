@@ -205,6 +205,15 @@ sub ignored_sb_cover_artifacts {
             next;
         }
 
+        # +PROCESS-RECORDED-CALL-KEYS+'s quoted list value form is a second,
+        # separate load-time artifact beyond the DEFPARAMETER form itself,
+        # the same shape as +FILESYSTEM-WRITE-OPTION-KEYS+ above.
+        if ($source eq 'process-recording.lisp'
+            && $line =~ /^\s*'\(:arguments\s+:input\s+:directory\s+:output\s+:error-output\s+:timeout\)/i) {
+            ++$ignored;
+            next;
+        }
+
         # *NETWORK-SENSITIVE-FIELD-NAMES*'s LET/DOLIST/SETF value form runs
         # once at load time to populate the hash table; each sub-form is a
         # separate load-time artifact beyond the DEFPARAMETER form itself.
