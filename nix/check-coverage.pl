@@ -118,6 +118,20 @@ sub ignored_sb_cover_artifacts {
         if ($line =~ /^\s*\(\s*([a-z][a-z0-9-]*)\b/i) {
             my $keyword = lc $1;
             if ($load_time_declaration{$keyword}) {
+                # TEMP-PATH.LISP's +TEMP-PATH-RANDOM-LIMIT+ and
+                # +TEMP-PATH-RANDOM-HEX-DIGITS+ compute their value with a
+                # compound expression on the same source line as the
+                # DEFCONSTANT keyword itself (e.g. "(defconstant +name+ (ash
+                # 1 +other-const+))"). SB-COVER records that value expression
+                # as its own artifact beyond the DEFCONSTANT form, the same
+                # shape as CORE.LISP's multi-clause DECLAIM below, so this
+                # line needs two exclusions, not the generic rule's flat one.
+                if ($source eq 'temp-path.lisp'
+                    && $keyword eq 'defconstant'
+                    && $line =~ /^\s*\(defconstant\s+\+temp-path-random-(?:limit|hex-digits)\+\s+\(/i) {
+                    $ignored += 2;
+                    next;
+                }
                 ++$ignored;
                 next;
             }
