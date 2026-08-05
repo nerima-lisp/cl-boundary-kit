@@ -307,7 +307,7 @@ sub ignored_sb_cover_artifacts {
         # $SLOT_INITARG_LINES_SEEN already reflects whether this SBCL
         # version marks those slot lines state-2 at all.
         if ($source eq 'temp-path.lisp'
-            && $line =~ /^\s*\((?:directory|prefix|suffix|counter|next-fn|paths|delegate|calls)\s+:(?:initarg|initform)\b/i) {
+            && $line =~ /^\s*\(+(?:directory|prefix|suffix|counter|next-fn|paths|delegate|calls)\s+:(?:initarg|initform)\b/i) {
             ++$ignored;
             $slot_initarg_lines_seen = 1;
             next;
