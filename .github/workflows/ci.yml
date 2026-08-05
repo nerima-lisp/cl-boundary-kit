@@ -42,12 +42,18 @@ jobs:
 
       # Runs the SBCL test suite (checks.default), the treefmt formatting gate
       # (checks.formatting), and the mkdocs --strict build (checks.docs).
-      # --all-systems: the flake declares x86_64-linux and aarch64-darwin
-      # (flake.nix's `systems` list); without this flag, `nix flake check` on
-      # this ubuntu-latest runner only evaluates x86_64-linux attributes, so an
-      # aarch64-darwin-only eval error would pass CI silently. This still only
-      # evaluates the darwin attributes on Linux -- it cannot build or run
-      # them -- so it catches eval errors, not build/runtime failures.
+      #
+      # NOT --all-systems: tried it, since the flake declares both
+      # x86_64-linux and aarch64-darwin and bare `nix flake check` on this
+      # ubuntu-latest runner only evaluates x86_64-linux attributes (an
+      # aarch64-darwin-only eval error would pass CI silently). But
+      # --all-systems does not stop at evaluation -- it also tries to BUILD
+      # every system's checks.*, including checks.aarch64-darwin.formatting's
+      # platform-specific treefmt.toml derivation, which cannot cross-build
+      # on an x86_64-linux runner and fails with "platform mismatch". aarch64-
+      # darwin carries no CI gate by design (flake.nix's `systems` comment),
+      # so catching darwin-only eval errors here is not worth breaking every
+      # build.
       #
       # --max-jobs 1: checks.coverage, checks.machine-report, and
       # checks.checkout-tests each spawn their own SBCL process compiling most
@@ -58,7 +64,7 @@ jobs:
       # killed build. Sequential builds still share the same Nix store and
       # cache within this one job -- only the wall-clock cost changes.
       - name: Check flake
-        run: nix flake check --all-systems --print-build-logs --max-jobs 1
+        run: nix flake check --print-build-logs --max-jobs 1
 
       # Catches stray conflict markers and whitespace errors that compile fine.
       - name: Check diff hygiene
