@@ -23,8 +23,9 @@ Run the test app without installing Quicklisp or the test dependencies separatel
 nix run .#test
 ```
 
-The runnable flake app and check set are emitted for `x86_64-linux` only;
-Ubuntu CI is the canonical verification path. Before
+The runnable flake app and check set are emitted for `x86_64-linux` and
+`aarch64-darwin`; only `x86_64-linux` is CI-gated, so Ubuntu CI is the
+canonical verification path. Before
 submitting a change from a supported Nix host, run the complete check set:
 
 ```sh
@@ -101,6 +102,19 @@ through ASDF.
 Use `cl-weave` for new test cases and machine-readable evidence. Where an
 invariant spans multiple boundary implementations, prefer extending the
 declarative `cl-prolog` rulebase rather than duplicating procedural assertions.
+
+Group related `it` cases for one boundary under a `describe` block, and hoist
+a fixture into `before-each` (with a top-level `defvar` for the shared
+variable) only when the identical constructor call is genuinely repeated
+across three or more cases in that group; leave a fixture local to its `it`
+when the construction differs per case. Prefer the specific `expect` matcher
+a comparison implies (`:to-equal`, `:to-be`, `:to-be-null`, `:to-have-length`,
+`:to-throw`, and so on) over wrapping a predicate expression in
+`:to-be-truthy` -- a bare-truthy assertion should be reserved for cases that
+really do only assert non-nil, since a specific matcher reports both the
+actual and expected value on failure. For a recording boundary's whole call
+history, prefer the `:to-have-recorded-calls` matcher in
+`t/helpers-matchers.lisp` over a hand-written `equal` comparison.
 
 ## Communication Expectations
 
