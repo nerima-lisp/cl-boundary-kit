@@ -132,6 +132,19 @@ sub ignored_sb_cover_artifacts {
                     $ignored += 2;
                     next;
                 }
+
+                # +UUID-HYPHEN-POSITIONS+'s quoted list value shares its
+                # DEFPARAMETER keyword's own source line (unlike
+                # +FILESYSTEM-WRITE-OPTION-KEYS+/+PROCESS-RECORDED-CALL-KEYS+
+                # above, whose value forms are on their own following line),
+                # so it needs the same two-artifacts-one-line handling as
+                # TEMP-PATH.LISP's compound DEFCONSTANTs above.
+                if ($source eq 'uuid.lisp'
+                    && $keyword eq 'defparameter'
+                    && $line =~ /^\s*\(defparameter\s+\+uuid-hyphen-positions\+\s+'\(/i) {
+                    $ignored += 2;
+                    next;
+                }
                 ++$ignored;
                 next;
             }
@@ -228,14 +241,6 @@ sub ignored_sb_cover_artifacts {
             next;
         }
 
-        # +UUID-HYPHEN-POSITIONS+'s quoted list value form is a second,
-        # separate load-time artifact beyond the DEFPARAMETER form itself,
-        # the same shape as +FILESYSTEM-WRITE-OPTION-KEYS+ above.
-        if ($source eq 'uuid.lisp'
-            && $line =~ /^\s*'\(4\s+6\s+8\s+10\)/i) {
-            ++$ignored;
-            next;
-        }
 
         # *NETWORK-SENSITIVE-FIELD-NAMES*'s LET/DOLIST/SETF value form runs
         # once at load time to populate the hash table; each sub-form is a
