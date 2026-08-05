@@ -16,6 +16,17 @@
             :to-equal (format nil "hello~%"))
     (expect (cl-boundary-kit::%slurp-stream (make-string-input-stream "")) :to-equal ""))
 
+  ;; Regression: a parent closing this stream to unblock a reader stuck on a
+  ;; descendant-held pipe can race a read already inside select(2), raising
+  ;; an error that used to escape %SLURP-STREAM and crash the whole process.
+  ;; A closed stream deterministically reproduces the same "read after
+  ;; close" shape without needing a real subprocess/threading race.
+  (it
+    "native-process-output-capture-tolerates-a-stream-closed-mid-read"
+    (let ((stream (make-string-input-stream "partial")))
+      (close stream)
+      (expect (cl-boundary-kit::%slurp-stream stream) :to-equal "")))
+
   (it
     "native-process-result-flags-a-timeout-without-perturbing-normal-runs"
     (expect
