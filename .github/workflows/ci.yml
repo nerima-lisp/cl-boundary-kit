@@ -42,7 +42,12 @@ jobs:
 
       # Runs the SBCL test suite (checks.default), the treefmt formatting gate
       # (checks.formatting), and the mkdocs --strict build (checks.docs).
-      # Add `--all-systems` only when the flake declares more than one system.
+      # --all-systems: the flake declares x86_64-linux and aarch64-darwin
+      # (flake.nix's `systems` list); without this flag, `nix flake check` on
+      # this ubuntu-latest runner only evaluates x86_64-linux attributes, so an
+      # aarch64-darwin-only eval error would pass CI silently. This still only
+      # evaluates the darwin attributes on Linux -- it cannot build or run
+      # them -- so it catches eval errors, not build/runtime failures.
       #
       # --max-jobs 1: checks.coverage, checks.machine-report, and
       # checks.checkout-tests each spawn their own SBCL process compiling most
@@ -53,7 +58,7 @@ jobs:
       # killed build. Sequential builds still share the same Nix store and
       # cache within this one job -- only the wall-clock cost changes.
       - name: Check flake
-        run: nix flake check --print-build-logs --max-jobs 1
+        run: nix flake check --all-systems --print-build-logs --max-jobs 1
 
       # Catches stray conflict markers and whitespace errors that compile fine.
       - name: Check diff hygiene

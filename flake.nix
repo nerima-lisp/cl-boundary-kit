@@ -7,23 +7,30 @@
     # cl-weave is the deepest sibling, so it owns the single paredit-cli (and
     # therefore the single rust-overlay) node that every other sibling follows.
     cl-weave = {
-      url = "github:nerima-lisp/cl-weave/v1.1.4";
+      url = "github:nerima-lisp/cl-weave/v1.3.0";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.cl-nix-forge.follows = "cl-nix-forge";
+      inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
     cl-prolog = {
-      url = "github:nerima-lisp/cl-prolog/v1.3.0";
+      url = "github:nerima-lisp/cl-prolog/v1.4.3";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.cl-weave.follows = "cl-weave";
       inputs.paredit-cli.follows = "cl-weave/paredit-cli";
+      inputs.cl-nix-forge.follows = "cl-nix-forge";
+      inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
     # cl-boundary-kit's own real-boundary backend for host process
     # interaction, adopted directly (no adapter layer) rather than
     # hand-rolled per-boundary implementations.
     cl-host-kit = {
-      url = "github:nerima-lisp/cl-host-kit/v0.2.5";
+      url = "github:nerima-lisp/cl-host-kit/v0.3.1";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.cl-weave.follows = "cl-weave";
+      inputs.cl-nix-forge.follows = "cl-nix-forge";
+      inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
     # crane for Common Lisp/ASDF: builds cl-weave-runtime, cl-prolog-runtime,
@@ -181,7 +188,21 @@
             lispSystem = "cl-boundary-kit";
             inherit version;
             src = self;
-            lispLibs = [ cl-host-kit-runtime ];
+            # cl.lispDerivation is cl-nix-forge's own function, not
+            # nixpkgs' pkgs.sbcl.buildASDFSystem (used for
+            # cl-weave-runtime/cl-prolog-runtime/cl-host-kit-runtime above,
+            # where lispLibs is the correct, documented nixpkgs parameter
+            # name) -- cl-nix-forge's own docs/src/reference/building.md
+            # names this parameter lispDependencies. lispLibs here was
+            # silently ignored as an unrecognized attribute, so this
+            # package never got cl-host-kit-runtime onto its own build's
+            # CL_SOURCE_REGISTRY and any consumer's `nix build
+            # .#cl-boundary-kit` (or a `lispDependencies` entry naming this
+            # package) failed with "Component :CL-HOST-KIT not found,
+            # required by #<SYSTEM \"cl-boundary-kit\">" -- caught from
+            # cl-concurrent-kit's own flake.nix trying to add this package
+            # as a real runtime dependency for the first time.
+            lispDependencies = [ cl-host-kit-runtime ];
           };
           # TEST-SBCL and DEPS-SBCL are identical: every check and app loads
           # CL-BOUNDARY-KIT's own sources fresh from the checkout (via
@@ -339,9 +360,16 @@
           pkgs = nixpkgs.legacyPackages.${system};
         in
         {
+          # deps-sbcl bundles cl-weave/cl-prolog/cl-host-kit via
+          # withPackages, matching what checks.* load this checkout against
+          # (flake.nix's TEST-SBCL/DEPS-SBCL comment above). A bare pkgs.sbcl
+          # here left `nix develop` unable to resolve `(asdf:load-system
+          # :cl-weave)`, silently breaking the `nix develop` + `sbcl --script
+          # run-tests.lisp` workflow docs/src/project/development.md and
+          # README.md document as supported.
           default = pkgs.mkShell {
             packages = [
-              pkgs.sbcl
+              self.packages.${system}.deps-sbcl
             ];
             CL_SOURCE_REGISTRY = sourceRegistry;
           };
