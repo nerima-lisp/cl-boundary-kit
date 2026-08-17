@@ -61,7 +61,7 @@
       ,@body)))
 
 (defun prolog-special-symbol (name)
-  (multiple-value-bind (symbol status) (find-symbol name '#:cl-prolog)
+  (multiple-value-bind (symbol status) (find-symbol name '#:cl-prolog-kit)
     (when (and status (boundp symbol))
       symbol)))
 
@@ -90,7 +90,7 @@
   ())
 
 (defun prolog-parser-resource-error-symbol ()
-  (multiple-value-bind (symbol status) (find-symbol "PROLOG-PARSER-RESOURCE-ERROR" '#:cl-prolog)
+  (multiple-value-bind (symbol status) (find-symbol "PROLOG-PARSER-RESOURCE-ERROR" '#:cl-prolog-kit)
     (when status
       symbol)))
 
@@ -104,7 +104,7 @@
   condition)
 
 (defun prolog-parser-resource-error-accessor-value (name condition)
-  (multiple-value-bind (symbol status) (find-symbol name '#:cl-prolog)
+  (multiple-value-bind (symbol status) (find-symbol name '#:cl-prolog-kit)
     (when (and status (fboundp symbol))
       (funcall (symbol-function symbol) condition))))
 
@@ -129,7 +129,7 @@
       ,@body)))
 
 (defun prolog-condition-symbol (name)
-  (multiple-value-bind (symbol status) (find-symbol name '#:cl-prolog)
+  (multiple-value-bind (symbol status) (find-symbol name '#:cl-prolog-kit)
     (when status
       symbol)))
 

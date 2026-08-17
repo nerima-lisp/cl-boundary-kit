@@ -156,7 +156,7 @@
                                            ("*MAX-PROLOG-SOURCE-CHARACTERS*" 256))
         (handler-case
             ;; Parsed within limits: a well-formed term is returned.
-            (expect (cl-prolog:read-prolog-term source) :to-be-truthy)
+            (expect (cl-prolog-kit:read-prolog-term source) :to-be-truthy)
           (error (condition)
             ;; Rejected: the failure is bounded and carries a positive limit.
             (assert-prolog-parser-resource-error condition)

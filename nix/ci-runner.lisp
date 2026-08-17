@@ -6,7 +6,7 @@
 ;; load CL-WEAVE explicitly so its package exists either way.
 (asdf:load-system :cl-weave)
 
-;; Tests use CL-PROLOG/WEAVE (deftest-queries / assert-query).  Load test
+;; Tests use CL-PROLOG-KIT/WEAVE (deftest-queries / assert-query).  Load test
 ;; systems interpreted so SBCL does not enter its Darwin compiler-worker stall.
 (defun system-source-files (system)
   (labels ((collect (component)
@@ -38,14 +38,14 @@
        (test-filter (uiop:getenv "CL_WEAVE_TEST_FILTER")))
   (unless report-path
     (error "CL_BOUNDARY_KIT_REPORT is required."))
-  ;; Load CL-PROLOG/WEAVE before coverage instrumentation is proclaimed below:
+  ;; Load CL-PROLOG-KIT/WEAVE before coverage instrumentation is proclaimed below:
   ;; SB-COVER:STORE-COVERAGE-DATA is a global optimize quality, so compiling a
   ;; dependency while it is active would instrument that dependency's own
-  ;; sources too. CL-PROLOG's SRC/BUILTINS/CORE.LISP would then collide on
+  ;; sources too. CL-PROLOG-KIT's SRC/BUILTINS/CORE.LISP would then collide on
   ;; basename with this system's own SRC/CORE.LISP in the coverage report,
   ;; which check-coverage.pl cannot disambiguate (SB-COVER's HTML reports
   ;; only carry basenames, not full paths).
-  (asdf:load-system :cl-prolog/weave)
+  (asdf:load-system :cl-prolog-kit/weave)
   (when coverage-p
     (unless coverage-manifest
       (error "CL_BOUNDARY_KIT_COVERAGE_MANIFEST is required for coverage runs."))
@@ -80,9 +80,9 @@
       "Loading cl-boundary-kit base test sources in interpreter mode.~%")
     (finish-output *error-output*)
     (load-system-sources :cl-boundary-kit/test-base)
-    (format *error-output* "Loading cl-prolog weave test support.~%")
+    (format *error-output* "Loading cl-prolog-kit weave test support.~%")
     (finish-output *error-output*)
-    (asdf:load-system :cl-prolog/weave)
+    (asdf:load-system :cl-prolog-kit/weave)
     (format
       *error-output*
       "Loading cl-boundary-kit Prolog test sources in interpreter mode.~%")

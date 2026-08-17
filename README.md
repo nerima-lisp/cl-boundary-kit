@@ -43,7 +43,7 @@ Clone the repository and load it with ASDF:
 clone it as well and register its checkout the same way before loading. The
 test system additionally needs
 [`cl-weave`](https://github.com/nerima-lisp/cl-weave) and
-[`cl-prolog`](https://github.com/nerima-lisp/cl-prolog).
+[`cl-prolog-kit`](https://github.com/nerima-lisp/cl-prolog-kit).
 
 Or use the Nix flake, which pins SBCL and every dependency so a checkout
 does not require Quicklisp:
