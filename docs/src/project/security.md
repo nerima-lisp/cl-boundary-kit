@@ -9,8 +9,8 @@ system resources.
 
 | Version | Supported |
 | --- | --- |
-| `2.2.x` | Yes |
-| `< 2.2.0` | No |
+| `2.3.x` | Yes |
+| `< 2.3.0` | No |
 
 ## Supported Scope
 
