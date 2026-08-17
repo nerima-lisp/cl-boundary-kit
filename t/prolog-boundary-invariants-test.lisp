@@ -4,7 +4,7 @@
 (defun %prolog-binding (variable solution)
   (cdr (assoc variable solution)))
 
-(defparameter *boundary-policy* (cl-prolog:prolog
+(defparameter *boundary-policy* (cl-prolog-kit:prolog
     ((boundary filesystem))
     ((boundary environment))
     ((boundary process))
@@ -29,7 +29,7 @@
       (recordable ?boundary)))
   "Facts and rules describing the effect surface of boundary objects.")
 
-(cl-prolog/weave:deftest-queries
+(cl-prolog-kit/weave:deftest-queries
   prolog-boundary-policy-has-declarative-invariants
   (*boundary-policy*)
   ("filesystem boundaries permit the expected operations"
@@ -60,7 +60,7 @@
 ;;;; added with a full native/test/recording triad, so they extend the fact
 ;;;; base and the expected solution set below rather than introducing new
 ;;;; asymmetries.
-(defparameter *boundary-api-completeness* (cl-prolog:prolog
+(defparameter *boundary-api-completeness* (cl-prolog-kit:prolog
     ((provides-native filesystem))
     ((provides-native environment))
     ((provides-native process))
@@ -147,7 +147,7 @@
   "Which native/test/recording constructors each boundary kind actually
 exports.")
 
-(cl-prolog/weave:deftest-queries
+(cl-prolog-kit/weave:deftest-queries
   boundary-api-triads-match-the-documented-asymmetry
   (*boundary-api-completeness*)
   ("every boundary except clock completes the native/test/recording triad"
@@ -204,56 +204,56 @@ existence error on lookup rather than simply failing. ASSERTZ-ing and
 immediately RETRACT-ing a throwaway fact registers the predicate as dynamic
 with an empty extension, so BODY can query it before anything real is
 registered without tripping that error."
-  (cl-prolog:query-prolog
+  (cl-prolog-kit:query-prolog
     policy
-    '(cl-prolog:assertz (registered-boundary %seed%)))
-  (cl-prolog:query-prolog
+    '(cl-prolog-kit:assertz (registered-boundary %seed%)))
+  (cl-prolog-kit:query-prolog
     policy
-    '(cl-prolog:assertz (registered-effect %seed% %seed%)))
-  (cl-prolog:query-prolog
+    '(cl-prolog-kit:assertz (registered-effect %seed% %seed%)))
+  (cl-prolog-kit:query-prolog
     policy
-    '(cl-prolog:retract (registered-boundary %seed%)))
-  (cl-prolog:query-prolog
+    '(cl-prolog-kit:retract (registered-boundary %seed%)))
+  (cl-prolog-kit:query-prolog
     policy
-    '(cl-prolog:retract (registered-effect %seed% %seed%)))
+    '(cl-prolog-kit:retract (registered-effect %seed% %seed%)))
   (funcall body))
 
 (it "runtime-plugin-registration-via-assertz-and-retract-updates-permitted-facts"
-  (let ((policy (cl-prolog:extend-rulebase *boundary-policy*
+  (let ((policy (cl-prolog-kit:extend-rulebase *boundary-policy*
                   ((permitted ?boundary ?operation)
                    (registered-boundary ?boundary)
                    (registered-effect ?boundary ?operation)))))
     (%call-with-empty-dynamic-registration policy
      (lambda ()
-       (expect (cl-prolog:prolog-succeeds-p policy '(permitted plugin invoke))
+       (expect (cl-prolog-kit:prolog-succeeds-p policy '(permitted plugin invoke))
                :to-be-null)
-       (cl-prolog:query-prolog policy '(cl-prolog:assertz (registered-boundary plugin)))
-       (cl-prolog:query-prolog policy '(cl-prolog:assertz (registered-effect plugin invoke)))
-       (expect (cl-prolog:prolog-succeeds-p policy '(permitted plugin invoke))
+       (cl-prolog-kit:query-prolog policy '(cl-prolog-kit:assertz (registered-boundary plugin)))
+       (cl-prolog-kit:query-prolog policy '(cl-prolog-kit:assertz (registered-effect plugin invoke)))
+       (expect (cl-prolog-kit:prolog-succeeds-p policy '(permitted plugin invoke))
                :to-be-truthy)
-       (cl-prolog:query-prolog policy '(cl-prolog:retract (registered-effect plugin invoke)))
-       (expect (cl-prolog:prolog-succeeds-p policy '(permitted plugin invoke))
+       (cl-prolog-kit:query-prolog policy '(cl-prolog-kit:retract (registered-effect plugin invoke)))
+       (expect (cl-prolog-kit:prolog-succeeds-p policy '(permitted plugin invoke))
                :to-be-null)
        ;; The original shared policy is untouched by mutating its extended copy.
-       (expect (cl-prolog:prolog-succeeds-p *boundary-policy* '(boundary plugin))
+       (expect (cl-prolog-kit:prolog-succeeds-p *boundary-policy* '(boundary plugin))
                :to-be-null)))))
 
 ;;; Negation as failure: "clock mutation is not permitted" stated as a rule
 ;;; (using NOT rather than the :FAILS query kind above) so the restriction is
 ;;; itself a declarative fact a query can depend on, not only an assertion a
 ;;; test makes about the absence of solutions.
-(defparameter *boundary-policy-with-negation* (cl-prolog:extend-rulebase
+(defparameter *boundary-policy-with-negation* (cl-prolog-kit:extend-rulebase
     *boundary-policy*
     ((clock-mutation-forbidden) (not (permitted clock mutate)))))
 
 (it "negation-as-failure-declares-clock-mutation-forbidden"
-  (expect (cl-prolog:prolog-succeeds-p
+  (expect (cl-prolog-kit:prolog-succeeds-p
            *boundary-policy-with-negation* '(clock-mutation-forbidden))
           :to-be-truthy)
   ;; A permitted operation is NOT forbidden -- the negated rule tracks the
   ;; underlying PERMITTED facts rather than always succeeding.
-  (expect (cl-prolog:prolog-succeeds-p
-           (cl-prolog:extend-rulebase *boundary-policy-with-negation*
+  (expect (cl-prolog-kit:prolog-succeeds-p
+           (cl-prolog-kit:extend-rulebase *boundary-policy-with-negation*
              ((clock-observation-forbidden) (not (permitted clock observe))))
            '(clock-observation-forbidden))
           :to-be-null))
@@ -261,25 +261,25 @@ registered without tripping that error."
 (it
   "prolog-rulebase-extension-is-transactional"
   (let ((extended
-        (cl-prolog:extend-rulebase
+        (cl-prolog-kit:extend-rulebase
           *boundary-policy*
           ((effect clock advance))
           ((recordable clock)))))
-    (cl-prolog/weave:assert-query
+    (cl-prolog-kit/weave:assert-query
       *boundary-policy*
       (permitted clock advance)
       :fails)
-    (cl-prolog/weave:assert-query
+    (cl-prolog-kit/weave:assert-query
       *boundary-policy*
       (permitted clock ?operation)
       :set
       (((?operation . observe))))
-    (cl-prolog/weave:assert-query
+    (cl-prolog-kit/weave:assert-query
       extended
       (permitted clock ?operation)
       :set
       (((?operation . advance)) ((?operation . observe))))
-    (cl-prolog/weave:assert-query
+    (cl-prolog-kit/weave:assert-query
       extended
       (observable-effect clock ?operation)
       :set
@@ -288,7 +288,7 @@ registered without tripping that error."
 (it
   "prolog-solutions-stream-through-cps-query-boundary"
   (let ((seen '()))
-    (cl-prolog:map-prolog-solutions
+    (cl-prolog-kit:map-prolog-solutions
       (lambda (solution)
         (push (%prolog-binding '?boundary solution) seen))
       *boundary-policy*
@@ -305,7 +305,7 @@ registered without tripping that error."
 
 (it
   "prolog-occurs-check-rejects-cyclic-boundary-facts"
-  (expect (null (cl-prolog:unify '?boundary '(wrapped ?boundary))) :to-be-truthy))
+  (expect (null (cl-prolog-kit:unify '?boundary '(wrapped ?boundary))) :to-be-truthy))
 
 ;;; FINDALL: aggregate every declared BOUNDARY/1 fact into one list and
 ;;; assert its length, rather than enumerating solutions one at a time the
@@ -318,7 +318,7 @@ registered without tripping that error."
 (it
   "findall-aggregates-every-declared-boundary-fact-into-one-count"
   (let ((policy
-        (cl-prolog:consult-prolog
+        (cl-prolog-kit:consult-prolog
           "boundary(filesystem).
                   boundary(environment).
                   boundary(process).
@@ -328,8 +328,8 @@ registered without tripping that error."
       (=
         1
         (length
-          (cl-prolog:query-prolog
+          (cl-prolog-kit:query-prolog
             policy
-            (cl-prolog:read-prolog-term
+            (cl-prolog-kit:read-prolog-term
               "findall(B, boundary(B), [filesystem,environment,process,network,clock])"))))
       :to-be-truthy)))

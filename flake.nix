@@ -13,8 +13,8 @@
       inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
-    cl-prolog = {
-      url = "github:nerima-lisp/cl-prolog/v1.4.3";
+    cl-prolog-kit = {
+      url = "github:nerima-lisp/cl-prolog-kit/v1.5.0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.cl-weave.follows = "cl-weave";
       inputs.paredit-cli.follows = "cl-weave/paredit-cli";
@@ -33,7 +33,7 @@
       inputs.treefmt-nix.follows = "treefmt-nix";
     };
 
-    # crane for Common Lisp/ASDF: builds cl-weave-runtime, cl-prolog-runtime,
+    # crane for Common Lisp/ASDF: builds cl-weave-runtime, cl-prolog-kit-runtime,
     # and cl-boundary-kit itself as lispDerivations instead of hand-rolled
     # pkgs.sbcl.buildASDFSystem calls.
     cl-nix-forge = {
@@ -52,7 +52,7 @@
       self,
       nixpkgs,
       cl-weave,
-      cl-prolog,
+      cl-prolog-kit,
       cl-host-kit,
       cl-nix-forge,
       treefmt-nix,
@@ -94,7 +94,7 @@
 
       version = asdVersion ./cl-boundary-kit.asd;
       clWeaveVersion = asdVersion "${cl-weave}/cl-weave.asd";
-      clPrologVersion = asdVersion "${cl-prolog}/cl-prolog.asd";
+      clPrologVersion = asdVersion "${cl-prolog-kit}/cl-prolog-kit.asd";
       clHostKitVersion = asdVersion "${cl-host-kit}/cl-host-kit.asd";
 
       # treefmt drives `nix fmt` and the `checks.<system>.formatting` gate.
@@ -153,20 +153,20 @@
             src = cl-weave;
             systems = [ "cl-weave" ];
           };
-          cl-prolog-runtime = pkgs.sbcl.buildASDFSystem {
-            pname = "cl-prolog";
+          cl-prolog-kit-runtime = pkgs.sbcl.buildASDFSystem {
+            pname = "cl-prolog-kit";
             version = clPrologVersion;
-            src = cl-prolog;
+            src = cl-prolog-kit;
             systems = [
-              "cl-prolog"
-              "cl-prolog/weave"
+              "cl-prolog-kit"
+              "cl-prolog-kit/weave"
             ];
             lispLibs = [ cl-weave-runtime ];
           };
           # cl-boundary-kit's own real-boundary backend (env/host-info/args/
           # system), adopted directly as an ASDF dependency rather than a
           # hand-rolled per-boundary implementation. Built the same way as
-          # cl-weave-runtime/cl-prolog-runtime above, not via
+          # cl-weave-runtime/cl-prolog-kit-runtime above, not via
           # cl.lispDerivation: it is a precompiled dependency deps-sbcl/
           # test-sbcl load, not a checkout ci-runner.lisp compiles fresh, so
           # the ASDF_OUTPUT_TRANSLATIONS concern documented on
@@ -206,7 +206,7 @@
           # TEST-SBCL and DEPS-SBCL are identical: every check and app loads
           # CL-BOUNDARY-KIT's own sources fresh from the checkout (via
           # ci-runner.lisp/run-tests.lisp) rather than through a pre-built
-          # cl-boundary-kit package, so both only need CL-WEAVE and CL-PROLOG
+          # cl-boundary-kit package, so both only need CL-WEAVE and CL-PROLOG-KIT
           # available without recompiling them from source under
           # CL_SOURCE_REGISTRY. A prior version of TEST-SBCL additionally
           # bundled a pre-built CL-BOUNDARY-KIT (to dodge compiling test
@@ -218,7 +218,7 @@
           # denied trying to write its fasls there.
           deps-sbcl = pkgs.sbcl.withPackages (_: [
             cl-weave-runtime
-            cl-prolog-runtime
+            cl-prolog-kit-runtime
             cl-host-kit-runtime
           ]);
           test-sbcl = deps-sbcl;
@@ -359,7 +359,7 @@
           pkgs = nixpkgs.legacyPackages.${system};
         in
         {
-          # deps-sbcl bundles cl-weave/cl-prolog/cl-host-kit via
+          # deps-sbcl bundles cl-weave/cl-prolog-kit/cl-host-kit via
           # withPackages, matching what checks.* load this checkout against
           # (flake.nix's TEST-SBCL/DEPS-SBCL comment above). A bare pkgs.sbcl
           # here left `nix develop` unable to resolve `(asdf:load-system

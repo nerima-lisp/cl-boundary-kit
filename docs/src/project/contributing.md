@@ -101,7 +101,7 @@ through ASDF.
 
 Use `cl-weave` for new test cases and machine-readable evidence. Where an
 invariant spans multiple boundary implementations, prefer extending the
-declarative `cl-prolog` rulebase rather than duplicating procedural assertions.
+declarative `cl-prolog-kit` rulebase rather than duplicating procedural assertions.
 
 Group related `it` cases for one boundary under a `describe` block, and hoist
 a fixture into `before-each` (with a top-level `defvar` for the shared

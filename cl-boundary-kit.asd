@@ -167,7 +167,7 @@
       (:file "examples-runtime-test")))
   (asdf:defsystem "cl-boundary-kit/test-prolog"
     :description "Prolog-backed test suite for cl-boundary-kit"
-    :depends-on (:cl-boundary-kit/test-base :cl-prolog :cl-prolog/weave)
+    :depends-on (:cl-boundary-kit/test-base :cl-prolog-kit :cl-prolog-kit/weave)
     :pathname "t"
     :serial t
     :components ((:file "prolog-boundary-invariants-test")
