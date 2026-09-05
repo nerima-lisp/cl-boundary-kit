@@ -5,8 +5,6 @@
 
 (in-package #:cl-boundary-kit)
 
-;;; DATA: the pipe-drain block size and the join-timeout floor, kept apart from
-;;; the draining LOGIC below.
 (defconstant +process-output-chunk-size+ 4096
   "Characters read per block when draining a child process pipe.")
 

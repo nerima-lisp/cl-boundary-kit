@@ -23,9 +23,6 @@
            (path (merge-pathnames #P"sample.txt" directory))
            (fs (make-filesystem)))
       (ensure-directories-exist directory)
-      ;; The default PATH-EXISTS-P-FN is (NOT (NULL (PROBE-FILE PATH))), so
-      ;; check it for a genuinely absent path before the file is created, not
-      ;; only for the present case below.
       (expect (filesystem-path-exists-p fs path) :to-be-null)
       (unwind-protect
            (progn
@@ -35,8 +32,6 @@
         (ignore-errors (delete-file path))
         (ignore-errors (uiop:delete-empty-directory directory)))))
 
-  ;; Regression: FILE-LENGTH counts octets, so a multibyte external format used
-  ;; to over-allocate the read buffer and leave a trailing NUL/wrong length.
   (it "filesystem-round-trip-preserves-multibyte-content"
     (let* ((directory (merge-pathnames #P"cl-boundary-kit-test/"
                                        (uiop:temporary-directory)))
@@ -54,8 +49,6 @@
         (ignore-errors (delete-file path))
         (ignore-errors (uiop:delete-empty-directory directory)))))
 
-  ;; Exercises the native list-directory path (previously only fakes were
-  ;; tested), verifying real directory enumeration end to end.
   (it "native-filesystem-lists-directory-entries"
     (let* ((directory (merge-pathnames #P"cl-boundary-kit-listdir-test/"
                                        (uiop:temporary-directory)))
@@ -75,10 +68,6 @@
         (ignore-errors (delete-file beta))
         (ignore-errors (uiop:delete-empty-directory directory)))))
 
-  ;; Regression: %REAL-FILESYSTEM-LIST-DIRECTORY merged a wild name/type onto
-  ;; (PATHNAME DIRECTORY) directly; without a trailing separator, a string
-  ;; like ".../dirtest" parses its last component as a NAME, so the merge
-  ;; listed the *parent* directory instead of DIRECTORY itself.
   (it "native-filesystem-lists-directory-entries-without-a-trailing-slash"
     (let* ((directory (merge-pathnames #P"cl-boundary-kit-notrailingslash-test/"
                                        (uiop:temporary-directory)))
@@ -150,10 +139,8 @@
       (expect (filesystem-read-file fs path) :to-equal "plist"))
     (signals error
       (make-test-filesystem :initial-files (quote (:bad))))
-    ;; %NORMALIZE-TEST-FILES-CPS only dispatches to %NORMALIZE-ALIST-PAIRS-CPS
-    ;; once every element already satisfies CONSP, so no public entry point can
-    ;; reach %SPLIT-TEST-FILE-BINDING-CPS's own defensive non-cons check; call
-    ;; the private helper directly to exercise it.
+    ;; The public normalizer filters out non-cons elements before this helper,
+    ;; so test its defensive check directly.
     (expect (lambda ()
               (cl-boundary-kit::%split-test-file-binding-cps
                :bad (lambda (path content) (declare (ignore path content)))))
@@ -208,21 +195,6 @@
       (expect (filesystem-read-file fs source) :to-equal "copy")
       (expect (filesystem-read-file fs destination) :to-equal "copy")))
 
-  ;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
-  ;; double-record every call -- once on the wrapper, once on the delegate's
-  ;; own history -- because MAKE-RECORDING-FILESYSTEM copied the delegate's
-  ;; already-self-recording read/write/etc. closures verbatim. Only the
-  ;; wrapper should record.
-  ;; Regression: %SNAPSHOT-RECORDED-CALLS used to only COPY-LIST each call
-  ;; plist, leaving a returned :RESULT list (or :ARGUMENTS) shared with the
-  ;; boundary's own history. Destructively editing the value the caller
-  ;; already holds (here NREVERSE on the returned directory listing) must not
-  ;; retroactively corrupt what RECORDING-FILESYSTEM-CALLS reports.
-  ;; Regression: :IF-EXISTS :OVERWRITE on MAKE-TEST-FILESYSTEM used to behave
-  ;; like :SUPERSEDE (full replacement). Real CL :OVERWRITE opens the file
-  ;; positioned at the start without truncating, so bytes beyond the new
-  ;; content's length survive; the fake must match so tests written against it
-  ;; do not diverge from MAKE-FILESYSTEM in production.
   (it "test-filesystem-overwrite-preserves-trailing-content-like-the-real-filesystem"
     (let* ((path "/tmp/ov.txt")
            (content (copy-seq "hi"))
@@ -321,9 +293,6 @@
       (signals error
         (apply #'make-filesystem case))))
 
-  ;; Regression: FILESYSTEM-STORE-FILE's unknown-option check used PLIST-REMOVE-KEYS,
-  ;; which pushed VALUE before KEY and so returned keys/values transposed. The
-  ;; error message must report the actual offending option as a valid plist.
   (it "filesystem-store-file-reports-unknown-options-as-a-valid-plist"
     (expect (lambda () (filesystem-store-file (make-filesystem) #P"/tmp/x.txt" "content" :bogus 1)) :to-throw "(:BOGUS 1)"))
 

@@ -2,9 +2,6 @@
 
 (in-package #:cl-boundary-kit)
 
-;;; DATA: the temp-path allocation budget and name entropy, kept apart from the
-;;; retry LOGIC in %RANDOM-TEMP-PATH. The printed hex width is derived from the
-;;; bit width rather than restated, so the two cannot drift apart.
 (defconstant +temp-path-attempt-limit+ 256
   "Candidate names %RANDOM-TEMP-PATH tries before giving up on a directory.")
 

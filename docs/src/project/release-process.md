@@ -1,8 +1,8 @@
 # Release Evidence
 
 `cl-boundary-kit` should only publish release evidence that is backed by
-the checked-in verification in this repository. A release is therefore a
-documentation and evidence exercise, not just a version bump.
+the checked-in verification in this repository. A release therefore requires
+documentation and evidence, not only a version bump.
 
 ## Release Checklist
 

@@ -27,34 +27,18 @@
     (signals error
       (make-recording-environment :delegate :bad)))
 
-  ;; Regression: MAKE-RECORDING-ENVIRONMENT's default delegate (when :DELEGATE
-  ;; is omitted) used to be (MAKE-TEST-ENVIRONMENT), an always-empty fake --
-  ;; unlike every sibling recording constructor, which defaults to the real
-  ;; native boundary (MAKE-RECORDING-FILESYSTEM -> MAKE-FILESYSTEM,
-  ;; MAKE-RECORDING-PROCESS-BOUNDARY -> MAKE-PROCESS-BOUNDARY). A caller
-  ;; expecting parity with those siblings would silently observe only
-  ;; missing/nil bindings.
   (it "make-recording-environment-defaults-to-a-native-delegate"
     (let ((env (make-recording-environment)))
       (expect (environment-get env "PATH" "missing")
               :to-equal (environment-get (make-environment) "PATH" "missing")))))
 
 (describe "recording environment call history"
-  ;; Regression: RECORDING-ENVIRONMENT-CALLS performed no kind check at all,
-  ;; unlike every sibling accessor (RECORDING-FILESYSTEM-CALLS,
-  ;; RECORDING-PROCESS-CALLS, RECORDING-NETWORK-CALLS), which all signal on
-  ;; an unsupported boundary type.
   (it-each ((recording-environment-calls)
             (reset-recording-environment-calls))
       "~A signals for unsupported environment types"
       (operation)
     (expect (lambda () (funcall operation (make-environment))) :to-throw "Unsupported environment type"))
 
-  ;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
-  ;; double-record every call -- once on the wrapper, once on the delegate's
-  ;; own history -- because the recording dispatch recursed through the
-  ;; delegate's public ENVIRONMENT-GET/-SET/-LIST functions, re-entering the
-  ;; delegate's own recording path. Only the wrapper should record.
   (it "recording-environment-does-not-double-record-a-self-recording-delegate"
     (let* ((delegate (make-test-environment))
            (env (make-recording-environment :delegate delegate)))
@@ -77,4 +61,3 @@
       (env (make-test-environment))
       (recording-environment-calls reset-recording-environment-calls)
     (environment-set env "A" "1")))
-

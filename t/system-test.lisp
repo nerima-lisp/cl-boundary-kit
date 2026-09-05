@@ -34,10 +34,7 @@
     (signals error
       (make-system-boundary :exit-fn :bad)))
 
-  ;; %DEFAULT-SYSTEM-EXIT -- MAKE-SYSTEM-BOUNDARY's &KEY default -- is the only
-  ;; path that actually terminates the process, so every test above supplies a
-  ;; non-terminating :EXIT-FN instead. Exercise %DEFAULT-SYSTEM-EXIT directly,
-  ;; stubbing HOST-KIT:QUIT so the call is observed rather than actually exiting.
+  ;; Stub HOST-KIT:QUIT so the default exit function can be observed safely.
   (it "default-system-exit-calls-host-kit-quit-with-the-code"
     (let ((requested '())
           (original (symbol-function 'host-kit:quit)))

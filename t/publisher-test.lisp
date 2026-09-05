@@ -44,11 +44,8 @@
 
   (it "publisher-publish-rejects-an-invalid-topic"
     (with-soft-assertions
-      ;; NIL is itself a symbol, so this exercises the "symbol but falsy" arm.
       (signals error
         (publisher-publish (make-test-publisher) nil "m"))
-      ;; A number is neither a string nor a symbol, exercising the
-      ;; not-a-symbol-at-all arm the NIL case above cannot reach.
       (signals error
         (publisher-publish (make-test-publisher) 42 "m")))))
 
@@ -84,4 +81,3 @@
       (expect (recording-published-messages publisher) :to-have-length 1)
       (expect (reset-recording-published-messages publisher) :to-be publisher)
       (expect (recording-published-messages publisher) :to-be-null))))
-

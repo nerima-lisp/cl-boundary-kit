@@ -2,10 +2,6 @@
 
 (in-package #:cl-boundary-kit)
 
-;;; DATA: the recording schema -- the keys every recorded process call carries,
-;;; in recorded order -- kept apart from the assembly LOGIC in
-;;; %PROCESS-CALL-KEYWORDS, which pairs them positionally with its arguments and
-;;; appends :ENVIRONMENT only when the caller supplied one.
 (defparameter +process-recorded-call-keys+
   '(:arguments :input :directory :output :error-output :timeout)
   "Keys every recorded process call carries, in recorded order.")

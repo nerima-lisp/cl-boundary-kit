@@ -3,9 +3,6 @@
 (in-package #:cl-boundary-kit/test)
 
 (describe "recording-boundary handler contract"
-  ;; Every other MAKE-RECORDING-BOUNDARY test below supplies an explicit
-  ;; :HANDLER; exercise the &KEY default (an ignore-everything, return-NIL
-  ;; handler) too.
   (it "recording-boundary-defaults-to-a-handler-that-returns-nil"
     (let ((boundary (make-recording-boundary)))
       (expect (recording-boundary-invoke boundary :ping 1 2) :to-be-null)
@@ -41,9 +38,6 @@
       (make-recording-boundary :handler :not-a-function))))
 
 (describe "recording-boundary history isolation"
-  ;; Regression: the accessor used to return call plists that shared structure
-  ;; with the boundary's own history, so a caller editing a returned snapshot
-  ;; silently corrupted future reads.
   (it "recording-boundary-calls-returns-an-independent-snapshot"
     (let ((boundary (make-recording-boundary
                      :handler (lambda (operation &rest args)
@@ -54,11 +48,6 @@
         (setf (first snapshot) :clobbered))
       (expect (first (recording-boundary-calls boundary)) :to-equal '(:operation :ping :arguments (1 2) :result (:operation :ping :args (1 2))))))
 
-  ;; Regression: RECORDING-BOUNDARY-INVOKE built its call record by hand
-  ;; instead of going through the shared %RECORD-CALL macro, so it never got
-  ;; the COPY-TREE write-time protection: mutating a list the caller still
-  ;; holds a reference to corrupted the boundary's own history before any
-  ;; snapshot was ever taken.
   (it "recording-boundary-history-is-independent-of-a-mutated-argument"
     (let* ((arg (list 1 2 3))
            (boundary (make-recording-boundary
@@ -79,9 +68,7 @@
       (expect (getf (first (recording-boundary-calls boundary)) :result) :to-equal '(1 2 3))))
 
   (it "recording-boundary-defensively-copies-vector-arguments-in-its-history"
-    ;; Exercises the vector arm of %COPY-BOUNDARY-VALUE: a recorded vector
-    ;; argument is deep-copied, so mutating the original afterward cannot alter
-    ;; the stored history.
+    ;; A recorded vector is copied so later mutation cannot alter the history.
     (let* ((argument (vector 1 2 3))
            (boundary (make-recording-boundary
                       :handler (lambda (operation &rest args)

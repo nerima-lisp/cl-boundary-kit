@@ -24,11 +24,6 @@
       (expect (clock-now clock) :to-be 0)
       (expect (clock-monotonic clock) :to-be 100)))
 
-  ;; Regression: MAKE-FAKE-CLOCK's NOW-FN/MONOTONIC-FN closures used to close
-  ;; over the initial START/MONOTONIC-START values instead of reading the
-  ;; mutable slots, so CLOCK-NOW-FN/CLOCK-MONOTONIC-FN (the public readers
-  ;; inherited from CLOCK) stayed frozen at construction time even after
-  ;; ADVANCE-FAKE-CLOCK, diverging from CLOCK-NOW/CLOCK-MONOTONIC.
   (it "fake-clock-now-fn-and-monotonic-fn-track-advances"
     (let ((clock (make-fake-clock :start 10)))
       (advance-fake-clock clock 7)
@@ -46,12 +41,6 @@
     (signals error
       (make-clock :monotonic-fn :bad)))
 
-  ;; Regression: MAKE-FAKE-CLOCK/ADVANCE-FAKE-CLOCK performed no validation of
-  ;; their numeric arguments, unlike every sibling fake/test constructor
-  ;; (MAKE-DETERMINISTIC-RANDOM-SOURCE's modulus, MAKE-TEST-RANDOM-SOURCE's
-  ;; values). A non-number silently "succeeded" at construction time and only
-  ;; surfaced a confusing TYPE-ERROR later, deep in whatever arithmetic a
-  ;; caller did with the bad CLOCK-NOW/CLOCK-MONOTONIC result.
   (it "make-fake-clock-rejects-non-number-start-values"
     (signals error
       (make-fake-clock :start "not-a-number"))

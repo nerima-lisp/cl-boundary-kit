@@ -42,24 +42,6 @@
     (((?boundary . network))))
   ("undefined clock mutations are rejected" (permitted clock mutate) :fails))
 
-;;;; ---------------------------------------------------------------------------
-;;;; API-surface completeness as a declarative invariant
-;;;;
-;;;; A functional-requirements review of this library found that every
-;;;; boundary kind exports a native/test/recording constructor triad except
-;;;; CLOCK (ADVANCE-FAKE-CLOCK already gives full control, so
-;;;; MAKE-RECORDING-CLOCK was flagged rather than added speculatively) --
-;;;; RANDOM's missing recording variant was the one asymmetry closed by
-;;;; adding MAKE-RECORDING-RANDOM-SOURCE. Encoding that as facts and a rule
-;;;; makes the intended shape checkable instead of only documented in prose:
-;;;; if a future change added a boundary kind without completing its triad,
-;;;; or "completed" CLOCK's, this invariant would need an explicit update
-;;;; rather than silently drifting from what actually shipped.
-;;;;
-;;;; The UUID, SLEEPER, CONSOLE, SYSTEM, KV, and METRICS boundaries were each
-;;;; added with a full native/test/recording triad, so they extend the fact
-;;;; base and the expected solution set below rather than introducing new
-;;;; asymmetries.
 (defparameter *boundary-api-completeness* (cl-prolog-kit:prolog
     ((provides-native filesystem))
     ((provides-native environment))
@@ -183,19 +165,6 @@ exports.")
     (complete-triad clock)
     :fails))
 
-;;; Dynamic database: a plugin can register a wholly new boundary kind at
-;;; runtime by ASSERTZ-ing facts into a policy copy, immediately making it
-;;; PERMITTED; RETRACT reverses that grant. This extends the
-;;; untrusted-policy-source scenario above (a config file parsed once via
-;;; CONSULT-PROLOG) to a policy that a running process can still mutate after
-;;; it was built, the way a plugin loaded mid-session would.
-;;;
-;;; The grant lives under its own REGISTERED-BOUNDARY/REGISTERED-EFFECT
-;;; predicates rather than BOUNDARY/EFFECT: those already carry the static
-;;; facts *BOUNDARY-POLICY* was built with, and ISO permission rules forbid
-;;; ASSERTZ/RETRACT against a predicate that already has clauses unless it was
-;;; declared DYNAMIC in advance. A fresh predicate has no such history, so it
-;;; is free to become dynamic on first use.
 (defun %call-with-empty-dynamic-registration (policy body)
   "Seed PLUGIN-REGISTRATION's predicates as dynamic-but-empty, then run BODY.
 
@@ -238,10 +207,6 @@ registered without tripping that error."
        (expect (cl-prolog-kit:prolog-succeeds-p *boundary-policy* '(boundary plugin))
                :to-be-null)))))
 
-;;; Negation as failure: "clock mutation is not permitted" stated as a rule
-;;; (using NOT rather than the :FAILS query kind above) so the restriction is
-;;; itself a declarative fact a query can depend on, not only an assertion a
-;;; test makes about the absence of solutions.
 (defparameter *boundary-policy-with-negation* (cl-prolog-kit:extend-rulebase
     *boundary-policy*
     ((clock-mutation-forbidden) (not (permitted clock mutate)))))
@@ -250,8 +215,6 @@ registered without tripping that error."
   (expect (cl-prolog-kit:prolog-succeeds-p
            *boundary-policy-with-negation* '(clock-mutation-forbidden))
           :to-be-truthy)
-  ;; A permitted operation is NOT forbidden -- the negated rule tracks the
-  ;; underlying PERMITTED facts rather than always succeeding.
   (expect (cl-prolog-kit:prolog-succeeds-p
            (cl-prolog-kit:extend-rulebase *boundary-policy-with-negation*
              ((clock-observation-forbidden) (not (permitted clock observe))))
@@ -307,14 +270,7 @@ registered without tripping that error."
   "prolog-occurs-check-rejects-cyclic-boundary-facts"
   (expect (null (cl-prolog-kit:unify '?boundary '(wrapped ?boundary))) :to-be-truthy))
 
-;;; FINDALL: aggregate every declared BOUNDARY/1 fact into one list and
-;;; assert its length, rather than enumerating solutions one at a time the
-;;; way the :SET query kind above does. Facts and query are both consulted
-;;; from text (like *BOUNDARY-POLICY-SOURCE* / the tabled-reachability graph
-;;; below), not queried against the sexp-authored *BOUNDARY-POLICY* --
-;;; mixing the two representations left BOUNDARY/1 unresolvable from a
-;;; text-parsed goal (an atom-identity mismatch between the two clause
-;;; authoring styles).
+;;; Query the text-parsed policy so atom identity matches the text goal.
 (it
   "findall-aggregates-every-declared-boundary-fact-into-one-count"
   (let ((policy

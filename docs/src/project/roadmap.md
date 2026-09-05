@@ -28,8 +28,8 @@ adoption quality rather than surface growth.
 - Keep the boundary protocols focused before adding any new abstraction layer.
 - Expand [Cookbook](../guide/cookbook.md) only when it explains a real usage pattern
   better than the existing examples.
-- Add documented workflows only after they are exercised by real
-  repository-level verification, not by assumption.
+- Add documented workflows only after repository-level verification covers
+  them, not by assumption.
 
 ## Non-Goals
 

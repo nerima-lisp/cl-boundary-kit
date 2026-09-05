@@ -1,10 +1,7 @@
 ;;;; t/property-invariants-test.lisp
 ;;;;
-;;;; Property-based invariants and micro-benchmarks built on cl-weave 0.8.0's
-;;;; generative testing (`it-property`, `gen-*`) and `benchmark` facilities.
-;;;; Generative tests exercise the boundary abstractions across a wide space of
-;;;; randomized inputs -- reproducibly, via CL_WEAVE_PROPERTY_SEED -- to surface
-;;;; latent edge-case bugs that fixed examples cannot.
+;;;; Property-based invariants and micro-benchmarks using cl-weave's
+;;;; `it-property`, `gen-*`, and `benchmark` facilities.
 
 (in-package #:cl-boundary-kit/test)
 
@@ -183,13 +180,8 @@
                     (not (funcall predicate 5 5))))))))
     (expect (cl-weave:assert-mutation-score results 1.0) :to-be-truthy)))
 
-;;; Mutation testing (cl-weave): the deterministic random source's LCG step
-;;; is pure arithmetic (+, *, MOD) with no test coverage of the exact
-;;; formula shape -- only of the resulting properties (range, repeatability)
-;;; via the property test above. A mutant that swaps + for - or * for /
-;;; would still produce range-bounded, repeatable output, so it would slip
-;;; past that property test undetected; this oracle pins the exact
-;;; documented recurrence instead.
+;;; The properties constrain the LCG output but not its exact recurrence.
+;;; This oracle distinguishes mutations such as swapping + for - or * for /.
 (it "lcg-step-oracle-kills-every-injected-mutant"
   (let ((results
           (cl-weave:run-mutations

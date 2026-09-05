@@ -2,8 +2,6 @@
 
 (in-package #:cl-boundary-kit)
 
-;;; DATA: the values the default host readers report when the host cannot
-;;; answer, kept apart from the lookup LOGIC below.
 (defparameter +host-info-unknown-username+ "unknown"
   "User name reported when the host exposes none.")
 

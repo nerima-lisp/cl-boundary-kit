@@ -2,9 +2,6 @@
 
 (in-package #:cl-boundary-kit)
 
-;;; DATA: the RFC 4122 version-4 layout -- byte count, the two fixed nibble
-;;; edits, and the hyphen positions -- kept apart from the byte-shuffling LOGIC
-;;; in %UUID-V4-STRING so the wire format reads as a specification.
 (defconstant +uuid-byte-length+ 16
   "Octets in a UUID: 128 bits laid out as 16 bytes.")
 

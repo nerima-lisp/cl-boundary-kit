@@ -2,11 +2,6 @@
 
 (in-package #:cl-boundary-kit/test)
 
-;; Every case here used to be a :SECTION lookup within README.md. Now that
-;; README is a lean landing page, each checks the docs/src page(s) that took
-;; over as the authoritative source for that content (verified equal to the
-;; former README prose where the underlying subsystem docs did not already
-;; carry an equivalent, purpose-written sentence of their own).
 (define-document-search-tests
   (:cases (readme-document-search-shared-cases))
   (readme-api-overview-documents-composition-and-condition-contracts

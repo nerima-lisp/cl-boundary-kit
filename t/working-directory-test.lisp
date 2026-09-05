@@ -78,8 +78,7 @@
 
 (describe "native working directory set"
   (it "native-working-directory-set-updates-default-pathname-defaults"
-    ;; Exercises the native SET-FN, which mutates *DEFAULT-PATHNAME-DEFAULTS*;
-    ;; the previous value is restored so the rest of the suite is unaffected.
+    ;; Restore the dynamically bound defaults after native mutation.
     (let ((working-directory (make-working-directory))
           (previous *default-pathname-defaults*))
       (unwind-protect

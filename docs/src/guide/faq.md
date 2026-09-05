@@ -69,7 +69,7 @@ guarantees.
 ## What If Behavior Differs Across Lisp Implementations Or Platforms?
 
 Start by checking [Verification](../reference/compatibility.md) to identify the workflows
-the repository currently exercises.
+the repository currently verifies.
 
 If a behavior covered by that verified contract fails, report it through
 [Support](../project/support.md) with:
@@ -88,7 +88,7 @@ path in [Security](../project/security.md) instead of the public support route.
 The current public API is defined by:
 
 - exported symbols documented across the [Guide](composition.md) pages
-- checked-in examples and cookbook snippets that are exercised by the test suite
+- checked-in examples and cookbook snippets covered by the test suite
 - checked workflows in [Verification](../reference/compatibility.md)
 - contributor guidance in [Contributing](../project/contributing.md) and
   [Governance](../project/governance.md)

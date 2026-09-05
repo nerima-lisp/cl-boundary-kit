@@ -2,13 +2,13 @@
 
 ## Checked Workflows
 
-The repository exercises these workflows through checked-in verification.
+The repository backs these workflows with checked-in checks.
 
 - Provides a pinned Nix test path through `nix run .#test`
 - Emits pinned Nix apps and checks for `x86_64-linux` and `aarch64-darwin`;
   only `x86_64-linux` is CI-gated, and the Ubuntu CI workflow is the canonical
   verification path
-- Exercises the supported host flake check set through `nix flake check`,
+- Verifies the supported host flake check set through `nix flake check`,
   including the checkout runner, a `cl-weave` JSON report, and a 100% coverage
   threshold
 - Does not require Quicklisp when using the Nix flake; Nix supplies SBCL and

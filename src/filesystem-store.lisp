@@ -2,9 +2,6 @@
 
 (in-package #:cl-boundary-kit)
 
-;; DATA: the keyword options FILESYSTEM-STORE-FILE understands, kept apart from
-;; the validation LOGIC below so the accepted set reads as a list rather than
-;; being spelled out inside PLIST-REMOVE-KEYS.
 (defparameter +filesystem-write-option-keys+
   '(:if-exists :if-does-not-exist :external-format)
   "The keyword options FILESYSTEM-STORE-FILE accepts; any other key is rejected.")

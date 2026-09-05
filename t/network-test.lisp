@@ -167,10 +167,7 @@
           (expect (recording-network-calls network) :to-equal calls)))))
 
   (it "recording-network-boundary-redacts-through-proper-list-and-dotted-pair-values"
-    ;; Exercises the non-plist/non-alist arms of %REDACT-NETWORK-VALUE: a proper
-    ;; list of scalars is redacted element-wise, and a dotted pair is rebuilt car
-    ;; and cdr. Neither field is sensitive, so both shapes pass through intact --
-    ;; the point is that redaction traverses them without corrupting structure.
+    ;; Redaction traverses both list shapes without corrupting their structure.
     (with-network-boundary (network make-recording-network-boundary
                                     :delegate (make-network-boundary
                                                :request-fn (lambda (request &key timeout)
@@ -224,11 +221,6 @@
   (it "network-boundary-request-rejects-a-non-network-boundary"
     (expect (lambda () (network-boundary-request :bad '(:method :get))) :to-throw "Unsupported network boundary type"))
 
-  ;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
-  ;; double-record every call -- once on the wrapper, once on the delegate's
-  ;; own history -- because the recording dispatch recursed through the
-  ;; delegate's public NETWORK-BOUNDARY-REQUEST, re-entering the delegate's
-  ;; own recording path. Only the wrapper should record.
   (it "recording-network-boundary-does-not-double-record-a-self-recording-delegate"
     (let* ((delegate (make-test-network-boundary :responses (list "ok")))
            (network (make-recording-network-boundary :delegate delegate)))
@@ -288,9 +280,7 @@
       (network-boundary-request network '(:method :get))
       (expect (recording-network-calls network) :to-have-length 1)))
 
-  ;; %NETWORK-CALLS is a type-dispatched generic with a separate SETF method per
-  ;; boundary class; the test above only exercises TEST-NETWORK-BOUNDARY's, so
-  ;; drive the same reset through an actual RECORDING-NETWORK-BOUNDARY too.
+  ;; Verify the RECORDING-NETWORK-BOUNDARY SETF method as well.
   (it "reset-recording-network-calls-clears-history-on-a-recording-boundary"
     (with-network-boundary (network make-recording-network-boundary
                                     :delegate (make-test-network-boundary
@@ -300,10 +290,6 @@
       (expect (reset-recording-network-calls network) :to-be network)
       (expect (recording-network-calls network) :to-be-null)))
 
-  ;; Regression: %RECORD-NETWORK-CALL built its call record by hand instead of
-  ;; going through the shared %RECORD-CALL macro, so it never got the
-  ;; COPY-TREE write-time protection: mutating the request list the caller
-  ;; still holds a reference to corrupted the boundary's own history.
   (it "test-network-boundary-history-is-independent-of-a-mutated-request"
     (let ((network (make-test-network-boundary :responses (list "ok")))
           (request (list :method :get :url "https://example.test")))

@@ -78,9 +78,6 @@
     (signals error
       (nth-recorded-call '() -1)))
 
-  ;; The test above only exercises a negative integer index, taking the AND's
-  ;; other operand's false branch; a non-integer takes INTEGERP's own false
-  ;; branch.
   (it "nth-recorded-call-rejects-a-non-integer-index"
     (signals error
       (nth-recorded-call '() 1.5))))
@@ -192,10 +189,6 @@
                                 :result "/usr/bin"))
       (expect (cl-boundary-kit:assert-recorded-call calls :get) :to-be-truthy)))
 
-  ;; The tests above only ever see one call per operation, so ASSERT-RECORDED-
-  ;; CALL's loop always finds its match on the first matching iteration;
-  ;; exercise a second, later match for the same operation being skipped once
-  ;; MATCHING-CALL is already set.
   (it "assert-recorded-call-returns-the-first-match-among-several"
     (with-boundary-calls (calls
                           (:get (list "PATH") :result "/usr/bin")
@@ -209,8 +202,6 @@
        :set
        :arguments (list "HOME" :value "/srv"))))
 
-  ;; The test above only supplies :ARGUMENTS; also cover the failure message
-  ;; when an explicit :RESULT expectation is supplied too.
   (it "assert-recorded-call-signals-when-call-is-missing-with-a-result-expectation"
     (signals error
       (cl-boundary-kit:assert-recorded-call
@@ -289,10 +280,6 @@
        nil
        (list '(:arguments ("HOME"))))))
 
-  ;; Regression: with :EXACT-LENGTH NIL, the LOOP driving this check used
-  ;; parallel `for ... in` clauses over both EXPECTED-CALLS and CALLS, so it
-  ;; silently stopped as soon as the shorter CALLS list ran out instead of
-  ;; flagging that an expected trailing call never happened.
   (it "assert-recorded-call-sequence-signals-when-expectations-outrun-calls"
     (signals error
       (with-boundary-calls (calls
@@ -302,8 +289,6 @@
          (list (cl-boundary-kit:boundary-call-plist :get (list "HOME") :result "/tmp")
                (cl-boundary-kit:boundary-call-plist :set (list "HOME" :value "/srv") :result t))
          :exact-length nil))))
-
-  ;; Error branches of the sequence assertion and event-constraint validation.
 
   (it "assert-recorded-call-sequence-rejects-non-list-expected-calls"
     (expect (lambda () (assert-recorded-call-sequence '() 42)) :to-throw "expected EXPECTED-CALLS to be a list"))

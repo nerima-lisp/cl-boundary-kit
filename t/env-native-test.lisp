@@ -54,8 +54,6 @@
       (expect (environment-present-p environment "CL_BOUNDARY_KIT_NATIVE_ENV_TEST") :to-be-null)))
 
   (it "native-environment-list-and-get-read-the-real-process-environment"
-    ;; Exercises the native reader path (%native-environment-list, the CPS entry
-    ;; splitter, and %native-environment-get) rather than a test double.
     (let ((environment (make-environment)))
       (expect (environment-list environment) :to-be-type-of 'list)
       ;; PATH is present in essentially every process environment.

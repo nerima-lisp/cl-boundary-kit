@@ -1,49 +1,31 @@
 ;;;; t/coverage-completion-test.lisp
-;;;;
-;;;; Direct unit tests that exercise the individual decision branches of the
-;;;; internal helpers, so every logic path (branch coverage) is taken. These
-;;;; complement the boundary-level behaviour tests, which drive the happy paths
-;;;; but do not reach every predicate rejection arm.
-
 (in-package #:cl-boundary-kit/test)
 
 (describe "network redaction shape predicates and dispatch"
   (it "redact-network-value-traverses-every-supported-shape"
     (flet ((redact (value) (cl-boundary-kit::%redact-network-value value)))
       (with-soft-assertions
-        ;; atom pass-through
         (expect (redact 42) :to-be 42)
-        ;; sensitive plist key redacted, ordinary key kept
         (expect (redact '(:authorization "s" :accept "j")) :to-equal '(:authorization :redacted :accept "j"))
-        ;; sensitive alist key redacted
         (expect (redact '((:token . "s") (:ok . "j"))) :to-equal '((:token . :redacted) (:ok . "j")))
-        ;; proper list of scalars traversed element-wise
         (expect (redact '("a" "b")) :to-equal '("a" "b"))
-        ;; odd-length "plist" fails the plist predicate and is treated as a list
         (expect (redact '(:a 1 :b)) :to-equal '(:a 1 :b))
-        ;; a non-symbol/string key fails the plist and alist predicates
         (expect (redact '(1 2)) :to-equal '(1 2))
-        ;; dotted pair rebuilt through the fallback arm
         (expect (redact '(1 . 2)) :to-equal '(1 . 2)))))
 
   (it "network-shape-predicates-reject-malformed-structure"
     (with-soft-assertions
       (expect (cl-boundary-kit::%network-plist-p '(:a 1 :b 2)) :to-be-truthy)
-      (expect (cl-boundary-kit::%network-plist-p '(:a 1 :b)) :to-be nil)  ; odd
-      (expect (cl-boundary-kit::%network-plist-p '(1 2)) :to-be nil)      ; bad key
-      ;; a complete key/value pair followed by a dotted, non-cons tail
+      (expect (cl-boundary-kit::%network-plist-p '(:a 1 :b)) :to-be nil)
+      (expect (cl-boundary-kit::%network-plist-p '(1 2)) :to-be nil)
       (expect (cl-boundary-kit::%network-plist-p '(:a 1 . 2)) :to-be nil)
       (expect (cl-boundary-kit::%network-alist-p '((:a . 1))) :to-be-truthy)
-      (expect (cl-boundary-kit::%network-alist-p '(1 2)) :to-be nil)      ; entry not a cons
-      (expect (cl-boundary-kit::%network-alist-p '((1 . 2))) :to-be nil)  ; key not symbol/string
-      ;; valid entries followed by a dotted, non-cons tail
+      (expect (cl-boundary-kit::%network-alist-p '(1 2)) :to-be nil)
+      (expect (cl-boundary-kit::%network-alist-p '((1 . 2))) :to-be nil)
       (expect (cl-boundary-kit::%network-alist-p '((:a . 1) . 2)) :to-be nil)
       (expect (cl-boundary-kit::%proper-list-p '(1 2 3)) :to-be-truthy)
       (expect (cl-boundary-kit::%proper-list-p '(1 . 2)) :to-be nil)))
 
-  ;; %RECORD-NETWORK-CALL's TYPECASE fallback is unreachable through the public
-  ;; NETWORK-BOUNDARY-REQUEST, which only calls it for test/recording
-  ;; boundaries; call the private helper directly to exercise the fallback.
   (it "record-network-call-rejects-an-unsupported-boundary-type"
     (expect (lambda ()
               (cl-boundary-kit::%record-network-call
@@ -57,7 +39,6 @@
     (expect (cl-boundary-kit::%network-sensitive-field-p :authorization) :to-be-truthy)
     (expect (cl-boundary-kit::%network-sensitive-field-p "Authorization") :to-be-truthy)
     (expect (cl-boundary-kit::%network-sensitive-field-p :accept) :to-be nil)
-    ;; the non-symbol/non-string arm returns NIL
     (expect (cl-boundary-kit::%network-sensitive-field-p 42) :to-be nil))
 
   (it "copy-boundary-value-defensively-copies-bit-vectors"
@@ -71,32 +52,31 @@
 (describe "environment value/presence extraction and normalization"
   (it "environment-value-from-call-covers-every-arm"
     (flet ((v (values default) (cl-boundary-kit::%environment-value-from-call values default)))
-      (expect (v '() :d) :to-be :d)                 ; no values -> default
-      (expect (v '(:x t) :d) :to-be :x)             ; present-p secondary true -> value
-      (expect (v '(:x nil) :d) :to-be :d)           ; present-p secondary nil -> default
-      (expect (v '(nil) :d) :to-be :d)              ; single NIL value -> default
-      (expect (v '(:x) :d) :to-be :x)))             ; single non-nil value -> value
+      (expect (v '() :d) :to-be :d)
+      (expect (v '(:x t) :d) :to-be :x)
+      (expect (v '(:x nil) :d) :to-be :d)
+      (expect (v '(nil) :d) :to-be :d)
+      (expect (v '(:x) :d) :to-be :x)))
 
   (it "environment-presence-from-call-covers-every-arm"
     (flet ((p (values) (cl-boundary-kit::%environment-presence-from-call values)))
-      (expect (p '()) :to-be nil)                   ; no values -> absent
-      (expect (p '(:x t)) :to-be-truthy)            ; explicit present-p secondary
-      (expect (p '(:x)) :to-be-truthy)              ; single non-nil -> present
-      (expect (p '(nil)) :to-be nil)))              ; single NIL -> absent
+      (expect (p '()) :to-be nil)
+      (expect (p '(:x t)) :to-be-truthy)
+      (expect (p '(:x)) :to-be-truthy)
+      (expect (p '(nil)) :to-be nil)))
 
   (it "normalize-environment-values-covers-empty-alist-and-plist-inputs"
     (flet ((n (input) (cl-boundary-kit::%normalize-environment-values input)))
-      (expect (n '()) :to-be nil)                                   ; empty
-      (expect (n '((:a . 1))) :to-equal '((:a . 1)))   ; already an alist
-      (expect (n '(:a 1 :b 2)) :to-equal '((:a . 1) (:b . 2))))  ; plist -> alist
-    (expect (lambda () (cl-boundary-kit::%normalize-environment-values '(:a 1 :b))) :to-throw "INITIAL-VALUES must be an alist or plist")))  ; odd
+      (expect (n '()) :to-be nil)
+      (expect (n '((:a . 1))) :to-equal '((:a . 1)))
+      (expect (n '(:a 1 :b 2)) :to-equal '((:a . 1) (:b . 2))))
+    (expect (lambda () (cl-boundary-kit::%normalize-environment-values '(:a 1 :b))) :to-throw "INITIAL-VALUES must be an alist or plist")))
 
-(describe "args-nth and random validation branches"
+(describe "args-nth and random validation"
   (it "args-nth-rejects-a-non-integer-or-negative-index"
     (let ((args (make-test-args :arguments (list "a" "b"))))
       (expect (lambda () (args-nth args -1)) :to-throw "ARGS-NTH index must be a non-negative integer")
       (expect (lambda () (args-nth args :bad)) :to-throw "ARGS-NTH index must be a non-negative integer")
-      ;; out-of-range returns NIL rather than signaling
       (expect (args-nth args 9) :to-be nil)))
 
   (it "random-source-random-rejects-a-non-positive-limit"
@@ -105,31 +85,18 @@
       (expect (lambda () (random-source-random source -5)) :to-throw "limit must be positive"))))
 
 (describe "process-calls guard"
-  ;; %PROCESS-CALLS's own type check is unreachable through RECORDING-PROCESS-CALLS
-  ;; / RESET-RECORDING-PROCESS-CALLS, which already guard on the same predicate
-  ;; via DEFINE-RECORDING-CALL-LOG's (SATISFIES ...) class-name before ever
-  ;; calling it; call the private helper directly to exercise its own guard.
   (it "process-calls-rejects-a-non-recording-process-boundary"
     (expect (lambda () (cl-boundary-kit::%process-calls (make-process-boundary))) :to-throw "Unsupported process boundary type"))
 
-  ;; %RECORD-PROCESS-CALL's own type check is likewise unreachable through
-  ;; PROCESS-BOUNDARY-RUN, which already guards on %RECORDING-PROCESS-BOUNDARY-P
-  ;; before ever calling it.
   (it "record-process-call-rejects-a-non-recording-process-boundary"
     (expect (lambda () (cl-boundary-kit::%record-process-call (make-process-boundary) "noop")) :to-throw "Unsupported process boundary type"))
 
-  ;; %PROCESS-BOUNDARY-RUN-FOR-TYPE's (T) method is unreachable through
-  ;; PROCESS-BOUNDARY-RUN, which already validates the boundary type via
-  ;; %REQUIRE-PROCESS-BOUNDARY before ever dispatching on it.
   (it "process-boundary-run-for-type-rejects-an-unrecognized-boundary-type"
     (expect (lambda ()
               (cl-boundary-kit::%process-boundary-run-for-type
                :bad (make-process-boundary) "noop" nil))
             :to-throw "Unsupported process boundary type"))
 
-  ;; +PROCESS-RECORDED-CALL-KEYS+'s defparameter form is only ever recorded
-  ;; as covered when a test body references it directly, not merely by
-  ;; loading a file that consumes it through %PROCESS-CALL-KEYWORDS.
   (it "process-recorded-call-keys-names-the-keys-in-recorded-order"
     (expect cl-boundary-kit::+process-recorded-call-keys+
             :to-equal '(:arguments :input :directory :output :error-output :timeout))))
@@ -138,9 +105,7 @@
   (it "copy-test-file-content-copies-strings-and-passes-other-values-through"
     (let ((original "abc"))
       (expect (cl-boundary-kit::%copy-test-file-content original) :to-equal "abc")
-      ;; a copy, not the same object
       (expect (eq (cl-boundary-kit::%copy-test-file-content original) original) :to-be nil))
-    ;; non-string content passes through unchanged (the else arm)
     (expect (cl-boundary-kit::%copy-test-file-content 42) :to-be 42))
 
   (it "directory-path-prefix-normalizes-empty-slash-and-bare-directories"
@@ -160,19 +125,15 @@
     (expect (lambda () (make-test-rate-limiter :capacity 0)) :to-throw "Rate limiter capacity must be a positive real number")
     (expect (lambda () (make-test-rate-limiter :refill-rate -1)) :to-throw "Rate limiter refill rate must be a non-negative real number")))
 
-(describe "validation guards: exercise each AND/OR operand's false branch"
+(describe "validation guards reject invalid operands"
   (it "random-source-random-rejects-a-non-real-limit"
-    ;; Complements the non-positive-limit test: here REALP itself fails, taking
-    ;; the other branch of the (and (realp limit) (> limit 0)) guard.
     (expect (lambda () (random-source-random (make-random-source) "not-a-number")) :to-throw "limit must be positive"))
 
   (it "make-deterministic-random-source-rejects-non-integer-and-too-small-moduli"
-    (expect (lambda () (make-deterministic-random-source :modulus 1)) :to-throw "modulus must be an integer greater than 1")       ; integer but not > 1
-    (expect (lambda () (make-deterministic-random-source :modulus 3.5)) :to-throw "modulus must be an integer greater than 1"))    ; not an integer
+    (expect (lambda () (make-deterministic-random-source :modulus 1)) :to-throw "modulus must be an integer greater than 1")
+    (expect (lambda () (make-deterministic-random-source :modulus 3.5)) :to-throw "modulus must be an integer greater than 1"))
 
   (it "metrics-count-rejects-a-nil-symbol-name"
-    ;; NIL is a symbol, so it takes the (and (symbolp name) name) arm where the
-    ;; second conjunct is false.
     (expect (lambda () (metrics-count (make-test-metrics) nil 1)) :to-throw "Metric name must be a non-nil symbol or a string"))
 
   (it "make-test-rate-limiter-rejects-non-real-capacity-and-refill-rate"

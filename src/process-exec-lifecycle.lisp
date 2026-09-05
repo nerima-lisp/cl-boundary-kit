@@ -8,8 +8,6 @@
 (defparameter *%process-kill-grace-seconds* 2
   "Seconds to wait after SIGTERM before escalating to SIGKILL on timeout.")
 
-;;; DATA: the polling cadence and the two POSIX signal numbers this escalation
-;;; sends, kept apart from the termination LOGIC below.
 (defparameter *%process-poll-interval-seconds* 0.01
   "Seconds between liveness polls while waiting on a child process.")
 

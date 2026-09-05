@@ -213,11 +213,6 @@
                        :timeout *default-process-timeout-seconds*
                        :result (process-result :stdout "ok"))))))
 
-  ;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
-  ;; double-record every call -- once on the wrapper, once on the delegate's
-  ;; own history -- because the recording dispatch recursed through the
-  ;; delegate's public PROCESS-BOUNDARY-RUN, re-entering the delegate's own
-  ;; recording path. Only the wrapper should record.
   (it "recording-process-boundary-does-not-double-record-a-self-recording-delegate"
     (let* ((delegate (make-test-process-boundary :results (list (process-result :stdout "ok"))))
            (process (make-recording-process-boundary :delegate delegate)))
@@ -271,8 +266,6 @@
     (signals error
       (make-recording-process-boundary :delegate :bad)))
 
-  ;; Every other test supplies an explicit :DELEGATE; exercise the &KEY default
-  ;; (a fresh MAKE-PROCESS-BOUNDARY) too.
   (it "make-recording-process-boundary-defaults-to-a-fresh-process-boundary"
     (let ((*native-process-search-path-p* t))
       (let* ((process (make-recording-process-boundary))

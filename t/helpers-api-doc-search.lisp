@@ -65,26 +65,14 @@
        :exists t
        :contains ("MIT License"
                   "Permission is hereby granted, free of charge"))
-      (roadmap-documents-verification-driven-adoption-constraints :file "docs/src/project/roadmap.md" :contains ("## Status Semantics" "directional, not release commitments" "GitHub releases page" "documented REPL test-runner contract" "executable verification" "cookbook.md" "documented workflows only after they are exercised"))
+      (roadmap-documents-verification-driven-adoption-constraints :file "docs/src/project/roadmap.md" :contains ("## Status Semantics" "directional, not release commitments" "GitHub releases page" "documented REPL test-runner contract" "executable verification" "cookbook.md" "repository-level verification covers"))
       (roadmap-release-history-and-direction-stay-separate
        :file "docs/src/project/roadmap.md"
        :contains ("directional, not release commitments"
                   "Public changes that are already shipped belong in the release description"))))
 
-  ;; Empty as of the 2026-08-01 revision. Both cases that lived here asserted
-  ;; on CHANGELOG.md's Keep a Changelog structure and on its unreleased
-  ;; section. There is no CHANGELOG.md any more: the GitHub Release
-  ;; description is the org's only canonical changelog, and nothing in the
-  ;; working tree can be checked against it. The parameter itself stays so
-  ;; DOCUMENT-SEARCH-FOUNDATION-CASES keeps its shape and a future
-  ;; foundation-only case has somewhere to go.
   (defparameter *document-search-foundation-extra-cases* '())
 
-  ;; These cases used to check README.md's own summary prose linking out to
-  ;; each governance document. Now that README is a lean landing page without
-  ;; those per-topic sections, they check the docs/src page(s) that took over
-  ;; as the authoritative source for the same cross-reference, using an
-  ;; explicit :FILE (or a combined :HAYSTACK) instead of a README :SECTION.
   (defparameter *readme-document-search-shared-cases*
     '((readme-repository-layout-documents-where-release-history-lives
        :file "docs/src/reference/repository-layout.md"

@@ -41,7 +41,7 @@ the emitted flake systems are not a compatibility claim; use
 For local development on any host with an existing SBCL environment, run
 `sbcl --script run-tests.lisp`. Quicklisp itself is not required, but direct
 SBCL and REPL use requires `cl-host-kit`, `cl-prolog-kit`, and `cl-weave` to be
-discoverable by ASDF. The suite exercises
+discoverable by ASDF. The suite covers
 filesystem, environment, clock, random, process, network, logging, recording,
 and boundary composition behavior.
 

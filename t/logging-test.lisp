@@ -132,14 +132,6 @@
       (operation)
     (expect (lambda () (funcall operation (make-logger))) :to-throw "Unsupported logger type"))
 
-  ;; Regression: wrapping a self-recording (:TEST-kind) delegate used to
-  ;; double-record every event -- once on the wrapper, once on the delegate's
-  ;; own history -- because the recording dispatch recursed through the
-  ;; delegate's public %LOGGER-EMIT-EVENT, re-entering the delegate's own
-  ;; recording path. Nesting RECORDING-LOGGERs is a different, intentional
-  ;; case (each level records its own copy while cascading to the innermost
-  ;; real sink) and must keep working -- see
-  ;; recording-logger-preserves-event-through-nested-delegates above.
   (it "recording-logger-does-not-double-record-a-self-recording-delegate"
     (let* ((delegate (make-test-logger))
            (logger (make-recording-logger :delegate delegate)))
